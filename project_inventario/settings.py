@@ -29,7 +29,7 @@ SECRET_KEY = getenv('SECRET')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['https://panel-administracion.vercel.app']
+ALLOWED_HOSTS = ['.vercel.app']
 
 
 # Application definition
