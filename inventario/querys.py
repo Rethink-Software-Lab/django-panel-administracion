@@ -5,12 +5,11 @@ from .models import *
 from graphql_jwt.decorators import login_required, staff_member_required, user_passes_test
 from datetime import timedelta, datetime, date
 from django.utils import timezone
-import calendar
-import locale
 from django.shortcuts import get_object_or_404
 from graphql_jwt.shortcuts import get_user_by_token
 from django.core.paginator import Paginator
 from graphql import GraphQLError
+from .utils import get_month_name
 
 class Query(ObjectType):
     all_users = Field(UserFilterType, page=Int(), perPage=Int())
@@ -178,7 +177,6 @@ class Query(ObjectType):
     
     @staff_member_required
     def resolve_grafico(self, info):
-        locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
         anno = datetime.now().year
 
         mes_actual = datetime.now().month
@@ -193,11 +191,11 @@ class Query(ObjectType):
                     for venta in ventas:
                         productos = venta.productos.all()
                         products = Producto.objects.filter(pk__in=productos)
-                        nombre_mes = calendar.month_name[mes]
+                        nombre_mes = get_month_name(mes)
                         for product in products:
                             v += product.info.precio_venta - product.info.precio_costo
                 else:
-                    nombre_mes = calendar.month_name[mes]
+                    nombre_mes = get_month_name(mes)
                 grafico.append({
                     "mes": nombre_mes.capitalize(),
                     "ventas": v
