@@ -10,6 +10,10 @@
     {
       "src": "/(.*)",
       "dest": "project_inventario/wsgi.py"
+    },
+    {
+      "src": "/staticfiles/(.*)",
+      "dest": "/staticfiles/$1"
     }
   ]
 }
