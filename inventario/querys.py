@@ -19,8 +19,10 @@ class Query(ObjectType):
     all_entradas = Field(EntradaFilterType, page=Int())
     all_salidas = Field(SalidaFilterType, page=Int())
     productos_by_punto_venta = List(PbyPT, id=ID())
+    one_producto=Field(ProductoType, id=ID())
     all_punto_venta = Field(PuntoVentaFilterType, page=Int(required=False))
     inventario_almacen = Field(ProductFilterType, page=Int())
+    inventario_punto_venta = Field(ProductFilterType, id=ID(), id_producto=ID(), codigo=String(), page=Int())
     search_product = Field(ProductInfoType, codigo=String())
     mas_vendidos = List(MasVendidosType)
     ventas_hoy = Decimal()
@@ -87,6 +89,17 @@ class Query(ObjectType):
         return ProductFilterType(productos, info=InfoType(page=page, total_pages=p.num_pages))
     
     @login_required
+    def resolve_inventario_punto_venta(self, info, id, id_producto=None, codigo=None, page=None):
+        filtros = {}
+        if id_producto is not None:
+            filtros['id'] = id_producto
+        if codigo is not None:
+            filtros['info__codigo'] = codigo
+        p = Paginator(Producto.objects.filter(**filtros, punto_venta__id=id, in_stock=True).order_by('-id'), 7)
+        productos = p.get_page(page)
+        return ProductFilterType(productos, info=InfoType(page=page, total_pages=p.num_pages))
+    
+    @login_required
     def resolve_one_ventas(self, info, id, page=None):
         if info.context.user.rol == "ADMIN" or info.context.user.rol == "ALMACENERO" or info.context.user.punto_venta.id == int(id):
             if page is None:
@@ -110,6 +123,11 @@ class Query(ObjectType):
             return productos
         else:
             return GraphQLError("No tienes permisos para relizar esta acción")
+        
+    @login_required
+    def resolve_one_producto(self, info, id):
+        return get_object_or_404(Producto, pk=id)
+
         
     @staff_member_required
     def resolve_mas_vendidos(self, info):
