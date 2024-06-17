@@ -56,7 +56,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class Image(models.Model):
-    url = CloudinaryField("image", format="WebP")
+    url = CloudinaryField("image", format="WebP", folder='dashboard_valero/')
 
 
 class ProductoInfo(models.Model):
