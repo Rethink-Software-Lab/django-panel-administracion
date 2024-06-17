@@ -313,7 +313,7 @@ class AddVentas(Mutation):
     
     @user_passes_test(lambda user: user.rol == "ADMIN" or user.rol == "VENDEDOR") 
     def mutate(self, info, productos, punto_venta, metodo_pago):
-        if info.context.user.rol == "ADMIN" or info.context.user.punto_venta.id == punto_venta:
+        if info.context.user.rol == "ADMIN" or info.context.user.punto_venta.id == int(punto_venta):
             
             productos = Producto.objects.filter(pk__in=productos)
             punto_venta = get_object_or_404(PuntoVenta, pk=punto_venta)
@@ -340,7 +340,7 @@ class UpdateVentas(Mutation):
     
     @user_passes_test(lambda user: user.rol == "ADMIN" or user.rol == "VENDEDOR")
     def mutate(self, info, id, productos, punto_venta, metodo_pago):
-        if info.context.user.rol == "ADMIN" or info.context.user.punto_venta.id == punto_venta:
+        if info.context.user.rol == "ADMIN" or info.context.user.punto_venta.id == int(punto_venta):
             productos = Producto.objects.filter(pk__in=productos)
             ventas = get_object_or_404(Ventas, pk=id)
             punto_venta = get_object_or_404(PuntoVenta, pk=punto_venta)

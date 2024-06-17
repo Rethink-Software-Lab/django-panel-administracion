@@ -49,7 +49,7 @@ class Query(ObjectType):
         if page is None:
             productos_info = ProductoInfo.objects.all().order_by('-id')  
             return ProductInfoFilterType(productos_info)
-        p = Paginator(ProductoInfo.objects.all().order_by('-id'), 7)
+        p = Paginator(ProductoInfo.objects.all().order_by('-id'), 20)
         productos_info = p.get_page(page)
         return ProductInfoFilterType(productos_info, info=InfoType(page=page, total_pages=p.num_pages))
     
@@ -59,13 +59,13 @@ class Query(ObjectType):
     
     @user_passes_test(lambda user: user.rol == "ADMIN" or user.rol == "ALMACENERO")
     def resolve_all_entradas(self, info, page=1):
-        p = Paginator(EntradaAlmacen.objects.all().order_by('-created_at'), 7)
+        p = Paginator(EntradaAlmacen.objects.all().order_by('-created_at'), 20)
         entradas = p.get_page(page)
         return EntradaFilterType(entradas, info=InfoType(page=page, total_pages=p.num_pages))
     
     @user_passes_test(lambda user: user.rol == "ADMIN" or user.rol == "ALMACENERO")
     def resolve_all_salidas(self, info, page=1):
-        p = Paginator(SalidaAlmacen.objects.all().order_by('-created_at'), 7)
+        p = Paginator(SalidaAlmacen.objects.all().order_by('-created_at'), 20)
         salidas = p.get_page(page)
         return SalidaFilterType(salidas, info=InfoType(page=page, total_pages=p.num_pages))
     
@@ -75,7 +75,7 @@ class Query(ObjectType):
         if page is None:
             puntos_venta = PuntoVenta.objects.all().order_by('-id')  
             return PuntoVentaFilterType(puntos_venta)
-        p = Paginator(PuntoVenta.objects.all().order_by('-id'), 7)
+        p = Paginator(PuntoVenta.objects.all().order_by('-id'), 20)
         puntos_venta = p.get_page(page)
         return PuntoVentaFilterType(puntos_venta, info=InfoType(page=page, total_pages=p.num_pages))
     
@@ -84,7 +84,7 @@ class Query(ObjectType):
         if page is None:
             productos = Producto.objects.filter(punto_venta=None, in_stock=True).order_by('-id')
             return ProductFilterType(productos)
-        p = Paginator(Producto.objects.filter(punto_venta=None, in_stock=True).order_by('-id'), 7)
+        p = Paginator(Producto.objects.filter(punto_venta=None, in_stock=True).order_by('-id'), 20)
         productos = p.get_page(page)
         return ProductFilterType(productos, info=InfoType(page=page, total_pages=p.num_pages))
     
@@ -95,7 +95,7 @@ class Query(ObjectType):
             filtros['id'] = id_producto
         if codigo is not None:
             filtros['info__codigo'] = codigo
-        p = Paginator(Producto.objects.filter(**filtros, punto_venta__id=id, in_stock=True).order_by('-id'), 7)
+        p = Paginator(Producto.objects.filter(**filtros, punto_venta__id=id, in_stock=True).order_by('-id'), 20)
         productos = p.get_page(page)
         return ProductFilterType(productos, info=InfoType(page=page, total_pages=p.num_pages))
     
@@ -105,7 +105,7 @@ class Query(ObjectType):
             if page is None:
                 ventas = Ventas.objects.filter(punto_venta__id=id).order_by('-id')  
                 return PuntoVentaFilterType(ventas)
-            p = Paginator(Ventas.objects.filter(punto_venta__id=id).order_by('-id'), 7)
+            p = Paginator(Ventas.objects.filter(punto_venta__id=id).order_by('-id'), 20)
             ventas = p.get_page(page)
             return VentasFilterType(ventas, info=InfoType(page=page, total_pages=p.num_pages))
         else:
