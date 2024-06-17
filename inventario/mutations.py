@@ -127,7 +127,7 @@ class AddProductoInfo(Mutation):
                     temp_file.seek(0)
                 
                 # Subir la imagen optimizada a Cloudinary
-                    response = cloudinary.uploader.upload(temp_file.name, asset_folder='dashboard_valero/')
+                    response = cloudinary.uploader.upload(temp_file.name, asset_folder='dashboard_valero')
                     # Actualizar el campo de imagen con la URL de Cloudinary
                     imagen = Image(url=response['secure_url'])
                     imagen.save()
@@ -180,7 +180,7 @@ class UpdateProductoInfo(Mutation):
                         temp_file.seek(0)
                 
                     # Subir la imagen optimizada a Cloudinary
-                        response = cloudinary.uploader.upload(temp_file.name, asset_folder='dashboard_valero/')
+                        response = cloudinary.uploader.upload(temp_file.name, asset_folder='dashboard_valero')
 
                         # Actualizar el campo de imagen con la URL de Cloudinary
                         imagen = Image(url=response['secure_url'])
