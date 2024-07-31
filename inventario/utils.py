@@ -1,4 +1,3 @@
-
 month_names = {
     1: "enero",
     2: "febrero",
@@ -11,8 +10,9 @@ month_names = {
     9: "septiembre",
     10: "octubre",
     11: "noviembre",
-    12: "diciembre"
+    12: "diciembre",
 }
+
 
 def get_month_name(month_number):
     return month_names.get(month_number, "Mes no válido")

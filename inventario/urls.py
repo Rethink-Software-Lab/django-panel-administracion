@@ -5,5 +5,7 @@ from inventario.schema import schema
 from graphene_file_upload.django import FileUploadGraphQLView
 
 urlpatterns = [
-    path('api', csrf_exempt(FileUploadGraphQLView.as_view(graphiql=True, schema=schema)))
+    path(
+        "api/", csrf_exempt(FileUploadGraphQLView.as_view(graphiql=True, schema=schema))
+    )
 ]
