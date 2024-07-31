@@ -154,15 +154,16 @@ class Query(ObjectType):
         product_info = ProductoInfo.objects.all()
         products = []
 
-        for prod_info in product_info:
-            productos = Producto.objects.filter(
-                venta__isnull=False, info=prod_info
-            ).count()
-            if productos < 1:
-                continue
-            products.append({"producto": prod_info, "cantidad": productos})
+        if product_info:
+            for prod_info in product_info:
+                productos = Producto.objects.filter(
+                    venta__isnull=False, info=prod_info
+                ).count()
+                if productos < 1:
+                    continue
+                products.append({"producto": prod_info, "cantidad": productos})
 
-        products.sort(key=lambda producto: producto["cantidad"], reverse=True)
+            products.sort(key=lambda producto: producto["cantidad"], reverse=True)
         return products[0:5]
 
     @staff_member_required
