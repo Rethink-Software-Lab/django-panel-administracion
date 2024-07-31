@@ -32,7 +32,7 @@ class GraficasController:
                 )
                 dia_ventas[area.nombre] = {
                     "ventas": total_ventas["total"] if total_ventas["total"] else 0,
-                    "color": area.color,
+                    "color": area.color if area.color else "#000",
                 }
 
             grafico.append(dia_ventas)
