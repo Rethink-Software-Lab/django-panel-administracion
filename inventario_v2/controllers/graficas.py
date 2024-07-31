@@ -15,26 +15,30 @@ class GraficasController:
 
         grafico = []
 
-        for dia in range(7):  # 0 para lunes, 6 para domingo
-            dia_fecha = inicio_semana + timedelta(days=dia)
+        areas = AreaVenta.objects.all()
 
-            dia_ventas = {"dia": get_day_name(dia)}
+        if areas:
 
-            for area in AreaVenta.objects.all():
-                total_ventas = (
-                    Producto.objects.filter(
-                        venta__created_at__date=dia_fecha, area_venta=area
+            for dia in range(7):  # 0 para lunes, 6 para domingo
+                dia_fecha = inicio_semana + timedelta(days=dia)
+
+                dia_ventas = {"dia": get_day_name(dia)}
+
+                for area in areas:
+                    total_ventas = (
+                        Producto.objects.filter(
+                            venta__created_at__date=dia_fecha, area_venta=area
+                        )
+                        .annotate(
+                            diferencia=F("info__precio_venta") - F("info__precio_costo")
+                        )
+                        .aggregate(total=Sum("diferencia"))
                     )
-                    .annotate(
-                        diferencia=F("info__precio_venta") - F("info__precio_costo")
-                    )
-                    .aggregate(total=Sum("diferencia"))
-                )
-                dia_ventas[area.nombre] = {
-                    "ventas": total_ventas["total"] if total_ventas["total"] else 0,
-                    "color": area.color if area.color else "#000",
-                }
+                    dia_ventas[area.nombre] = {
+                        "ventas": total_ventas["total"] if total_ventas["total"] else 0,
+                        "color": area.color if area.color else "#000",
+                    }
 
-            grafico.append(dia_ventas)
+                grafico.append(dia_ventas)
 
         return grafico

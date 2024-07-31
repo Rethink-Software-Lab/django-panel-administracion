@@ -41,7 +41,9 @@ ROLES = (("ADMIN", "Admin"), ("ALMACENERO", "Almacenero"), ("VENDEDOR", "Vendedo
 class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=15, unique=True)
     rol = models.CharField(max_length=30, choices=ROLES, blank=False, null=False)
-    area_venta = models.ForeignKey(AreaVenta, on_delete=models.SET_NULL, null=True)
+    area_venta = models.ForeignKey(
+        AreaVenta, on_delete=models.SET_NULL, null=True, blank=True
+    )
     is_staff = models.BooleanField(default=False)
 
     objects = UserManager()
