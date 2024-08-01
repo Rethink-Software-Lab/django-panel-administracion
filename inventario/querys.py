@@ -148,7 +148,7 @@ class Query(ObjectType):
     def resolve_one_producto(self, info, id):
         return get_object_or_404(Producto, pk=id)
 
-    @staff_member_required
+    @user_passes_test(lambda user: user.rol == "ADMIN" or user.rol == "ALMACENERO")
     def resolve_mas_vendidos(self, info):
 
         product_info = ProductoInfo.objects.all()
@@ -166,7 +166,7 @@ class Query(ObjectType):
             products.sort(key=lambda producto: producto["cantidad"], reverse=True)
         return products[0:5]
 
-    @staff_member_required
+    @user_passes_test(lambda user: user.rol == "ADMIN" or user.rol == "ALMACENERO")
     def resolve_ventas_hoy(self, info):
         productos = (
             Producto.objects.filter(venta__created_at__date=timezone.now().date())
@@ -176,7 +176,7 @@ class Query(ObjectType):
 
         return productos["ventaHoy"]
 
-    @staff_member_required
+    @user_passes_test(lambda user: user.rol == "ADMIN" or user.rol == "ALMACENERO")
     def resolve_ventas_semana(self, info):
 
         hoy = timezone.now().date()
@@ -194,7 +194,7 @@ class Query(ObjectType):
 
         return productos["ventaSemana"]
 
-    @staff_member_required
+    @user_passes_test(lambda user: user.rol == "ADMIN" or user.rol == "ALMACENERO")
     def resolve_ventas_mes(self, info):
 
         today = timezone.now().date()
@@ -213,7 +213,7 @@ class Query(ObjectType):
 
         return productos["ventaMes"]
 
-    @staff_member_required
+    @user_passes_test(lambda user: user.rol == "ADMIN" or user.rol == "ALMACENERO")
     def resolve_grafico(self, info):
         anno = timezone.now().year
 
