@@ -483,7 +483,7 @@ class AddAreaVenta(Mutation):
 
     area_venta = Field(AreaVentaType)
 
-    @user_passes_test(lambda user: user.rol == "ADMIN")
+    @user_passes_test(lambda user: user.rol == "ADMIN" or user.rol == "ALMACENERO")
     def mutate(self, info, nombre, color):
         area_venta = AreaVenta.objects.create(nombre=nombre, color=color)
         area_venta.save()
@@ -498,7 +498,7 @@ class UpdateAreaVenta(Mutation):
 
     area_venta = Field(AreaVentaType)
 
-    @user_passes_test(lambda user: user.rol == "ADMIN")
+    @user_passes_test(lambda user: user.rol == "ADMIN" or user.rol == "ALMACENERO")
     def mutate(self, info, id, nombre, color):
 
         area_venta = get_object_or_404(AreaVenta, pk=id)
@@ -515,7 +515,7 @@ class DeleteAreaVenta(Mutation):
 
     message = String()
 
-    @user_passes_test(lambda user: user.rol == "ADMIN")
+    @user_passes_test(lambda user: user.rol == "ADMIN" or user.rol == "ALMACENERO")
     def mutate(self, info, id):
         try:
             area_venta = get_object_or_404(AreaVenta, pk=id)
