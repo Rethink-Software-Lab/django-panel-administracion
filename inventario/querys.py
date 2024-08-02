@@ -219,8 +219,8 @@ class Query(ObjectType):
 
         mes_actual = timezone.now().month
 
+        grafico = []
         if mes_actual > 0:
-            grafico = []
             for mes in range(1, mes_actual + 1):
                 prod = (
                     Producto.objects.filter(
@@ -239,7 +239,7 @@ class Query(ObjectType):
                         "ventas": prod["total"] if prod["total"] else 0,
                     }
                 )
-            return grafico
+        return grafico
 
     @login_required
     def resolve_user_by_token(self, info):
