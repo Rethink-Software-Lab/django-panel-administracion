@@ -268,111 +268,17 @@ class DeleteProductoInfo(Mutation):
     def mutate(self, info, id):
         try:
             producto = get_object_or_404(ProductoInfo, pk=id)
-            try:
-                cloudinary.uploader.destroy(producto.imagen.public_id)
-            except:
-                return GraphQLError("Error al eliminar el recurso")
+            if producto.imagen:
+                try:
+                    cloudinary.uploader.destroy(producto.imagen.public_id)
+                except:
+                    return GraphQLError("Error al eliminar el recurso")
             producto.delete()
             return DeleteProductoInfo(message="Producto eliminado con éxito")
         except ProductoInfo.DoesNotExist:
             return GraphQLError("Product not found")
         except:
             return GraphQLError("Something went wrong XC")
-
-
-class AddEntradaAlmacen(Mutation):
-    class Arguments:
-        metodo_pago = String(required=True)
-        proveedor = String(required=True)
-        variantes = GenericScalar()
-        cantidad = Int()
-        product_info = String(required=True)
-        comprador = String(required=True)
-
-    message = String()
-
-    @user_passes_test(lambda user: user.rol in ["ADMIN", "ALMACENERO"])
-    def mutate(
-        self,
-        info,
-        metodo_pago,
-        proveedor,
-        product_info,
-        comprador,
-        variantes=None,
-        cantidad=None,
-    ):
-        producto_info = ProductoInfo.objects.get(codigo=product_info)
-
-        try:
-            with transaction.atomic():
-
-                entrada = EntradaAlmacen(
-                    metodo_pago=metodo_pago,
-                    proveedor=proveedor,
-                    usuario=info.context.user,
-                    comprador=comprador,
-                )
-                response = []
-                if variantes and not cantidad:
-                    if not isinstance(variantes, list):
-                        raise GraphQLError(
-                            "Formato corrupto: 'variante' debe ser <class: list> "
-                        )
-
-                    for variante in variantes:
-                        color = variante.get("color")
-                        numeros = variante.get("numeros", [])
-
-                        productos_pa = []
-
-                        for num in numeros:
-                            numero = num.get("numero")
-                            cantidad = num.get("cantidad", 0)
-
-                            ids = []
-
-                            for _ in range(cantidad):
-                                producto = Producto(
-                                    info=producto_info,
-                                    color=color,
-                                    numero=numero,
-                                    entrada=entrada,
-                                )
-                                producto.save()
-                                ids.append(producto.id)
-
-                            array_ids = (
-                                f"{ids[0]}-{ids[-1]}" if len(ids) > 1 else ids[0]
-                            )
-                            productos_pa.append({"numero": numero, "ids": array_ids})
-
-                        response.append({"color": color, "numeros": productos_pa})
-                    entrada.productos = response
-
-                elif cantidad and not variantes:
-                    entrada.productos = cantidad
-                    productos_pa = []
-                    ids = []
-                    for _ in range(cantidad):
-                        producto = Producto(
-                            info=producto_info,
-                            entrada=entrada,
-                        )
-                        producto.save()
-                        ids.append(producto.id)
-
-                    productos_pa = f"{ids[0]}-{ids[-1]}" if len(ids) > 1 else ids[0]
-
-                else:
-                    raise GraphQLError("Bad request")
-
-                entrada.save()
-
-        except Exception as e:
-            raise GraphQLError("as")
-
-        return AddEntradaAlmacen(message="ok")
 
 
 class DeleteEntradaAlmacen(Mutation):
@@ -612,7 +518,6 @@ class Mutations(ObjectType):
     add_producto_info = AddProductoInfo.Field()
     update_producto_info = UpdateProductoInfo.Field()
     delete_producto_info = DeleteProductoInfo.Field()
-    add_entrada = AddEntradaAlmacen.Field()
     delete_entrada = DeleteEntradaAlmacen.Field()
     add_salida = AddSalidaAlmacen.Field()
     update_salida = UpdateSalidaAlmacen.Field()

@@ -1,4 +1,5 @@
 from ninja_extra.permissions import BasePermission, SAFE_METHODS
+from inventario.models import User
 
 
 class ReadOnly(BasePermission):
@@ -14,3 +15,9 @@ class isAdmin(BasePermission):
 class isStaff(BasePermission):
     def has_permission(self, request, view=None, controller=None):
         return request.auth["rol"] == "ADMIN" or request.auth == "ALMACENERO"
+    
+class isAuthenticated(BasePermission):
+    def has_permission(self, request, view=None, controller=None):
+        if request.auth:
+            return True
+    

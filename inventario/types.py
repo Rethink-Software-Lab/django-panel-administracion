@@ -61,10 +61,6 @@ class EntradaAlmacenType(DjangoObjectType):
         fields = "__all__"
 
 
-class AddEntradaType(ObjectType):
-    res = GenericScalar()
-
-
 class EntradaFilterType(ObjectType):
     entradas = List(EntradaAlmacenType)
     info = Field(InfoType)
