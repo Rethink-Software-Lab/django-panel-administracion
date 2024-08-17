@@ -80,6 +80,6 @@ class Zapatos(ModelSchema):
         model = Producto
         fields = "__all__"
         
-class InventarioAlmacenSchema(Schema):
+class InventarioSchema(Schema):
     productos: List[OtrosProductos]
     zapatos: List[Zapatos]
