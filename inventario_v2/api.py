@@ -10,6 +10,9 @@ from ninja_extra import NinjaExtraAPI
 from inventario_v2.controllers.categorias import CategoriasController
 from inventario_v2.controllers.entradas import EntradasController
 from inventario_v2.controllers.graficas import GraficasController
+from inventario_v2.controllers.salidas import SalidasController
+from inventario_v2.controllers.ventas import VentasController
+from inventario_v2.controllers.inventario import InventarioController
 
 
 class AuthBearer(HttpBearer):
@@ -36,4 +39,4 @@ app = NinjaExtraAPI(
 )
 
 
-app.register_controllers(CategoriasController, EntradasController, GraficasController)
+app.register_controllers(CategoriasController, EntradasController, GraficasController, SalidasController, VentasController, InventarioController)

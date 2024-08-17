@@ -65,8 +65,6 @@ class EntradasController:
 
             elif dataDict["cantidad"] and not dataDict["variantes"]:
 
-                productos_pa = []
-
                 productos = [
                     Producto(
                         info=producto_info,
@@ -75,12 +73,9 @@ class EntradasController:
                     for _ in range(dataDict["cantidad"])
                 ]
 
-                ids = Producto.objects.bulk_create(productos)
+                Producto.objects.bulk_create(productos)
 
-                formated_ids = (
-                    f"{ids[0].id}-{ids[-1].id}" if len(ids) > 1 else ids[0].id
-                )
-                return {"ids": formated_ids}
+                return   
 
             else:
                 raise HttpError(400, "Bad Request")

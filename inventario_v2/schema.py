@@ -44,3 +44,42 @@ class AddEntradaSchema(Schema):
     cantidad: Optional[int] = None
     productInfo: str
     comprador: str
+    
+class AddSalidaSchema(Schema):
+    areaVenta: int
+    producto_info: str
+    cantidad: Optional[int] = None
+    zapatos_id: Optional[List[int]] = None
+    
+class AddVentaSchema(Schema):
+    areaVenta: int
+    metodoPago: str
+    producto_info: str
+    cantidad: Optional[int] = None
+    zapatos_id: Optional[List[int]] = None
+    
+class OtrosProductos(Schema):
+    id: int
+    codigo: str
+    descripcion: str
+    cantidad: int
+    categoria__nombre: str
+
+class ProductoInfoSchema(ModelSchema):
+    categoria: CategoriasSchema
+
+    class Meta:
+        model = ProductoInfo
+        fields = "__all__"
+
+
+class Zapatos(ModelSchema):
+    info: ProductoInfoSchema
+
+    class Meta:
+        model = Producto
+        fields = "__all__"
+        
+class InventarioAlmacenSchema(Schema):
+    productos: List[OtrosProductos]
+    zapatos: List[Zapatos]
