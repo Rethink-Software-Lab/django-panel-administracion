@@ -1,15 +1,8 @@
-from ninja.errors import HttpError
 from inventario.models import AreaVenta, ProductoInfo, Producto
-from ..schema import InventarioAlmacenSchema, InventarioSchema
+from ..schema import InventarioSchema
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
 from django.db.models import F, Count, Q
-from typing import List
-
-
-
-from django.db import transaction
-
 from ..custom_permissions import isAuthenticated
 
 
