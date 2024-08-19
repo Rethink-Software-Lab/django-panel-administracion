@@ -60,7 +60,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 class Image(models.Model):
     public_id = models.CharField(max_length=50, unique=True)
-    url = CloudinaryField("image", format="WebP")
+    url = models.URLField(unique=True)
 
 
 class Categorias(models.Model):

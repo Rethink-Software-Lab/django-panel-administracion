@@ -1,7 +1,7 @@
 from ninja import ModelSchema, Schema
 from inventario.models import *
 from typing import List, Optional
-
+from pydantic import condecimal, HttpUrl
 
 class UsuariosSchema(ModelSchema):
     class Meta:
@@ -65,7 +65,13 @@ class OtrosProductos(Schema):
     cantidad: int
     categoria__nombre: str
 
+class ImagenSchema(ModelSchema):
+    class Meta:
+        model = Image
+        fields = "__all__"
+
 class ProductoInfoSchema(ModelSchema):
+    imagen: Optional[ImagenSchema] = None
     categoria: CategoriasSchema
 
     class Meta:
@@ -80,6 +86,21 @@ class Zapatos(ModelSchema):
         model = Producto
         fields = "__all__"
         
-class InventarioSchema(Schema):
+class InventarioAlmacenSchema(Schema):
     productos: List[OtrosProductos]
     zapatos: List[Zapatos]
+
+class AddProductoSchema(Schema):
+    codigo: str
+    descripcion: str
+    categoria: int
+    precio_costo: condecimal(gt=0)
+    precio_venta: condecimal(gt=0)
+
+class UpdateProductoSchema(Schema):
+    codigo: str
+    descripcion: str
+    categoria: int
+    imagen: Optional[HttpUrl] = None
+    precio_costo: condecimal(gt=0)
+    precio_venta: condecimal(gt=0)
