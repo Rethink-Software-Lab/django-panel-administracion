@@ -3,11 +3,6 @@ from inventario.models import *
 from typing import List, Optional
 from pydantic import condecimal, HttpUrl
 
-class UsuariosSchema(ModelSchema):
-    class Meta:
-        model = User
-        fields = ["id", "username", "rol"]
-
 
 class UserModifySchema(Schema):
     username: str
@@ -104,3 +99,20 @@ class UpdateProductoSchema(Schema):
     imagen: Optional[HttpUrl] = None
     precio_costo: condecimal(gt=0)
     precio_venta: condecimal(gt=0)
+
+class AreaVentaSchema(ModelSchema):
+    class  Meta:
+        model = AreaVenta
+        fields = '__all__'
+
+class UsuariosSchema(ModelSchema):
+    area_venta : Optional[AreaVentaSchema] = None
+    class Meta:
+        model = User
+        fields = ['id','username', 'rol']
+
+class UsuariosAuthSchema(ModelSchema):
+    area_venta: Optional[int] = None
+    class Meta:
+        model = User
+        fields = ['username', 'password', 'rol']
