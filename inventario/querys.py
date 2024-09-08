@@ -29,7 +29,6 @@ class Query(ObjectType):
     all_area_venta = Field(AreaVentaFilterType, page=Int(required=False))
     inventario_almacen = List(ProductoType)
     inventario_area_venta = List(ProductoType, id=ID())
-    search_product = Field(ProductInfoType, codigo=String())
     mas_vendidos = List(MasVendidosType)
     ventas_hoy = Decimal()
     ventas_semana = Decimal()
@@ -126,11 +125,6 @@ class Query(ObjectType):
             )
         else:
             return GraphQLError("No tienes permisos para relizar esta acción")
-
-    @login_required
-    def resolve_search_product(self, info, codigo):
-        producto = get_object_or_404(ProductoInfo, codigo__icontains=codigo)
-        return producto
 
     @login_required
     def resolve_productos_by_area_venta(self, info, id):
