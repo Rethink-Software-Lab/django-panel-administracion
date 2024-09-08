@@ -4,37 +4,44 @@ from PIL import Image as IMG
 from django.shortcuts import get_object_or_404
 from ninja.errors import HttpError
 from ninja.files import UploadedFile
-from inventario.models import Categorias, Image, ProductoInfo
+from inventario.models import Categorias, Image, ProductoInfo, Producto
 from ..schema import ProductoInfoSchema, AddProductoSchema, UpdateProductoSchema
 from ninja_extra import api_controller, route
 from typing import List, Optional
 import cloudinary.uploader
 
-from ..custom_permissions import isStaff
+from ..custom_permissions import isAuthenticated
+
+# TODO:
+#      * Permisos => Admin y Vendedor de la area de venta
+#      * Endpoint /productos?area_venta=id
+#
 
 
-@api_controller("productos/", tags=["Productos"], permissions=[isStaff])
+@api_controller("productos/", tags=["Productos"], permissions=[isAuthenticated])
 class ProductoController:
 
     @route.get("", response=List[ProductoInfoSchema])
     def getProductos(self):
-        producto_info = ProductoInfo.objects.all().order_by('-id')
+
+        producto_info = ProductoInfo.objects.all().order_by("-id")
         return producto_info
-    
+
     @route.post()
-    def addProducto(self, data: AddProductoSchema, imagen: Optional[UploadedFile] = File(None)):
-        dataDict = data.model_dump() 
-        
-        categoria_query = get_object_or_404(Categorias, pk=dataDict['categoria'])
+    def addProducto(
+        self, data: AddProductoSchema, imagen: Optional[UploadedFile] = File(None)
+    ):
+        dataDict = data.model_dump()
+
+        categoria_query = get_object_or_404(Categorias, pk=dataDict["categoria"])
 
         productoInfo = ProductoInfo(
-            codigo=dataDict['codigo'],
-            descripcion=dataDict['descripcion'],
+            codigo=dataDict["codigo"],
+            descripcion=dataDict["descripcion"],
             categoria=categoria_query,
-            precio_costo=dataDict['precio_costo'],
-            precio_venta=dataDict['precio_venta'],
+            precio_costo=dataDict["precio_costo"],
+            precio_venta=dataDict["precio_venta"],
         )
-
 
         if imagen:
             try:
@@ -77,29 +84,39 @@ class ProductoController:
             productoInfo.save()
         except Exception as e:
             if "unique_constraint" in e.message:
-                raise HttpError(400,"El código debe ser único")
+                raise HttpError(400, "El código debe ser único")
             else:
                 raise HttpError(500, "Error inesperado")
-            
+
         return {"success": True}
 
-    
     @route.post("{id}/")
-    def updateProducto(self, id: int, data: UpdateProductoSchema, imagen: Optional[UploadedFile] = File(None)):
-        dataDict = data.model_dump() 
-        
+    def updateProducto(
+        self,
+        id: int,
+        data: UpdateProductoSchema,
+        imagen: Optional[UploadedFile] = File(None),
+    ):
+        dataDict = data.model_dump()
+
         producto = get_object_or_404(ProductoInfo, pk=id)
-        categoria_query = get_object_or_404(Categorias, pk=dataDict['categoria'])
+        categoria_query = get_object_or_404(Categorias, pk=dataDict["categoria"])
 
         if producto.codigo != dataDict["codigo"]:
             producto.codigo = dataDict["codigo"]
 
         producto.descripcion = dataDict["descripcion"]
-        producto.categoria = categoria_query
+        if producto.categoria != categoria_query:
+            if Producto.objects.filter(info__categoria=categoria_query).exists():
+                raise HttpError(
+                    403,
+                    "No es posible editar la categoría de un producto que tiene un producto asociado.",
+                )
+            producto.categoria = categoria_query
         producto.precio_costo = dataDict["precio_costo"]
         producto.precio_venta = dataDict["precio_venta"]
 
-        if not dataDict['imagen'] and not imagen:
+        if not dataDict["imagen"] and not imagen:
             print("entro")
             if producto.imagen:
                 try:
@@ -109,7 +126,7 @@ class ProductoController:
                     producto.imagen = None
                 except:
                     raise HttpError(424, "Dependency fail")
- 
+
         if imagen and not dataDict["imagen"]:
             try:
                 # Abrir la imagen usando Pillow
@@ -147,14 +164,14 @@ class ProductoController:
                     producto.imagen = imagen
             except:
                 raise HttpError(424, "Failed Dependecy")
-        
+
         try:
             producto.save()
         except:
             raise HttpError(500, "Error inesperado")
-            
+
         return {"success": True}
-    
+
     @route.delete("{id}/")
     def deleteProducto(self, id: int):
         producto = get_object_or_404(ProductoInfo, pk=id)
@@ -165,13 +182,8 @@ class ProductoController:
             except:
                 raise HttpError(424, "Error al eliminar el recurso")
 
-        try :  
+        try:
             producto.delete()
             return {"success": True}
-        except :
+        except:
             raise HttpError(500, "Error inesperado.")
-        
-       
-
-    
-    
