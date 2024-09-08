@@ -1,3 +1,4 @@
+import datetime
 from ninja import ModelSchema, Schema
 from inventario.models import *
 from typing import List, Optional
@@ -39,20 +40,28 @@ class AddEntradaSchema(Schema):
     cantidad: Optional[int] = None
     productInfo: str
     comprador: str
-    
+
+
 class AddSalidaSchema(Schema):
     areaVenta: int
     producto_info: str
     cantidad: Optional[int] = None
     zapatos_id: Optional[List[int]] = None
-    
+
+
+class VentasSchema(Schema):
+    fecha: datetime.date
+    importe: condecimal(gt=0)
+
+
 class AddVentaSchema(Schema):
     areaVenta: int
     metodoPago: str
     producto_info: str
     cantidad: Optional[int] = None
     zapatos_id: Optional[List[int]] = None
-    
+
+
 class OtrosProductos(Schema):
     id: int
     codigo: str
@@ -60,10 +69,26 @@ class OtrosProductos(Schema):
     cantidad: int
     categoria__nombre: str
 
+
 class ImagenSchema(ModelSchema):
     class Meta:
         model = Image
         fields = "__all__"
+
+
+class ProductoInfoModifySchema(Schema):
+    id: int
+    descripcion: str
+    cantidad: int
+    precio_venta: condecimal(gt=0)
+    importe: condecimal(gt=0)
+
+
+class VentaReporteSchema(Schema):
+    productos: List[ProductoInfoModifySchema]
+    total: condecimal(gt=0)
+    area: str
+
 
 class ProductoInfoSchema(ModelSchema):
     imagen: Optional[ImagenSchema] = None
@@ -80,10 +105,20 @@ class Zapatos(ModelSchema):
     class Meta:
         model = Producto
         fields = "__all__"
-        
+
+
 class InventarioSchema(Schema):
     productos: List[OtrosProductos]
     zapatos: List[Zapatos]
+
+
+class ProductoSchema(ModelSchema):
+    info: ProductoInfoSchema
+
+    class Meta:
+        model = Producto
+        fields = "__all__"
+
 
 class AddProductoSchema(Schema):
     codigo: str
@@ -91,6 +126,7 @@ class AddProductoSchema(Schema):
     categoria: int
     precio_costo: condecimal(gt=0)
     precio_venta: condecimal(gt=0)
+
 
 class UpdateProductoSchema(Schema):
     codigo: str
@@ -100,19 +136,46 @@ class UpdateProductoSchema(Schema):
     precio_costo: condecimal(gt=0)
     precio_venta: condecimal(gt=0)
 
+
 class AreaVentaSchema(ModelSchema):
-    class  Meta:
+    class Meta:
         model = AreaVenta
-        fields = '__all__'
+        fields = "__all__"
+
 
 class UsuariosSchema(ModelSchema):
-    area_venta : Optional[AreaVentaSchema] = None
+    area_venta: Optional[AreaVentaSchema] = None
+
     class Meta:
         model = User
-        fields = ['id','username', 'rol']
+        fields = ["id", "username", "rol"]
+
 
 class UsuariosAuthSchema(ModelSchema):
     area_venta: Optional[int] = None
+
     class Meta:
         model = User
-        fields = ['username', 'password', 'rol']
+        fields = ["username", "password", "rol"]
+
+
+class Otros(Schema):
+    area: str
+    cantidad: int
+
+
+class newZapatos(Schema):
+    id: int
+    color: str
+    numero: int
+
+
+class ZapatosForSearch(Schema):
+    area: str
+    productos: List[newZapatos]
+
+
+class SearchProductSchema(Schema):
+    info: ProductoInfoSchema
+    zapato: bool
+    inventario: List[Otros] | List[ZapatosForSearch]

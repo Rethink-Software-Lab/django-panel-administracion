@@ -11,40 +11,37 @@ class InventarioController:
 
     @route.get("almacen/", response=InventarioSchema)
     def getInventarioAlmacen(self):
-        producto_info = ProductoInfo.objects.filter(
-        producto__venta__isnull=True,
-        producto__area_venta__isnull=True,
-        ).annotate(cantidad=Count(F('producto'))
-        ).exclude(Q(cantidad__lt=1) | Q(categoria__nombre='Zapatos')
-        ).values("id", "descripcion", "codigo" , "cantidad", "categoria__nombre")
-        print(producto_info)
-        zapatos = Producto.objects.filter(
-            venta__isnull=True, 
-            area_venta__isnull=True,
-            info__categoria__nombre="Zapatos"
+        producto_info = (
+            ProductoInfo.objects.filter(
+                producto__venta__isnull=True,
+                producto__area_venta__isnull=True,
             )
-            
-        return { "productos": producto_info, "zapatos": zapatos }
-    
+            .annotate(cantidad=Count(F("producto")))
+            .exclude(Q(cantidad__lt=1) | Q(categoria__nombre="Zapatos"))
+            .values("id", "descripcion", "codigo", "cantidad", "categoria__nombre")
+        )
+        zapatos = Producto.objects.filter(
+            venta__isnull=True,
+            area_venta__isnull=True,
+            info__categoria__nombre="Zapatos",
+        )
+
+        return {"productos": producto_info, "zapatos": zapatos}
+
     @route.get("area-venta/{id}/", response=InventarioSchema)
     def getInventarioAreaVenta(self, id: int):
         area_venta = get_object_or_404(AreaVenta, pk=id)
-        producto_info = ProductoInfo.objects.filter(
-        producto__venta__isnull=True,
-        producto__area_venta=area_venta,
-        ).annotate(cantidad=Count(F('producto'))
-        ).exclude(Q(cantidad__lt=1) | Q(categoria__nombre='Zapatos')
-        ).values("id", "descripcion", "codigo" , "cantidad", "categoria__nombre")
-        print(producto_info)
-        zapatos = Producto.objects.filter(
-            venta__isnull=True, 
-            area_venta=area_venta,
-            info__categoria__nombre="Zapatos"
+        producto_info = (
+            ProductoInfo.objects.filter(
+                producto__venta__isnull=True,
+                producto__area_venta=area_venta,
             )
-            
-        return { "productos": producto_info, "zapatos": zapatos }
-        
-       
+            .annotate(cantidad=Count(F("producto")))
+            .exclude(Q(cantidad__lt=1) | Q(categoria__nombre="Zapatos"))
+            .values("id", "descripcion", "codigo", "cantidad", "categoria__nombre")
+        )
+        zapatos = Producto.objects.filter(
+            venta__isnull=True, area_venta=area_venta, info__categoria__nombre="Zapatos"
+        )
 
-    
-    
+        return {"productos": producto_info, "zapatos": zapatos}
