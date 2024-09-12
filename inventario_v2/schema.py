@@ -33,6 +33,36 @@ class VariantesSchema(Schema):
     numeros: List[NumerosSchema]
 
 
+class ImagenSchema(ModelSchema):
+    class Meta:
+        model = Image
+        fields = "__all__"
+
+
+class ProductoInfoSchema(ModelSchema):
+    imagen: Optional[ImagenSchema] = None
+    categoria: CategoriasSchema
+
+    class Meta:
+        model = ProductoInfo
+        fields = "__all__"
+
+
+class ProductoSchema(ModelSchema):
+    info: ProductoInfoSchema
+
+    class Meta:
+        model = Producto
+        fields = "__all__"
+
+
+class EntradaAlmacenSchema(ModelSchema):
+
+    class Meta:
+        model = EntradaAlmacen
+        fields = "__all__"
+
+
 class AddEntradaSchema(Schema):
     metodoPago: str
     proveedor: str
@@ -50,8 +80,13 @@ class AddSalidaSchema(Schema):
 
 
 class VentasSchema(Schema):
-    fecha: datetime.date
+    id: int
+    created_at: datetime.datetime
     importe: condecimal(gt=0)
+    metodo_pago: str
+    usuario__username: str
+    producto__info__descripcion: str
+    cantidad: int
 
 
 class AddVentaSchema(Schema):
@@ -70,12 +105,6 @@ class OtrosProductos(Schema):
     categoria__nombre: str
 
 
-class ImagenSchema(ModelSchema):
-    class Meta:
-        model = Image
-        fields = "__all__"
-
-
 class ProductoInfoModifySchema(Schema):
     id: int
     descripcion: str
@@ -86,17 +115,8 @@ class ProductoInfoModifySchema(Schema):
 
 class VentaReporteSchema(Schema):
     productos: List[ProductoInfoModifySchema]
-    total: condecimal(gt=0)
-    area: str
-
-
-class ProductoInfoSchema(ModelSchema):
-    imagen: Optional[ImagenSchema] = None
-    categoria: CategoriasSchema
-
-    class Meta:
-        model = ProductoInfo
-        fields = "__all__"
+    total: condecimal(gt=0) | None
+    area: str | None
 
 
 class Zapatos(ModelSchema):
@@ -110,14 +130,6 @@ class Zapatos(ModelSchema):
 class InventarioSchema(Schema):
     productos: List[OtrosProductos]
     zapatos: List[Zapatos]
-
-
-class ProductoSchema(ModelSchema):
-    info: ProductoInfoSchema
-
-    class Meta:
-        model = Producto
-        fields = "__all__"
 
 
 class AddProductoSchema(Schema):

@@ -13,9 +13,8 @@ from ..schema import (
 )
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
-from django.db.models.functions import TruncDate
 from django.db.models import Sum, Count, F
-
+from datetime import date
 from django.db import transaction
 
 from ..custom_permissions import isAuthenticated
@@ -28,19 +27,28 @@ class VentasController:
     def getVenta(self, request, id: int):
         ventas = (
             Ventas.objects.filter(area_venta=id)
-            .annotate(fecha=TruncDate("created_at"))
-            .values("fecha")
-            .distinct()
-            .annotate(importe=Sum("producto__info__precio_venta"))
-            .order_by("-fecha")
+            .annotate(
+                importe=Sum("producto__info__precio_venta"),
+                cantidad=Count("producto"),
+            )
+            .values(
+                "importe",
+                "created_at",
+                "metodo_pago",
+                "usuario__username",
+                "producto__info__descripcion",
+                "cantidad",
+                "id",
+            )
+            .order_by("-created_at")
         )
         return ventas
 
-    @route.get("{id}/{date}/", response=VentaReporteSchema)
-    def venta_reporte(self, request, id: int, date: str):
+    @route.get("{id}/reporte/", response=VentaReporteSchema)
+    def venta_reporte(self, request, id: int):
         producto_info = (
             ProductoInfo.objects.filter(
-                producto__venta__created_at__date=date,
+                producto__venta__created_at__date=date.today(),
                 producto__area_venta=id,
             )
             .annotate(cantidad=Count("producto"))
@@ -56,7 +64,11 @@ class VentasController:
             )
         )
         total = producto_info.aggregate(total=Sum("importe"))["total"]
-        area = producto_info.first()["producto__area_venta__nombre"]
+        area = (
+            producto_info.first()["producto__area_venta__nombre"]
+            if producto_info.first()
+            else None
+        )
 
         return {"productos": producto_info, "total": total, "area": area}
 
