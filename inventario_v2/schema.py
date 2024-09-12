@@ -56,11 +56,15 @@ class ProductoSchema(ModelSchema):
         fields = "__all__"
 
 
-class EntradaAlmacenSchema(ModelSchema):
-
-    class Meta:
-        model = EntradaAlmacen
-        fields = "__all__"
+class EntradaAlmacenSchema(Schema):
+    id: int
+    metodo_pago: str
+    proveedor: str
+    comprador: str
+    usuario__username: str
+    producto__info__descripcion: str
+    created_at: datetime.datetime
+    cantidad: int
 
 
 class AddEntradaSchema(Schema):

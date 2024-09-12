@@ -22,7 +22,6 @@ class Query(ObjectType):
     one_user = Field(UserType, id=ID())
     all_productos_info = Field(ProductInfoFilterType, page=Int(), perPage=Int())
     one_product_info = Field(ProductInfoType, id=ID())
-    all_entradas = Field(EntradaFilterType, page=Int())
     all_salidas = Field(SalidaFilterType, page=Int())
     productos_by_area_venta = List(PbyPT, id=ID())
     one_producto = Field(ProductoType, id=ID())
@@ -64,14 +63,6 @@ class Query(ObjectType):
     @login_required
     def resolve_one_product_info(self, info, id):
         return get_object_or_404(ProductoInfo, pk=id)
-
-    @user_passes_test(lambda user: user.rol == "ADMIN" or user.rol == "ALMACENERO")
-    def resolve_all_entradas(self, info, page=1):
-        p = Paginator(EntradaAlmacen.objects.all().order_by("-created_at"), 20)
-        entradas = p.get_page(page)
-        return EntradaFilterType(
-            entradas, info=InfoType(page=page, total_pages=p.num_pages)
-        )
 
     @user_passes_test(lambda user: user.rol == "ADMIN" or user.rol == "ALMACENERO")
     def resolve_all_salidas(self, info, page=1):

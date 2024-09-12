@@ -281,24 +281,6 @@ class DeleteProductoInfo(Mutation):
             return GraphQLError("Something went wrong XC")
 
 
-class DeleteEntradaAlmacen(Mutation):
-    class Arguments:
-        id = ID(required=True)
-
-    message = String()
-
-    @user_passes_test(lambda user: user.rol == "ADMIN" or user.rol == "ALMACENERO")
-    def mutate(self, info, id):
-        try:
-            entrada = get_object_or_404(EntradaAlmacen, pk=id)
-            entrada.delete()
-            return DeleteEntradaAlmacen(message="Entrada eliminada con éxito")
-        except EntradaAlmacen.DoesNotExist:
-            return GraphQLError("Entrada no encontrada")
-        except:
-            return GraphQLError("Something went wrong XC")
-
-
 class AddVentas(Mutation):
     class Arguments:
         productos = List(ID, required=True)
@@ -518,7 +500,6 @@ class Mutations(ObjectType):
     add_producto_info = AddProductoInfo.Field()
     update_producto_info = UpdateProductoInfo.Field()
     delete_producto_info = DeleteProductoInfo.Field()
-    delete_entrada = DeleteEntradaAlmacen.Field()
     add_salida = AddSalidaAlmacen.Field()
     update_salida = UpdateSalidaAlmacen.Field()
     delete_salida = DeleteSalidaAlmacen.Field()

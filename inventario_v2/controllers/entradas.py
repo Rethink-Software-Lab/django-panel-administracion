@@ -1,16 +1,36 @@
 from ninja.errors import HttpError
 from inventario.models import ProductoInfo, EntradaAlmacen, Producto, User
-from ..schema import AddEntradaSchema
+from ..schema import AddEntradaSchema, EntradaAlmacenSchema
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
-
+from typing import List
 from django.db import transaction
+from django.db.models import Count
 
 from ..custom_permissions import isStaff
 
 
 @api_controller("entradas/", tags=["Entradas"], permissions=[isStaff])
 class EntradasController:
+
+    @route.get("", response=List[EntradaAlmacenSchema])
+    def getEntradas(self):
+        entradas = (
+            EntradaAlmacen.objects.all()
+            .annotate(cantidad=Count("producto"))
+            .values(
+                "id",
+                "metodo_pago",
+                "proveedor",
+                "comprador",
+                "usuario__username",
+                "producto__info__descripcion",
+                "created_at",
+                "cantidad",
+            )
+            .order_by("-created_at")
+        )
+        return entradas
 
     @route.post("")
     def addEntrada(self, request, data: AddEntradaSchema):
@@ -75,7 +95,13 @@ class EntradasController:
 
                 Producto.objects.bulk_create(productos)
 
-                return   
+                return
 
             else:
                 raise HttpError(400, "Bad Request")
+
+    @route.delete("{id}/")
+    def deleteEntrada(self, request, id):
+        entrada = get_object_or_404(EntradaAlmacen, pk=id)
+        entrada.delete()
+        return {"message": "Entrada eliminada con éxito"}
