@@ -110,8 +110,24 @@ class SalidasController:
     @route.delete("{id}/")
     def deleteSalida(self, id: int):
         salida = get_object_or_404(SalidaAlmacen, pk=id)
+
+        productos_vendidos = Producto.objects.filter(
+            salida=salida, venta__isnull=False
+        ).exists()
+
+        if productos_vendidos:
+            raise HttpError(
+                400,
+                "No se puede eliminar la salida porque algunos productos ya han sido vendidos.",
+            )
+
         try:
-            salida.delete()
+            with transaction.atomic():
+                Producto.objects.filter(salida=salida).update(
+                    area_venta=None, salida=None
+                )
+                salida.delete()
+
             return {"success": True}
-        except:
-            raise HttpError(500, "Error inesperado.")
+        except Exception as e:
+            raise HttpError(500, f"Error inesperado: {str(e)}")
