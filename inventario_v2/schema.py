@@ -76,8 +76,17 @@ class AddEntradaSchema(Schema):
     comprador: str
 
 
+class SalidaAlmacenSchema(Schema):
+    id: int
+    area_venta__nombre: str
+    usuario__username: str
+    producto__info__descripcion: str
+    created_at: datetime.datetime
+    cantidad: int
+
+
 class AddSalidaSchema(Schema):
-    areaVenta: int
+    area_venta: int
     producto_info: str
     cantidad: Optional[int] = None
     zapatos_id: Optional[List[int]] = None
