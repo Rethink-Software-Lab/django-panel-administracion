@@ -62,7 +62,7 @@ class EntradaAlmacenSchema(Schema):
     proveedor: str
     comprador: str
     usuario__username: str
-    producto__info__descripcion: str
+    producto__info__descripcion: str | None
     created_at: datetime.datetime
     cantidad: int
 
@@ -151,6 +151,7 @@ class AddProductoSchema(Schema):
     categoria: int
     precio_costo: condecimal(gt=0)
     precio_venta: condecimal(gt=0)
+    # pago_trabajador: condecimal(gt=0) | None
 
 
 class UpdateProductoSchema(Schema):
@@ -160,6 +161,7 @@ class UpdateProductoSchema(Schema):
     imagen: Optional[HttpUrl] = None
     precio_costo: condecimal(gt=0)
     precio_venta: condecimal(gt=0)
+    # pago_trabajador: condecimal(gt=0) | None
 
 
 class AreaVentaSchema(ModelSchema):
