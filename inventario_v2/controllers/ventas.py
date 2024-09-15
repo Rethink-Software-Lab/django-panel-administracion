@@ -31,7 +31,8 @@ class VentasController:
         ventas = (
             Ventas.objects.filter(area_venta=id)
             .annotate(
-                importe=Sum("producto__info__precio_venta"),
+                importe=Sum("producto__info__precio_venta")
+                - Sum("producto__info__pago_trabajador"),
                 cantidad=Count("producto"),
             )
             .values(
@@ -71,11 +72,11 @@ class VentasController:
                 "importe",
             )
         )
-        pago_trabajador = producto_info.aggregate(pago_trabajador=F("pago_trabajador"))[
-            "pago_trabajador"
-        ]
+        pago_trabajador = producto_info.aggregate(
+            pago_trabajador=Sum("pago_trabajador")
+        )["pago_trabajador"]
         subtotal = producto_info.aggregate(subtotal=Sum("importe"))["subtotal"]
-        total = subtotal - pago_trabajador
+        total = subtotal - pago_trabajador if pago_trabajador and subtotal else None
         area = (
             producto_info.first()["producto__area_venta__nombre"]
             if producto_info.first()

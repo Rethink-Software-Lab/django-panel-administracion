@@ -129,6 +129,8 @@ class ProductoInfoModifySchema(Schema):
 class VentaReporteSchema(Schema):
     productos: List[ProductoInfoModifySchema]
     total: condecimal(gt=0) | None
+    pago_trabajador: conint(ge=0) | None
+    subtotal: condecimal(gt=0) | None
     area: str | None
 
 
