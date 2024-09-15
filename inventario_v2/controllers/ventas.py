@@ -26,7 +26,7 @@ class VentasController:
     @route.get("{id}/", response=list[VentasSchema])
     def getVenta(self, request, id: int):
         user = User.objects.get(pk=request.auth["id"])
-        if id != user.area_venta.id and not user.is_staff:
+        if (user.area_venta is None or id != user.area_venta.id) and not user.is_staff:
             raise HttpError(401, "Unauthorized")
         ventas = (
             Ventas.objects.filter(area_venta=id)
@@ -52,7 +52,7 @@ class VentasController:
     def venta_reporte(self, request, id: int):
 
         user = User.objects.get(pk=request.auth["id"])
-        if id != user.area_venta.id and not user.is_staff:
+        if (user.area_venta is None or id != user.area_venta.id) and not user.is_staff:
             raise HttpError(401, "Unauthorized")
 
         producto_info = (
