@@ -25,6 +25,9 @@ class VentasController:
 
     @route.get("{id}/", response=list[VentasSchema])
     def getVenta(self, request, id: int):
+        user = User.objects.get(pk=request.auth["id"])
+        if id != user.area_venta.id and not user.is_staff:
+            raise HttpError(401, "Unauthorized")
         ventas = (
             Ventas.objects.filter(area_venta=id)
             .annotate(
@@ -46,6 +49,11 @@ class VentasController:
 
     @route.get("{id}/reporte/", response=VentaReporteSchema)
     def venta_reporte(self, request, id: int):
+
+        user = User.objects.get(pk=request.auth["id"])
+        if id != user.area_venta.id and not user.is_staff:
+            raise HttpError(401, "Unauthorized")
+
         producto_info = (
             ProductoInfo.objects.filter(
                 producto__venta__created_at__date=date.today(),
@@ -63,14 +71,24 @@ class VentasController:
                 "importe",
             )
         )
-        total = producto_info.aggregate(total=Sum("importe"))["total"]
+        pago_trabajador = producto_info.aggregate(pago_trabajador=F("pago_trabajador"))[
+            "pago_trabajador"
+        ]
+        subtotal = producto_info.aggregate(subtotal=Sum("importe"))["subtotal"]
+        total = subtotal - pago_trabajador
         area = (
             producto_info.first()["producto__area_venta__nombre"]
             if producto_info.first()
             else None
         )
 
-        return {"productos": producto_info, "total": total, "area": area}
+        return {
+            "productos": producto_info,
+            "subtotal": subtotal,
+            "pago_trabajador": pago_trabajador,
+            "total": total,
+            "area": area,
+        }
 
     @route.post("")
     def addVenta(self, request, data: AddVentaSchema):
@@ -80,7 +98,7 @@ class VentasController:
 
         user = User.objects.get(pk=request.auth["id"])
 
-        if user.area_venta != area_venta and not user.is_superuser:
+        if user.area_venta != area_venta and not user.is_staff:
             raise HttpError(401, "Unauthorized")
 
         producto_info = get_object_or_404(
@@ -159,7 +177,7 @@ class VentasController:
     def deleteVenta(self, request, id: int):
         venta = get_object_or_404(Ventas, pk=id)
         user = User.objects.get(pk=request.auth["id"])
-        if venta.area_venta != user.area_venta and not user.is_superuser:
+        if venta.area_venta != user.area_venta and not user.is_staff:
             raise HttpError(401, "Unauthorized")
         try:
             venta.delete()
