@@ -2,7 +2,7 @@ import datetime
 from ninja import ModelSchema, Schema
 from inventario.models import *
 from typing import List, Optional
-from pydantic import condecimal, HttpUrl
+from pydantic import condecimal, HttpUrl, conint
 
 
 class UserModifySchema(Schema):
@@ -151,7 +151,7 @@ class AddProductoSchema(Schema):
     categoria: int
     precio_costo: condecimal(gt=0)
     precio_venta: condecimal(gt=0)
-    # pago_trabajador: condecimal(gt=0) | None
+    pago_trabajador: conint(ge=0)
 
 
 class UpdateProductoSchema(Schema):
@@ -161,7 +161,7 @@ class UpdateProductoSchema(Schema):
     imagen: Optional[HttpUrl] = None
     precio_costo: condecimal(gt=0)
     precio_venta: condecimal(gt=0)
-    # pago_trabajador: condecimal(gt=0) | None
+    pago_trabajador: conint(ge=0)
 
 
 class AreaVentaSchema(ModelSchema):

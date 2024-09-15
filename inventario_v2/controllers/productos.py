@@ -39,6 +39,7 @@ class ProductoController:
             codigo=dataDict["codigo"],
             descripcion=dataDict["descripcion"],
             categoria=categoria_query,
+            pago_trabajador=(dataDict.get("pago_trabajador")),
             precio_costo=dataDict["precio_costo"],
             precio_venta=dataDict["precio_venta"],
         )
@@ -83,7 +84,7 @@ class ProductoController:
         try:
             productoInfo.save()
         except Exception as e:
-            if "unique_constraint" in e.message:
+            if str(e).startswith("UNIQUE constraint"):
                 raise HttpError(400, "El código debe ser único")
             else:
                 raise HttpError(500, "Error inesperado")
@@ -113,11 +114,12 @@ class ProductoController:
                     "No es posible editar la categoría de un producto que tiene un producto asociado.",
                 )
             producto.categoria = categoria_query
+
+        producto.pago_trabajador = dataDict.get("pago_trabajador")
         producto.precio_costo = dataDict["precio_costo"]
         producto.precio_venta = dataDict["precio_venta"]
 
         if not dataDict["imagen"] and not imagen:
-            print("entro")
             if producto.imagen:
                 try:
                     cloudinary.uploader.destroy(producto.imagen.public_id)
