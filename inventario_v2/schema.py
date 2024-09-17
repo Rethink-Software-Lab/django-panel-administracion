@@ -1,8 +1,8 @@
 import datetime
 from ninja import ModelSchema, Schema
 from inventario.models import *
-from typing import List, Optional
-from pydantic import condecimal, HttpUrl, conint
+from typing import List, Optional, Literal
+from pydantic import condecimal, HttpUrl, conint, validator
 
 
 class UserModifySchema(Schema):
@@ -104,16 +104,33 @@ class VentasSchema(Schema):
 
 class AddVentaSchema(Schema):
     areaVenta: int
-    metodoPago: str
+    metodoPago: Literal["EFECTIVO", "TRANSFERENCIA", "MIXTO"]
     producto_info: str
     cantidad: Optional[int] = None
     zapatos_id: Optional[List[int]] = None
+    efectivo: Optional[condecimal(gt=0)] = None
+    transferencia: Optional[condecimal(gt=0)] = None
+
+    @validator("efectivo", "transferencia", pre=True, always=True)
+    def check_mixto(cls, v, values, **kwargs):
+        if values.get("metodoPago") == "MIXTO":
+            if v is None:
+                raise ValueError(
+                    "efectivo y transferencia deben tener valor si metodoPago es MIXTO"
+                )
+        else:
+            if v is not None:
+                raise ValueError(
+                    "efectivo y transferencia deben ser None si metodoPago no es MIXTO"
+                )
+        return v
 
 
 class OtrosProductos(Schema):
     id: int
     codigo: str
     descripcion: str
+    precio_venta: condecimal(gt=0)
     cantidad: int
     categoria__nombre: str
 
@@ -130,7 +147,9 @@ class VentaReporteSchema(Schema):
     productos: List[ProductoInfoModifySchema]
     total: condecimal(gt=0) | None
     pago_trabajador: conint(ge=0) | None
-    subtotal: condecimal(gt=0) | None
+    subtotal: condecimal(ge=0) | None
+    efectivo: condecimal(ge=0) | None
+    transferencia: condecimal(ge=0) | None
     area: str | None
 
 
