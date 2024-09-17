@@ -84,6 +84,7 @@ class ProductoInfo(models.Model):
 METODO_PAGO = (
     ("EFECTIVO", "Efectivo"),
     ("TRANSFERENCIA", "Transferencia"),
+    ("MIXTO", "Mixto"),
 )
 
 
@@ -111,6 +112,8 @@ class Ventas(models.Model):
     metodo_pago = models.CharField(
         max_length=30, choices=METODO_PAGO, blank=False, null=False
     )
+    efectivo = models.DecimalField(max_digits=7, decimal_places=2, null=True)
+    transferencia = models.DecimalField(max_digits=7, decimal_places=2, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
 

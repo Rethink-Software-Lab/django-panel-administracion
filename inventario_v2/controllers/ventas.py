@@ -13,7 +13,7 @@ from ..schema import (
 )
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
-from django.db.models import Sum, Count, F
+from django.db.models import Sum, Count, F, Q
 from datetime import date
 from django.db import transaction
 
@@ -50,18 +50,19 @@ class VentasController:
 
     @route.get("{id}/reporte/", response=VentaReporteSchema)
     def venta_reporte(self, request, id: int):
-
         user = User.objects.get(pk=request.auth["id"])
-        if (user.area_venta is None or id != user.area_venta.id) and not user.is_staff:
-            raise HttpError(401, "Unauthorized")
+        if (user.area_venta is None or user.area_venta.id != id) and not user.is_staff:
+            raise HttpError(401, "No autorizado")
+
+        hoy = date.today()
 
         producto_info = (
             ProductoInfo.objects.filter(
-                producto__venta__created_at__date=date.today(),
-                producto__area_venta=id,
+                producto__venta__created_at__date=hoy, producto__area_venta_id=id
             )
-            .annotate(cantidad=Count("producto"))
-            .annotate(importe=F("cantidad") * F("precio_venta"))
+            .annotate(
+                cantidad=Count("producto"), importe=F("cantidad") * F("precio_venta")
+            )
             .order_by("importe")
             .values(
                 "id",
@@ -72,23 +73,43 @@ class VentasController:
                 "importe",
             )
         )
-        pago_trabajador = producto_info.aggregate(
-            pago_trabajador=Sum("pago_trabajador")
-        )["pago_trabajador"]
-        subtotal = producto_info.aggregate(subtotal=Sum("importe"))["subtotal"]
-        total = subtotal - pago_trabajador if pago_trabajador and subtotal else None
-        area = (
-            producto_info.first()["producto__area_venta__nombre"]
-            if producto_info.first()
-            else None
+
+        ventas_hoy = Ventas.objects.filter(created_at__date=hoy, area_venta_id=id)
+
+        pagos = ventas_hoy.aggregate(
+            efectivo_venta=Sum(
+                "producto__info__precio_venta", filter=Q(metodo_pago="EFECTIVO")
+            ),
+            transferencia_venta=Sum(
+                "producto__info__precio_venta", filter=Q(metodo_pago="TRANSFERENCIA")
+            ),
+            efectivo_mixto=Sum("efectivo", filter=Q(metodo_pago="MIXTO")),
+            transferencia_mixto=Sum("transferencia", filter=Q(metodo_pago="MIXTO")),
+        )
+
+        subtotal = producto_info.aggregate(subtotal=Sum("importe"))["subtotal"] or 0
+        pago_trabajador = (
+            producto_info.aggregate(
+                pago_trabajador=Sum(F("pago_trabajador") * F("cantidad"))
+            )["pago_trabajador"]
+            or 0
         )
 
         return {
-            "productos": producto_info,
+            "productos": list(producto_info),
             "subtotal": subtotal,
             "pago_trabajador": pago_trabajador,
-            "total": total,
-            "area": area,
+            "efectivo": (pagos["efectivo_venta"] or 0) + (pagos["efectivo_mixto"] or 0),
+            "transferencia": (pagos["transferencia_venta"] or 0)
+            + (pagos["transferencia_mixto"] or 0),
+            "total": (
+                subtotal - pago_trabajador if subtotal and pago_trabajador else None
+            ),
+            "area": (
+                producto_info.first()["producto__area_venta__nombre"]
+                if producto_info
+                else None
+            ),
         }
 
     @route.post("")
@@ -107,6 +128,18 @@ class VentasController:
         )
         usuario_search = get_object_or_404(User, pk=request.auth["id"])
         metodo_pago = dataDict["metodoPago"]
+
+        efectivo = dataDict["efectivo"] if metodo_pago == "MIXTO" else None
+        transferencia = dataDict["transferencia"] if metodo_pago == "MIXTO" else None
+
+        if (
+            efectivo
+            and transferencia
+            and producto_info.precio_venta != efectivo + transferencia
+        ):
+            raise HttpError(
+                400, "El importe no coincide con la suma de efectivo y transferencia"
+            )
 
         if producto_info.categoria.nombre == "Zapatos":
 
@@ -153,6 +186,8 @@ class VentasController:
                     area_venta=area_venta,
                     usuario=usuario_search,
                     metodo_pago=metodo_pago,
+                    efectivo=efectivo,
+                    transferencia=transferencia,
                 )
 
                 productos = Producto.objects.filter(
