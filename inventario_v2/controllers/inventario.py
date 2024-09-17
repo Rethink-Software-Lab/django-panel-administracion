@@ -18,14 +18,20 @@ class InventarioController:
             )
             .annotate(cantidad=Count(F("producto")))
             .exclude(Q(cantidad__lt=1) | Q(categoria__nombre="Zapatos"))
-            .values("id", "descripcion", "codigo", "cantidad", "categoria__nombre")
+            .values(
+                "id",
+                "descripcion",
+                "codigo",
+                "cantidad",
+                "categoria__nombre",
+                "precio_venta",
+            )
         )
         zapatos = Producto.objects.filter(
             venta__isnull=True,
             area_venta__isnull=True,
             info__categoria__nombre="Zapatos",
         )
-
         return {"productos": producto_info, "zapatos": zapatos}
 
     @route.get("area-venta/{id}/", response=InventarioSchema)
@@ -38,7 +44,14 @@ class InventarioController:
             )
             .annotate(cantidad=Count(F("producto")))
             .exclude(Q(cantidad__lt=1) | Q(categoria__nombre="Zapatos"))
-            .values("id", "descripcion", "codigo", "cantidad", "categoria__nombre")
+            .values(
+                "id",
+                "descripcion",
+                "codigo",
+                "precio_venta",
+                "cantidad",
+                "categoria__nombre",
+            )
         )
         zapatos = Producto.objects.filter(
             venta__isnull=True, area_venta=area_venta, info__categoria__nombre="Zapatos"
