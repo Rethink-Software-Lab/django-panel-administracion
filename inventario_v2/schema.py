@@ -153,17 +153,23 @@ class VentaReporteSchema(Schema):
     area: str | None
 
 
-class Zapatos(ModelSchema):
-    info: ProductoInfoSchema
-
-    class Meta:
-        model = Producto
-        fields = "__all__"
+class Zapatos(Schema):
+    id: int
+    info__codigo: str
+    info__descripcion: str
+    color: str
+    numero: int
 
 
 class InventarioSchema(Schema):
     productos: List[OtrosProductos]
     zapatos: List[Zapatos]
+
+
+class InventarioAreaVentaSchema(Schema):
+    productos: List[OtrosProductos]
+    zapatos: List[Zapatos]
+    area_venta: str
 
 
 class AddProductoSchema(Schema):

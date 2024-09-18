@@ -1,5 +1,5 @@
 from inventario.models import AreaVenta, ProductoInfo, Producto
-from ..schema import InventarioSchema
+from ..schema import InventarioSchema, InventarioAreaVentaSchema
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
 from django.db.models import F, Count, Q
@@ -31,10 +31,16 @@ class InventarioController:
             venta__isnull=True,
             area_venta__isnull=True,
             info__categoria__nombre="Zapatos",
+        ).values(
+            "id",
+            "info__codigo",
+            "info__descripcion",
+            "color",
+            "numero",
         )
         return {"productos": producto_info, "zapatos": zapatos}
 
-    @route.get("area-venta/{id}/", response=InventarioSchema)
+    @route.get("area-venta/{id}/", response=InventarioAreaVentaSchema)
     def getInventarioAreaVenta(self, id: int):
         area_venta = get_object_or_404(AreaVenta, pk=id)
         producto_info = (
@@ -55,6 +61,16 @@ class InventarioController:
         )
         zapatos = Producto.objects.filter(
             venta__isnull=True, area_venta=area_venta, info__categoria__nombre="Zapatos"
+        ).values(
+            "id",
+            "info__codigo",
+            "info__descripcion",
+            "color",
+            "numero",
         )
 
-        return {"productos": producto_info, "zapatos": zapatos}
+        return {
+            "productos": producto_info,
+            "zapatos": zapatos,
+            "area_venta": area_venta.nombre,
+        }
