@@ -95,7 +95,7 @@ class AddSalidaSchema(Schema):
 class VentasSchema(Schema):
     id: int
     created_at: datetime.datetime
-    importe: condecimal(gt=0)
+    importe: condecimal()
     metodo_pago: str
     usuario__username: str
     producto__info__descripcion: str
@@ -145,7 +145,7 @@ class ProductoInfoModifySchema(Schema):
 
 class VentaReporteSchema(Schema):
     productos: List[ProductoInfoModifySchema]
-    total: condecimal(gt=0) | None
+    total: condecimal() | None
     pago_trabajador: conint(ge=0) | None
     subtotal: condecimal(ge=0) | None
     efectivo: condecimal(ge=0) | None
