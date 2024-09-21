@@ -1,5 +1,12 @@
 from ninja.errors import HttpError
-from inventario.models import ProductoInfo, EntradaAlmacen, Producto, User
+from inventario.models import (
+    ProductoInfo,
+    EntradaAlmacen,
+    Producto,
+    SalidaAlmacen,
+    User,
+    Ventas,
+)
 from ..schema import AddEntradaSchema, EntradaAlmacenSchema
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
@@ -102,6 +109,22 @@ class EntradasController:
 
     @route.delete("{id}/")
     def deleteEntrada(self, request, id):
-        entrada = get_object_or_404(EntradaAlmacen, pk=id)
-        entrada.delete()
-        return {"message": "Entrada eliminada con éxito"}
+        try:
+            with transaction.atomic():
+                entrada = get_object_or_404(EntradaAlmacen, pk=id)
+
+                productos = Producto.objects.filter(entrada=entrada)
+
+                salidas = SalidaAlmacen.objects.filter(
+                    producto__in=productos
+                ).distinct()
+
+                ventas = Ventas.objects.filter(producto__in=productos).distinct()
+
+                ventas.delete()
+                salidas.delete()
+                entrada.delete()
+
+            return {"message": "Entrada y elementos relacionados eliminados con éxito"}
+        except Exception as e:
+            return {"error": f"Error al eliminar la entrada: {str(e)}"}, 400

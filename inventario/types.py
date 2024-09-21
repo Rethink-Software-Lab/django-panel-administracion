@@ -106,8 +106,3 @@ class PbyPT(ObjectType):
 class MasVendidosType(ObjectType):
     producto = Field(ProductInfoType)
     cantidad = Int()
-
-
-class GraficoType(ObjectType):
-    mes = String()
-    ventas = String()
