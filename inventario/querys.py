@@ -14,7 +14,6 @@ from django.shortcuts import get_object_or_404
 from graphql_jwt.shortcuts import get_user_by_token
 from django.core.paginator import Paginator
 from graphql import GraphQLError
-from .utils import get_month_name
 
 
 class Query(ObjectType):
@@ -29,10 +28,6 @@ class Query(ObjectType):
     inventario_almacen = List(ProductoType)
     inventario_area_venta = List(ProductoType, id=ID())
     mas_vendidos = List(MasVendidosType)
-    ventas_hoy = Decimal()
-    ventas_semana = Decimal()
-    ventas_mes = Decimal()
-    grafico = List(GraficoType)
     one_ventas = Field(VentasFilterType, id=ID(), page=Int())
     user_by_token = Field(UserType)
 
@@ -150,81 +145,6 @@ class Query(ObjectType):
 
             products.sort(key=lambda producto: producto["cantidad"], reverse=True)
         return products[0:5]
-
-    @user_passes_test(lambda user: user.rol == "ADMIN" or user.rol == "ALMACENERO")
-    def resolve_ventas_hoy(self, info):
-        productos = (
-            Producto.objects.filter(venta__created_at__date=timezone.now().date())
-            .annotate(diferencia=F("info__precio_venta") - F("info__precio_costo"))
-            .aggregate(ventaHoy=Sum("diferencia"))
-        )
-
-        return productos["ventaHoy"]
-
-    @user_passes_test(lambda user: user.rol == "ADMIN" or user.rol == "ALMACENERO")
-    def resolve_ventas_semana(self, info):
-
-        hoy = timezone.now().date()
-
-        inicio_semana = hoy - timedelta(days=hoy.weekday())
-        fin_semana = inicio_semana + timedelta(days=6)
-
-        productos = (
-            Producto.objects.filter(
-                venta__created_at__range=[inicio_semana, fin_semana]
-            )
-            .annotate(diferencia=F("info__precio_venta") - F("info__precio_costo"))
-            .aggregate(ventaSemana=Sum("diferencia"))
-        )
-
-        return productos["ventaSemana"]
-
-    @user_passes_test(lambda user: user.rol == "ADMIN" or user.rol == "ALMACENERO")
-    def resolve_ventas_mes(self, info):
-
-        today = timezone.now().date()
-
-        inicio_mes = today.replace(day=1)
-        proximo_mes = inicio_mes.replace(day=28) + timedelta(
-            days=4
-        )  # Esto asegura estar en el próximo mes
-        fin_mes = proximo_mes - timedelta(days=proximo_mes.day)
-
-        productos = (
-            Producto.objects.filter(venta__created_at__range=[inicio_mes, fin_mes])
-            .annotate(diferencia=F("info__precio_venta") - F("info__precio_costo"))
-            .aggregate(ventaMes=Sum("diferencia"))
-        )
-
-        return productos["ventaMes"]
-
-    @user_passes_test(lambda user: user.rol == "ADMIN" or user.rol == "ALMACENERO")
-    def resolve_grafico(self, info):
-        anno = timezone.now().year
-
-        mes_actual = timezone.now().month
-
-        grafico = []
-        if mes_actual > 0:
-            for mes in range(1, mes_actual + 1):
-                prod = (
-                    Producto.objects.filter(
-                        venta__created_at__date__year=anno,
-                        venta__created_at__date__month=mes,
-                    )
-                    .annotate(
-                        diferencia=F("info__precio_venta") - F("info__precio_costo")
-                    )
-                    .aggregate(total=Sum("diferencia"))
-                )
-                nombre_mes = get_month_name(mes)
-                grafico.append(
-                    {
-                        "mes": nombre_mes.capitalize(),
-                        "ventas": prod["total"] if prod["total"] else 0,
-                    }
-                )
-        return grafico
 
     @login_required
     def resolve_user_by_token(self, info):
