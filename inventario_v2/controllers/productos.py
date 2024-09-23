@@ -4,12 +4,20 @@ from PIL import Image as IMG
 from django.shortcuts import get_object_or_404
 from ninja.errors import HttpError
 from ninja.files import UploadedFile
-from inventario.models import Categorias, Image, ProductoInfo, Producto
+from inventario.models import (
+    Categorias,
+    Image,
+    ProductoInfo,
+    Producto,
+    Ventas,
+    SalidaAlmacen,
+    EntradaAlmacen,
+)
 from ..schema import ProductoInfoSchema, AddProductoSchema, UpdateProductoSchema
 from ninja_extra import api_controller, route
 from typing import List, Optional
 import cloudinary.uploader
-
+from django.db import transaction
 from ..custom_permissions import isAuthenticated
 
 # TODO:
@@ -184,16 +192,21 @@ class ProductoController:
 
     @route.delete("{id}/")
     def deleteProducto(self, id: int):
-        producto = get_object_or_404(ProductoInfo, pk=id)
+        productoInfo = get_object_or_404(ProductoInfo, pk=id)
+        productos = Producto.objects.filter(info=productoInfo)
+        entradas = EntradaAlmacen.objects.filter(producto__in=productos).distinct()
+        salidas = SalidaAlmacen.objects.filter(producto__in=productos).distinct()
+        ventas = Ventas.objects.filter(producto__in=productos).distinct()
 
-        if producto.imagen:
-            try:
-                cloudinary.uploader.destroy(producto.imagen.public_id)
-            except:
-                raise HttpError(424, "Error al eliminar el recurso")
+        with transaction.atomic():
+            if productoInfo.imagen:
+                try:
+                    cloudinary.uploader.destroy(productoInfo.imagen.public_id)
+                except:
+                    raise HttpError(424, "Error al eliminar el recurso")
 
-        try:
-            producto.delete()
+            ventas.delete()
+            salidas.delete()
+            entradas.delete()
+            productoInfo.delete()
             return {"success": True}
-        except:
-            raise HttpError(500, "Error inesperado.")
