@@ -135,7 +135,7 @@ class ProductoController:
         producto.precio_costo = dataDict["precio_costo"]
         producto.precio_venta = dataDict["precio_venta"]
 
-        if not dataDict["imagen"] and not imagen:
+        if not imagen and dataDict.get("deletePhoto"):
             if producto.imagen:
                 try:
                     cloudinary.uploader.destroy(producto.imagen.public_id)
@@ -145,7 +145,7 @@ class ProductoController:
                 except:
                     raise HttpError(424, "Dependency fail")
 
-        if imagen and not dataDict["imagen"]:
+        if imagen:
             try:
                 # Abrir la imagen usando Pillow
                 imagen = IMG.open(imagen)

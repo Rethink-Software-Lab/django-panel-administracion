@@ -185,10 +185,10 @@ class UpdateProductoSchema(Schema):
     codigo: str
     descripcion: str
     categoria: int
-    imagen: Optional[HttpUrl] = None
     precio_costo: condecimal(gt=0)
     precio_venta: condecimal(gt=0)
     pago_trabajador: conint(ge=0)
+    deletePhoto: bool
 
 
 class AreaVentaSchema(ModelSchema):
