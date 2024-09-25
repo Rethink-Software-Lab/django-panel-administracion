@@ -1,5 +1,5 @@
 from typing import List
-from graphene import List, ObjectType, Field, ID, Decimal
+from graphene import List, ObjectType, Field, ID
 from .types import *
 from .models import *
 from graphql_jwt.decorators import (
@@ -7,11 +7,8 @@ from graphql_jwt.decorators import (
     staff_member_required,
     user_passes_test,
 )
-from django.db.models import F, Sum
-from datetime import timedelta
-from django.utils import timezone
+
 from django.shortcuts import get_object_or_404
-from graphql_jwt.shortcuts import get_user_by_token
 from django.core.paginator import Paginator
 from graphql import GraphQLError
 
@@ -29,7 +26,6 @@ class Query(ObjectType):
     inventario_area_venta = List(ProductoType, id=ID())
     mas_vendidos = List(MasVendidosType)
     one_ventas = Field(VentasFilterType, id=ID(), page=Int())
-    user_by_token = Field(UserType)
 
     @staff_member_required
     def resolve_all_users(self, info, page=1, perPage=7):
@@ -145,12 +141,3 @@ class Query(ObjectType):
 
             products.sort(key=lambda producto: producto["cantidad"], reverse=True)
         return products[0:5]
-
-    @login_required
-    def resolve_user_by_token(self, info):
-        try:
-            token = info.context.headers["Authorization"]
-            tk = token[4 : len(token)]
-            return get_user_by_token(tk)
-        except User.DoesNotExist:
-            return GraphQLError("El token es incorrecto o no existe")
