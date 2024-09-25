@@ -71,8 +71,9 @@ MIDDLEWARE = [
 
 GRAPHQL_JWT = {
     "JWT_VERIFY_EXPIRATION": True,
-    "JWT_EXPIRATION_DELTA": timedelta(days=365),
-    "JWT_PAYLOAD_HANDLER": "project_inventario.utils.custom_jwt_payload",
+    "JWT_EXPIRATION_DELTA": timedelta(days=30),
+    "JWT_PAYLOAD_HANDLER": "inventario.utils.custom_jwt_payload",
+    "JWT_ALGORITHM": "HS256",
 }
 
 
