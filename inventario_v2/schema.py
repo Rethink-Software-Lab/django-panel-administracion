@@ -2,7 +2,7 @@ import datetime
 from ninja import ModelSchema, Schema
 from inventario.models import *
 from typing import List, Optional, Literal
-from pydantic import condecimal, HttpUrl, conint, validator
+from pydantic import condecimal, conint, validator
 
 
 class UserModifySchema(Schema):
@@ -147,6 +147,7 @@ class VentaReporteSchema(Schema):
     productos: List[ProductoInfoModifySchema]
     total: condecimal() | None
     pago_trabajador: conint(ge=0) | None
+    costo_producto: condecimal() | None
     subtotal: condecimal(ge=0) | None
     efectivo: condecimal(ge=0) | None
     transferencia: condecimal(ge=0) | None
