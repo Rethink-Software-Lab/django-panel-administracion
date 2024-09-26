@@ -70,6 +70,7 @@ class VentasController:
                 "producto__area_venta__nombre",
                 "cantidad",
                 "precio_venta",
+                "precio_costo",
                 "importe",
             )
         )
@@ -88,6 +89,12 @@ class VentasController:
         )
 
         subtotal = producto_info.aggregate(subtotal=Sum("importe"))["subtotal"] or 0
+        costo_producto = (
+            producto_info.aggregate(
+                costo_producto=Sum(F("precio_costo") * F("cantidad"))
+            )["costo_producto"]
+            or 0
+        )
         pago_trabajador = (
             producto_info.aggregate(
                 pago_trabajador=Sum(F("pago_trabajador") * F("cantidad"))
@@ -95,16 +102,17 @@ class VentasController:
             or 0
         )
 
+        total_costos = pago_trabajador + costo_producto or 0
+
         return {
             "productos": list(producto_info),
             "subtotal": subtotal,
+            "costo_producto": costo_producto,
             "pago_trabajador": pago_trabajador,
             "efectivo": (pagos["efectivo_venta"] or 0) + (pagos["efectivo_mixto"] or 0),
             "transferencia": (pagos["transferencia_venta"] or 0)
             + (pagos["transferencia_mixto"] or 0),
-            "total": (
-                subtotal - pago_trabajador if subtotal and pago_trabajador else None
-            ),
+            "total": (subtotal - total_costos),
             "area": (
                 producto_info.first()["producto__area_venta__nombre"]
                 if producto_info
