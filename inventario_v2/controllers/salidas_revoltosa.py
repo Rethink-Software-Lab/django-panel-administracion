@@ -1,13 +1,12 @@
 from ninja.errors import HttpError
 from inventario.models import (
     ProductoInfo,
-    SalidaAlmacen,
+    SalidaAlmacenRevoltosa,
     Producto,
     User,
     AreaVenta,
-    SalidaAlmacenRevoltosa,
 )
-from ..schema import AddSalidaSchema, SalidaAlmacenSchema
+from ..schema import AddSalidaRevoltosaSchema, SalidaAlmacenRevoltosaSchema
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
 from typing import List
@@ -17,19 +16,18 @@ from django.db.models import Count
 from ..custom_permissions import isStaff
 
 
-@api_controller("salidas/", tags=["Salidas"], permissions=[isStaff])
-class SalidasController:
+@api_controller("salidas-revoltosa/", tags=["SalidasRevoltosa"], permissions=[isStaff])
+class SalidasRevoltosaController:
 
-    @route.get("", response=List[SalidaAlmacenSchema])
-    def obtenerSalidas(self):
+    @route.get("", response=List[SalidaAlmacenRevoltosaSchema])
+    def get_salidas_revoltosa(self):
         try:
             salidas = (
-                SalidaAlmacen.objects.all()
+                SalidaAlmacenRevoltosa.objects.all()
                 .order_by("-created_at")
                 .annotate(cantidad=Count("producto"))
                 .values(
                     "id",
-                    "area_venta__nombre",
                     "usuario__username",
                     "created_at",
                     "producto__info__descripcion",
@@ -41,17 +39,17 @@ class SalidasController:
             raise HttpError(500, f"Error al obtener las salidas: {str(e)}")
 
     @route.post("")
-    def addSalida(self, request, data: AddSalidaSchema):
+    def add_salida_revoltosa(self, request, data: AddSalidaRevoltosaSchema):
         dataDict = data.model_dump()
-
-        if dataDict["area_venta"] != "almacen-revoltosa":
-            area_venta = get_object_or_404(AreaVenta, pk=dataDict["area_venta"])
-        else:
-            area_venta = None
 
         producto_info = get_object_or_404(
             ProductoInfo, codigo=dataDict["producto_info"]
         )
+
+        area_revoltosa = AreaVenta.objects.get(nombre="Revoltosa")
+        if not area_revoltosa:
+            raise HttpError(400, "Area de venta Revoltosa no existe")
+
         usuario_search = get_object_or_404(User, pk=request.auth["id"])
 
         if producto_info.categoria.nombre == "Zapatos":
@@ -80,31 +78,29 @@ class SalidasController:
 
             try:
                 with transaction.atomic():
-                    salida = SalidaAlmacen.objects.create(
-                        area_venta=area_venta, usuario=usuario_search
+                    salida = SalidaAlmacenRevoltosa.objects.create(
+                        usuario=usuario_search
                     )
                     productos.update(
-                        area_venta=area_venta if area_venta else None,
-                        almacen_revoltosa=False if area_venta else True,
+                        area_venta=area_revoltosa,
+                        almacen_revoltosa=False,
                         salida=salida,
                     )
 
                     return {"success": True}
-            except:
-                raise HttpError(500, "Algo salió mal al agregar la salida.")
+            except Exception as e:
+                raise HttpError(500, f"Algo salió mal al agregar la salida: {str(e)}")
 
         elif dataDict["cantidad"] and dataDict["cantidad"] > 0:
 
             with transaction.atomic():
                 cantidad = dataDict["cantidad"]
-                salida = SalidaAlmacen.objects.create(
-                    area_venta=area_venta, usuario=usuario_search
-                )
+                salida = SalidaAlmacenRevoltosa.objects.create(usuario=usuario_search)
 
                 productos = Producto.objects.filter(
                     venta__isnull=True,
-                    almacen_revoltosa=False,
                     area_venta__isnull=True,
+                    almacen_revoltosa=True,
                     info=producto_info,
                 )[:cantidad]
 
@@ -115,9 +111,9 @@ class SalidasController:
                     )
 
                 for producto in productos:
-                    producto.area_venta = area_venta if area_venta else None
-                    producto.almacen_revoltosa = False if area_venta else True
-                    producto.salida = salida
+                    producto.area_venta = area_revoltosa
+                    producto.almacen_revoltosa = False
+                    producto.salida_revoltosa = salida
                     producto.save()
 
                 return {"success": True}
@@ -127,11 +123,13 @@ class SalidasController:
 
     @route.delete("{id}/")
     def deleteSalida(self, id: int):
-        salida = get_object_or_404(SalidaAlmacen, pk=id)
+        salida = get_object_or_404(SalidaAlmacenRevoltosa, pk=id)
 
-        productos_vendidos = Producto.objects.filter(salida=salida, venta__isnull=False)
+        productos_vendidos = Producto.objects.filter(
+            salida_revoltosa=salida, venta__isnull=False
+        ).exists()
 
-        if productos_vendidos.exists():
+        if productos_vendidos:
             raise HttpError(
                 400,
                 "No se puede eliminar la salida porque algunos productos ya han sido vendidos.",
@@ -139,14 +137,8 @@ class SalidasController:
 
         try:
             with transaction.atomic():
-
-                productos = Producto.objects.filter(salida=salida)
-                SalidaAlmacenRevoltosa.objects.filter(producto__in=productos).delete()
-                productos.update(
-                    area_venta=None,
-                    salida=None,
-                    almacen_revoltosa=False,
-                    salida_revoltosa=None,
+                Producto.objects.filter(salida_revoltosa=salida).update(
+                    area_venta=None, salida_revoltosa=None, almacen_revoltosa=True
                 )
                 salida.delete()
 

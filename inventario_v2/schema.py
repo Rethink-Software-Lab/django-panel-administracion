@@ -78,15 +78,29 @@ class AddEntradaSchema(Schema):
 
 class SalidaAlmacenSchema(Schema):
     id: int
-    area_venta__nombre: str
+    area_venta__nombre: str | None
     usuario__username: str
     producto__info__descripcion: str
     created_at: datetime.datetime
     cantidad: int
 
 
+class SalidaAlmacenRevoltosaSchema(Schema):
+    id: int
+    usuario__username: str
+    producto__info__descripcion: str | None
+    created_at: datetime.datetime
+    cantidad: int
+
+
 class AddSalidaSchema(Schema):
-    area_venta: int
+    area_venta: int | Literal["almacen-revoltosa"]
+    producto_info: str
+    cantidad: Optional[int] = None
+    zapatos_id: Optional[List[int]] = None
+
+
+class AddSalidaRevoltosaSchema(Schema):
     producto_info: str
     cantidad: Optional[int] = None
     zapatos_id: Optional[List[int]] = None

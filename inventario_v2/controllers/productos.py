@@ -30,17 +30,33 @@ from ..custom_permissions import isAuthenticated
 class ProductoController:
 
     @route.get("", response=List[ProductoInfoSchema])
-    def getProductos(self, a: int = None):
-        if a:
-            producto_info = (
-                ProductoInfo.objects.filter(
-                    producto__area_venta=a, producto__venta__isnull=True
+    def getProductos(
+        self, a: int = 0, is_revoltosa: bool = False, is_almacen: bool = False
+    ):
+        if a or is_revoltosa or is_almacen:
+            if is_revoltosa:
+                producto_info = (
+                    ProductoInfo.objects.filter(
+                        producto__almacen_revoltosa=is_revoltosa,
+                    )
+                    .order_by("-id")
+                    .distinct()
                 )
-                .distinct()
-                .order_by("-id")
-            )
-            return producto_info
-        producto_info = ProductoInfo.objects.all().order_by("-id")
+            if is_almacen:
+                producto_info = (
+                    ProductoInfo.objects.filter(
+                        producto__area_venta__isnull=is_almacen,
+                        producto__almacen_revoltosa=False,
+                    )
+                    .order_by("-id")
+                    .distinct()
+                )
+            if a:
+                producto_info = producto_info.filter(producto__area_venta=a)
+
+        else:
+            producto_info = ProductoInfo.objects.all().order_by("-id")
+
         return producto_info
 
     @route.post()

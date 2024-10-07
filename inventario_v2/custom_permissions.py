@@ -15,9 +15,28 @@ class isAdmin(BasePermission):
 class isStaff(BasePermission):
     def has_permission(self, request, view=None, controller=None):
         return request.auth["rol"] == "ADMIN" or request.auth == "ALMACENERO"
-    
+
+
 class isAuthenticated(BasePermission):
     def has_permission(self, request, view=None, controller=None):
         if request.auth:
             return True
-    
+
+
+# TODO
+# class isAuthorizeVenta(BasePermission):
+#     def has_permission(self, request, view=None, controller=None):
+#         import re
+#         import json
+
+#         if request.method != "POST":
+#             match = re.search(r"/v2/ventas/(\d+)/", request.path)
+#             if match:
+#                 try:
+#                     id_venta = int(match.group(1))
+#                     return request.user.area_venta == id_venta
+#                 except ValueError:
+#                     return False
+
+#         data = json.loads(request.body)
+#         return data.get("area_venta") == request.user.area_venta

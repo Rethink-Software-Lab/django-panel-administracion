@@ -15,6 +15,7 @@ class InventarioController:
             ProductoInfo.objects.filter(
                 producto__venta__isnull=True,
                 producto__area_venta__isnull=True,
+                producto__almacen_revoltosa=False,
             )
             .annotate(cantidad=Count(F("producto")))
             .exclude(Q(cantidad__lt=1) | Q(categoria__nombre="Zapatos"))
@@ -74,3 +75,35 @@ class InventarioController:
             "zapatos": zapatos,
             "area_venta": area_venta.nombre,
         }
+
+    @route.get("almacen-revoltosa/", response=InventarioSchema)
+    def getInventarioAlmacenRevoltosa(self):
+        producto_info = (
+            ProductoInfo.objects.filter(
+                producto__venta__isnull=True,
+                producto__area_venta__isnull=True,
+                producto__almacen_revoltosa=True,
+            )
+            .annotate(cantidad=Count(F("producto")))
+            .exclude(Q(cantidad__lt=1) | Q(categoria__nombre="Zapatos"))
+            .values(
+                "id",
+                "descripcion",
+                "codigo",
+                "cantidad",
+                "categoria__nombre",
+                "precio_venta",
+            )
+        )
+        zapatos = Producto.objects.filter(
+            venta__isnull=True,
+            area_venta__isnull=True,
+            info__categoria__nombre="Zapatos",
+        ).values(
+            "id",
+            "info__codigo",
+            "info__descripcion",
+            "color",
+            "numero",
+        )
+        return {"productos": producto_info, "zapatos": zapatos}
