@@ -11,6 +11,7 @@ from inventario.models import (
     Producto,
     Ventas,
     SalidaAlmacen,
+    SalidaAlmacenRevoltosa,
     EntradaAlmacen,
 )
 from ..schema import ProductoInfoSchema, AddProductoSchema, UpdateProductoSchema
@@ -52,8 +53,11 @@ class ProductoController:
                     .distinct()
                 )
             if a:
-                producto_info = producto_info.filter(producto__area_venta=a)
-
+                producto_info = (
+                    ProductoInfo.objects.filter(producto__area_venta=a)
+                    .order_by("-id")
+                    .distinct()
+                )
         else:
             producto_info = ProductoInfo.objects.all().order_by("-id")
 
@@ -212,6 +216,9 @@ class ProductoController:
         productos = Producto.objects.filter(info=productoInfo)
         entradas = EntradaAlmacen.objects.filter(producto__in=productos).distinct()
         salidas = SalidaAlmacen.objects.filter(producto__in=productos).distinct()
+        salidas_revoltosa = SalidaAlmacenRevoltosa.objects.filter(
+            producto__in=productos
+        ).distinct()
         ventas = Ventas.objects.filter(producto__in=productos).distinct()
 
         with transaction.atomic():
@@ -223,6 +230,7 @@ class ProductoController:
 
             ventas.delete()
             salidas.delete()
+            salidas_revoltosa.delete()
             entradas.delete()
             productoInfo.delete()
             return {"success": True}
