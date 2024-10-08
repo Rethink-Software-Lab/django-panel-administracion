@@ -98,6 +98,7 @@ class InventarioController:
         zapatos = Producto.objects.filter(
             venta__isnull=True,
             area_venta__isnull=True,
+            almacen_revoltosa=True,
             info__categoria__nombre="Zapatos",
         ).values(
             "id",
