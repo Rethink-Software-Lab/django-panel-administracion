@@ -4,6 +4,7 @@ from inventario.models import (
     EntradaAlmacen,
     Producto,
     SalidaAlmacen,
+    SalidaAlmacenRevoltosa,
     User,
     Ventas,
 )
@@ -119,10 +120,15 @@ class EntradasController:
                     producto__in=productos
                 ).distinct()
 
+                salidas_revoltosa = SalidaAlmacenRevoltosa.objects.filter(
+                    producto__in=productos
+                ).distinct()
+
                 ventas = Ventas.objects.filter(producto__in=productos).distinct()
 
                 ventas.delete()
                 salidas.delete()
+                salidas_revoltosa.delete()
                 entrada.delete()
 
             return {"message": "Entrada y elementos relacionados eliminados con éxito"}
