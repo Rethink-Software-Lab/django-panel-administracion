@@ -21,4 +21,5 @@ class ProductInfoAdmin(admin.ModelAdmin):
         "categoria",
         "precio_costo",
         "precio_venta",
+        "pago_trabajador",
     ]

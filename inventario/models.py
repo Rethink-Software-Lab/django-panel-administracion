@@ -118,10 +118,15 @@ class Ventas(models.Model):
 
 
 class SalidaAlmacen(models.Model):
-    area_venta = models.ForeignKey(AreaVenta, on_delete=models.CASCADE)
+    area_venta = models.ForeignKey(AreaVenta, on_delete=models.CASCADE, null=True)
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class SalidaAlmacenRevoltosa(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 class Producto(models.Model):
@@ -129,6 +134,10 @@ class Producto(models.Model):
     color = models.CharField(max_length=100, blank=True, null=True)
     numero = models.DecimalField(max_digits=3, decimal_places=1, blank=True, null=True)
     entrada = models.ForeignKey(EntradaAlmacen, on_delete=models.CASCADE)
-    salida = models.ForeignKey(SalidaAlmacen, on_delete=models.CASCADE, null=True)
+    salida = models.ForeignKey(SalidaAlmacen, on_delete=models.SET_NULL, null=True)
+    salida_revoltosa = models.ForeignKey(
+        SalidaAlmacenRevoltosa, on_delete=models.SET_NULL, null=True
+    )
     venta = models.ForeignKey(Ventas, on_delete=models.SET_NULL, null=True)
     area_venta = models.ForeignKey(AreaVenta, on_delete=models.SET_NULL, null=True)
+    almacen_revoltosa = models.BooleanField(default=False)
