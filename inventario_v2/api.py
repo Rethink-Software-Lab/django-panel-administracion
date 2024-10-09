@@ -18,6 +18,7 @@ from inventario_v2.controllers.ventas import VentasController
 from inventario_v2.controllers.inventario import InventarioController
 from inventario_v2.controllers.productos import ProductoController
 from inventario_v2.controllers.usuarios import UsuariosController
+from inventario_v2.controllers.reportes import ReportesController
 
 
 class AuthBearer(HttpBearer):
@@ -106,4 +107,5 @@ app.register_controllers(
     InventarioController,
     ProductoController,
     UsuariosController,
+    ReportesController,
 )

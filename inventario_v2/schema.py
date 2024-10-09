@@ -165,7 +165,7 @@ class VentaReporteSchema(Schema):
     subtotal: condecimal(ge=0) | None
     efectivo: condecimal(ge=0) | None
     transferencia: condecimal(ge=0) | None
-    area: str | None
+    area: Optional[str] = None
 
 
 class Zapatos(Schema):
