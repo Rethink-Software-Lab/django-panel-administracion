@@ -64,7 +64,6 @@ class Query(ObjectType):
         )
 
     @login_required
-    @user_passes_test(lambda user: user.rol == "ADMIN" or user.rol == "ALMACENERO")
     def resolve_all_area_venta(self, info, page=None):
         if page is None:
             areas_venta = AreaVenta.objects.all().order_by("-id")
