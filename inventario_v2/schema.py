@@ -1,8 +1,9 @@
 import datetime
 from ninja import ModelSchema, Schema
 from inventario.models import *
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Any
 from pydantic import condecimal, conint, validator
+from decimal import Decimal
 
 
 class UserModifySchema(Schema):
@@ -248,3 +249,27 @@ class SearchProductSchema(Schema):
     info: ProductoInfoSchema
     zapato: bool
     inventario: List[Otros] | List[ZapatosForSearch]
+
+
+# class VentasPorAreaSchema(Schema):
+#     dia: str
+#     str Dict[str, Dict[str, Any]]
+
+
+class VentasAnualesSchema(Schema):
+    mes: str
+    ventas: Decimal
+
+
+class MasVendidosSchema(Schema):
+    producto: ProductoInfoSchema
+    cantidad: int
+
+
+class GraficasSchema(Schema):
+    ventasPorArea: Any
+    ventasAnuales: List[VentasAnualesSchema]
+    masVendidos: List[MasVendidosSchema]
+    ventasHoy: Decimal
+    ventasSemana: Decimal
+    ventasMes: Decimal
