@@ -10,7 +10,6 @@ from inventario.models import (
 from ..schema import AddSalidaSchema, SalidaAlmacenSchema
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
-from typing import List
 from django.db import transaction
 from django.db.models import Count
 
@@ -20,7 +19,7 @@ from ..custom_permissions import isStaff
 @api_controller("salidas/", tags=["Salidas"], permissions=[isStaff])
 class SalidasController:
 
-    @route.get("", response=List[SalidaAlmacenSchema])
+    @route.get("", response=SalidaAlmacenSchema)
     def obtenerSalidas(self):
         try:
             salidas = (
@@ -36,7 +35,23 @@ class SalidasController:
                     "cantidad",
                 )
             )
-            return salidas
+
+            areas_de_venta = AreaVenta.objects.all()
+
+            productos = (
+                ProductoInfo.objects.filter(
+                    producto__area_venta__isnull=True,
+                    producto__almacen_revoltosa=False,
+                )
+                .only("codigo", "categoria")
+                .distinct()
+            )
+
+            return {
+                "salidas": salidas,
+                "areas_de_venta": areas_de_venta,
+                "productos": productos,
+            }
         except Exception as e:
             raise HttpError(500, f"Error al obtener las salidas: {str(e)}")
 
