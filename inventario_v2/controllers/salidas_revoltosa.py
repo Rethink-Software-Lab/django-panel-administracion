@@ -46,9 +46,7 @@ class SalidasRevoltosaController:
             ProductoInfo, codigo=dataDict["producto_info"]
         )
 
-        area_revoltosa = AreaVenta.objects.get(nombre="Revoltosa")
-        if not area_revoltosa:
-            raise HttpError(400, "Area de venta Revoltosa no existe")
+        area_revoltosa = get_object_or_404(AreaVenta, nombre="Revoltosa")
 
         usuario_search = get_object_or_404(User, pk=request.auth["id"])
 
@@ -71,7 +69,12 @@ class SalidasRevoltosaController:
             if filtro2.count() < len(ids_unicos):
                 raise HttpError(400, "Algunos productos ya han sido vendidos.")
 
-            productos = filtro2.filter(area_venta__isnull=True)
+            filtro3 = filtro2.filter(area_venta__isnull=True)
+
+            if filtro3.count() < len(ids_unicos):
+                raise HttpError(400, "Algunos productos ya están en un área de venta.")
+
+            productos = filtro3.filter(almacen_revoltosa=True)
 
             if productos.count() < len(ids_unicos):
                 raise HttpError(400, "Algunos productos no están en el almacén.")
@@ -84,7 +87,7 @@ class SalidasRevoltosaController:
                     productos.update(
                         area_venta=area_revoltosa,
                         almacen_revoltosa=False,
-                        salida=salida,
+                        salida_revoltosa=salida,
                     )
 
                     return {"success": True}
@@ -110,11 +113,20 @@ class SalidasRevoltosaController:
                         f"No hay {producto_info.descripcion} suficientes para esta accion",
                     )
 
-                for producto in productos:
-                    producto.area_venta = area_revoltosa
-                    producto.almacen_revoltosa = False
-                    producto.salida_revoltosa = salida
-                    producto.save()
+                prods = [
+                    Producto(
+                        id=producto.pk,
+                        area_venta=area_revoltosa,
+                        almacen_revoltosa=False,
+                        salida_revoltosa=salida,
+                    )
+                    for producto in productos
+                ]
+
+                Producto.objects.bulk_update(
+                    prods,
+                    fields=["area_venta", "almacen_revoltosa", "salida_revoltosa"],
+                )
 
                 return {"success": True}
 
