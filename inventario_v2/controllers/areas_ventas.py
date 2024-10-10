@@ -55,10 +55,14 @@ class AreasVentasController:
             "numero",
         )
 
-        all_productos = ProductoInfo.objects.filter(
-            producto__venta__isnull=True,
-            producto__area_venta=area_venta,
-        ).only("codigo", "categoria")
+        all_productos = (
+            ProductoInfo.objects.filter(
+                producto__venta__isnull=True,
+                producto__area_venta=area_venta,
+            )
+            .only("codigo", "categoria")
+            .distinct()
+        )
 
         categorias = Categorias.objects.all()
 
