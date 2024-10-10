@@ -202,6 +202,12 @@ class InventarioSchema(Schema):
 class InventarioAreaVentaSchema(Schema):
     productos: List[OtrosProductos]
     zapatos: List[Zapatos]
+    categorias: List[CategoriasSchema]
+
+
+class OneAreaVentaSchema(Schema):
+    inventario: InventarioAreaVentaSchema
+    ventas: List[VentasSchema]
     area_venta: str
 
 
