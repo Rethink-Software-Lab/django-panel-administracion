@@ -1,5 +1,4 @@
 from django.urls import path
-from graphene_django.views import GraphQLView
 from django.views.decorators.csrf import csrf_exempt
 from inventario.schema import schema
 from graphene_file_upload.django import FileUploadGraphQLView
