@@ -77,13 +77,30 @@ class AddEntradaSchema(Schema):
     comprador: str
 
 
-class SalidaAlmacenSchema(Schema):
+class AreaVentaSchema(ModelSchema):
+    class Meta:
+        model = AreaVenta
+        fields = "__all__"
+
+
+class Salidas(Schema):
     id: int
     area_venta__nombre: str | None
     usuario__username: str
     producto__info__descripcion: str
     created_at: datetime.datetime
     cantidad: int
+
+
+class ProductoCodigoSchema(Schema):
+    codigo: str
+    categoria: CategoriasSchema
+
+
+class SalidaAlmacenSchema(Schema):
+    salidas: List[Salidas]
+    areas_de_venta: List[AreaVentaSchema]
+    productos: List[ProductoCodigoSchema]
 
 
 class SalidaAlmacenRevoltosaSchema(Schema):
@@ -188,6 +205,11 @@ class InventarioAreaVentaSchema(Schema):
     area_venta: str
 
 
+class AlmacenPrincipal(Schema):
+    inventario: InventarioSchema
+    categorias: List[CategoriasSchema]
+
+
 class AddProductoSchema(Schema):
     codigo: str
     descripcion: str
@@ -205,12 +227,6 @@ class UpdateProductoSchema(Schema):
     precio_venta: condecimal(gt=0)
     pago_trabajador: conint(ge=0)
     deletePhoto: bool
-
-
-class AreaVentaSchema(ModelSchema):
-    class Meta:
-        model = AreaVenta
-        fields = "__all__"
 
 
 class UsuariosSchema(ModelSchema):
