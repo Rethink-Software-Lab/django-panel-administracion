@@ -127,10 +127,10 @@ class AddSalidaRevoltosaSchema(Schema):
 class VentasSchema(Schema):
     id: int
     created_at: datetime.datetime
-    importe: condecimal()
+    importe: condecimal() | None
     metodo_pago: str
     usuario__username: str
-    producto__info__descripcion: str
+    producto__info__descripcion: str | None
     cantidad: int
 
 
