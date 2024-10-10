@@ -209,6 +209,7 @@ class OneAreaVentaSchema(Schema):
     inventario: InventarioAreaVentaSchema
     ventas: List[VentasSchema]
     area_venta: str
+    all_productos: List[ProductoInfoSchema]
 
 
 class AlmacenPrincipal(Schema):
