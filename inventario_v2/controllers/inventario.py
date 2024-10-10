@@ -76,10 +76,13 @@ class InventarioController:
             "numero",
         )
 
+        categorias = Categorias.objects.all()
+
         return {
             "productos": producto_info,
             "zapatos": zapatos,
             "area_venta": area_venta.nombre,
+            "categorias": categorias,
         }
 
     @route.get("almacen-revoltosa/", response=InventarioSchema)
