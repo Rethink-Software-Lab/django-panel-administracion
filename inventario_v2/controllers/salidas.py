@@ -88,10 +88,17 @@ class SalidasController:
             if filtro2.count() < len(ids_unicos):
                 raise HttpError(400, "Algunos productos ya han sido vendidos.")
 
-            productos = filtro2.filter(area_venta__isnull=True)
+            filtro3 = filtro2.filter(area_venta__isnull=True)
+
+            if filtro3.count() < len(ids_unicos):
+                raise HttpError(400, "Algunos productos ya están en un área de venta.")
+
+            productos = filtro3.filter(almacen_revoltosa=False)
 
             if productos.count() < len(ids_unicos):
-                raise HttpError(400, "Algunos productos no están en el almacén.")
+                raise HttpError(
+                    400, "Algunos productos ya están en el almacén de la revoltosa"
+                )
 
             try:
                 with transaction.atomic():
@@ -99,7 +106,7 @@ class SalidasController:
                         area_venta=area_venta, usuario=usuario_search
                     )
                     productos.update(
-                        area_venta=area_venta if area_venta else None,
+                        area_venta=area_venta,
                         almacen_revoltosa=False if area_venta else True,
                         salida=salida,
                     )
@@ -129,11 +136,20 @@ class SalidasController:
                         f"No hay {producto_info.descripcion} suficientes para esta accion",
                     )
 
-                for producto in productos:
-                    producto.area_venta = area_venta if area_venta else None
-                    producto.almacen_revoltosa = False if area_venta else True
-                    producto.salida = salida
-                    producto.save()
+                prods = [
+                    Producto(
+                        id=producto.pk,
+                        area_venta=area_venta,
+                        almacen_revoltosa=False if area_venta else True,
+                        salida=salida,
+                    )
+                    for producto in productos
+                ]
+
+                Producto.objects.bulk_update(
+                    prods,
+                    fields=["area_venta", "almacen_revoltosa", "salida"],
+                )
 
                 return {"success": True}
 

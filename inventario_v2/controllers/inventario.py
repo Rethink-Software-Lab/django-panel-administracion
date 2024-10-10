@@ -32,6 +32,7 @@ class InventarioController:
             venta__isnull=True,
             area_venta__isnull=True,
             info__categoria__nombre="Zapatos",
+            almacen_revoltosa=False,
         ).values(
             "id",
             "info__codigo",
