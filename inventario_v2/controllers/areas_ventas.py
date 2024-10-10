@@ -55,6 +55,11 @@ class AreasVentasController:
             "numero",
         )
 
+        all_productos = ProductoInfo.objects.filter(
+            producto__venta__isnull=True,
+            producto__area_venta=area_venta,
+        ).only("codigo", "categoria")
+
         categorias = Categorias.objects.all()
 
         user = User.objects.get(pk=request.auth["id"])
@@ -86,6 +91,7 @@ class AreasVentasController:
             },
             "ventas": ventas,
             "area_venta": area_venta.nombre,
+            "all_productos": all_productos,
         }
 
     # @route.post("")
