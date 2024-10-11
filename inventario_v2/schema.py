@@ -116,6 +116,11 @@ class SalidaAlmacenRevoltosaSchema(Schema):
     cantidad: int
 
 
+class ProductoInfoSalidaAlmacenRevoltosaSchema(Schema):
+    salidas: List[SalidaAlmacenRevoltosaSchema]
+    productos: List[ProductoCodigoSchema]
+
+
 class AddSalidaSchema(Schema):
     area_venta: int | Literal["almacen-revoltosa"]
     producto_info: str
@@ -217,7 +222,7 @@ class OneAreaVentaSchema(Schema):
     all_productos: List[ProductoInfoSchema]
 
 
-class AlmacenPrincipal(Schema):
+class Almacenes(Schema):
     inventario: InventarioSchema
     categorias: List[CategoriasSchema]
 
