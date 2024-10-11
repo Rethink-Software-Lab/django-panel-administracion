@@ -14,7 +14,12 @@ from inventario.models import (
     SalidaAlmacenRevoltosa,
     EntradaAlmacen,
 )
-from ..schema import ProductoInfoSchema, AddProductoSchema, UpdateProductoSchema
+from ..schema import (
+    ProductoInfoSchema,
+    AddProductoSchema,
+    UpdateProductoSchema,
+    ProductoWithCategotiaSchema,
+)
 from ninja_extra import api_controller, route
 from typing import List, Optional
 import cloudinary.uploader
@@ -62,6 +67,12 @@ class ProductoController:
             producto_info = ProductoInfo.objects.all().order_by("-id")
 
         return producto_info
+
+    @route.get("/with-categorias/", response=ProductoWithCategotiaSchema)
+    def get_productos_with_categoria(self):
+        producto_info = ProductoInfo.objects.all().order_by("-id")
+        categorias = Categorias.objects.all()
+        return {"productos": producto_info, "categorias": categorias}
 
     @route.post()
     def addProducto(

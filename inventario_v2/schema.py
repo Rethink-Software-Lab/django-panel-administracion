@@ -49,6 +49,11 @@ class ProductoInfoSchema(ModelSchema):
         fields = "__all__"
 
 
+class ProductoWithCategotiaSchema(Schema):
+    productos: List[ProductoInfoSchema]
+    categorias: List[CategoriasSchema]
+
+
 class ProductoSchema(ModelSchema):
     info: ProductoInfoSchema
 
@@ -87,7 +92,7 @@ class Salidas(Schema):
     id: int
     area_venta__nombre: str | None
     usuario__username: str
-    producto__info__descripcion: str
+    producto__info__descripcion: str | None
     created_at: datetime.datetime
     cantidad: int
 
