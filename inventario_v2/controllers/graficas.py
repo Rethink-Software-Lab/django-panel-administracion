@@ -5,7 +5,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.db.models import F, Sum
 
-from inventario.utils import get_month_name
+from inventario_v2.utils import get_month_name
 from ..utils import get_day_name
 
 

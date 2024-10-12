@@ -5,7 +5,6 @@ import cloudinary.uploader
 import cloudinary.api
 from os import getenv, path
 from dotenv import load_dotenv
-from datetime import timedelta
 
 load_dotenv()
 
@@ -20,16 +19,13 @@ cloudinary.config(
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = getenv("SECRET")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = [".vercel.app"]
-# ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = [".vercel.app", "localhost"]
 
-# Application definition
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -42,19 +38,10 @@ INSTALLED_APPS = [
     "inventario_v2",
     "ninja_extra",
     "corsheaders",
-    "graphene_django",
     "cloudinary",
 ]
 
-GRAPHENE = {
-    "SCHEMA": "api_pluviometros.schema.schema",
-    "MIDDLEWARE": [
-        "graphql_jwt.middleware.JSONWebTokenMiddleware",
-    ],
-}
-
 AUTHENTICATION_BACKENDS = [
-    "graphql_jwt.backends.JSONWebTokenBackend",
     "django.contrib.auth.backends.ModelBackend",
 ]
 
@@ -68,13 +55,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "corsheaders.middleware.CorsMiddleware",
 ]
-
-GRAPHQL_JWT = {
-    "JWT_VERIFY_EXPIRATION": True,
-    "JWT_EXPIRATION_DELTA": timedelta(days=30),
-    "JWT_PAYLOAD_HANDLER": "inventario.utils.custom_jwt_payload",
-    "JWT_ALGORITHM": "HS256",
-}
 
 
 CORS_ORIGIN_ALLOW_ALL = False

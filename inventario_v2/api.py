@@ -1,13 +1,14 @@
 from ninja.errors import HttpError
 
-from .schema import SearchProductSchema
-from inventario.models import ProductoInfo, Producto, AreaVenta
+from .schema import SearchProductSchema, LoginSchema, TokenSchema
+from inventario.models import ProductoInfo, Producto, AreaVenta, User
 from ninja.security import HttpBearer
 import jwt
 from jwt.exceptions import InvalidSignatureError, ExpiredSignatureError
 from django.conf import settings
 from ninja_extra import NinjaExtraAPI
 from django.shortcuts import get_object_or_404
+from datetime import datetime, timedelta
 
 from inventario_v2.controllers.categorias import CategoriasController
 from inventario_v2.controllers.entradas import EntradasController
@@ -44,6 +45,32 @@ app = NinjaExtraAPI(
     },
     title="Inventario",
 )
+
+
+@app.post("login/", auth=None, response=TokenSchema)
+def login(request, data: LoginSchema):
+    dataMD = data.model_dump()
+    username = dataMD["username"]
+    password = dataMD["password"]
+    try:
+        user = User.objects.get(username=username)
+
+    except User.DoesNotExist:
+        raise HttpError(401, "Credenciales inválidas")
+
+    passOk = user.check_password(password)
+    if passOk:
+        payload = {
+            "id": user.pk,
+            "rol": user.rol,
+            "area_venta": user.area_venta.pk if user.area_venta else None,
+            "exp": datetime.utcnow() + timedelta(weeks=4),
+        }
+
+        token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
+        return {"token": token}
+    else:
+        raise HttpError(401, "Credenciales inválidas")
 
 
 # TODO: Dividir info_producto y tabla_producto
