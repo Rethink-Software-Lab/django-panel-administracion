@@ -1,4 +1,4 @@
-Django=5.0.6
+Django=4
 cloudinary=1.40.0
 django-ninja=1.2.1
 django-ninja-extra=0.21.1
