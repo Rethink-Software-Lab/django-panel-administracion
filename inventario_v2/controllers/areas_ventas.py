@@ -7,10 +7,7 @@ from inventario.models import (
     AreaVenta,
     Categorias,
 )
-from ..schema import (
-    AreaVentaSchema,
-    OneAreaVentaSchema,
-)
+from ..schema import AreaVentaSchema, OneAreaVentaSchema, AreaVentaModifySchema
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
 from typing import List
@@ -98,35 +95,36 @@ class AreasVentasController:
             "all_productos": all_productos,
         }
 
-    # @route.post("")
-    # def addCategoria(self, body: CategoriasModifySchema):
-    #     body = body.model_dump()
-    #     try:
-    #         Categorias.objects.create(**body)
-    #         return {"success": True}
-    #     except:
-    #         return HttpError(500, "Error inesperado.")
+    @route.post("", response=None)
+    def addArea(self, area: AreaVentaModifySchema):
+        area = area.model_dump()
+        try:
+            AreaVenta.objects.create(**area)
+            return
+        except:
+            return HttpError(500, "Error inesperado.")
 
-    # @route.put("{id}/")
-    # def updateCategoria(
-    #     self,
-    #     id: int,
-    #     body: CategoriasModifySchema,
-    # ):
-    #     body = body.model_dump()
-    #     categoria = get_object_or_404(Categorias, pk=id)
-    #     try:
-    #         categoria.nombre = body["nombre"]
-    #         categoria.save()
-    #         return {"success": True}
-    #     except:
-    #         raise HttpError(500, "Error inesperado.")
+    @route.put("{id}/")
+    def updateArea(
+        self,
+        id: int,
+        area: AreaVentaModifySchema,
+    ):
+        area = area.model_dump()
+        area_to_edit = get_object_or_404(AreaVenta, pk=id)
+        try:
+            area_to_edit.nombre = area["nombre"]
+            area_to_edit.color = area["color"]
+            area_to_edit.save()
+            return {"success": True}
+        except:
+            raise HttpError(500, "Error inesperado.")
 
-    # @route.delete("{id}/")
-    # def deleteCategoria(self, id: int):
-    #     categoria = get_object_or_404(Categorias, pk=id)
-    #     try:
-    #         categoria.delete()
-    #         return {"success": True}
-    #     except:
-    #         raise HttpError(500, "Error inesperado.")
+    @route.delete("{id}/", response=None)
+    def delete_area_de_venta(self, id: int):
+        area = get_object_or_404(AreaVenta, pk=id)
+        try:
+            area.delete()
+            return
+        except:
+            raise HttpError(500, "Error inesperado.")
