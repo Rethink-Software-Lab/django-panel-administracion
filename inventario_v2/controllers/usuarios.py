@@ -2,16 +2,18 @@ from django.db import IntegrityError
 from ninja.errors import HttpError
 from inventario.models import AreaVenta, User
 from inventario_v2.custom_permissions import isAdmin
-from ..schema import UsuariosSchema, UsuariosAuthSchema
+from ..schema import GetUsuariosSchema, UsuariosAuthSchema
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
 
 
 @api_controller("usuarios/", tags=["Usuarios"], permissions=[isAdmin])
 class UsuariosController:
-    @route.get("", response=list[UsuariosSchema])
+    @route.get("", response=GetUsuariosSchema)
     def getUsuarios(self):
-        return User.objects.all().exclude(is_superuser=True).order_by("-id")
+        usuarios = User.objects.all().exclude(is_superuser=True).order_by("-id")
+        areas_ventas = AreaVenta.objects.all()
+        return {"usuarios": usuarios, "areas_ventas": areas_ventas}
 
     @route.post("")
     def addUsuario(self, data: UsuariosAuthSchema):
