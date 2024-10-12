@@ -6,6 +6,15 @@ from pydantic import condecimal, conint, validator
 from decimal import Decimal
 
 
+class TokenSchema(Schema):
+    token: str
+
+
+class LoginSchema(Schema):
+    username: str
+    password: str
+
+
 class UserModifySchema(Schema):
     username: str
     rol: str = "OFICINISTA"
@@ -86,6 +95,12 @@ class AreaVentaSchema(ModelSchema):
     class Meta:
         model = AreaVenta
         fields = "__all__"
+
+
+class AreaVentaModifySchema(ModelSchema):
+    class Meta:
+        model = AreaVenta
+        exclude = ("id",)
 
 
 class Salidas(Schema):
