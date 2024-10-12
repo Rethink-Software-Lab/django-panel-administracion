@@ -5,3 +5,4 @@ django-ninja-extra==0.21.1
 PyJWT==2.8.0
 pillow==10.3.0
 psycopg==3.2.3
+python-dotenv==1.0.1
