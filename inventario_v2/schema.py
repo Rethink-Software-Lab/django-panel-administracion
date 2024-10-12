@@ -269,6 +269,11 @@ class UsuariosSchema(ModelSchema):
         fields = ["id", "username", "rol"]
 
 
+class GetUsuariosSchema(Schema):
+    usuarios: List[UsuariosSchema]
+    areas_ventas: List[AreaVentaSchema]
+
+
 class UsuariosAuthSchema(ModelSchema):
     area_venta: Optional[int] = None
 
