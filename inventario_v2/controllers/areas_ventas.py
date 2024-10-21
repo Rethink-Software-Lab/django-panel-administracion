@@ -97,9 +97,9 @@ class AreasVentasController:
 
     @route.post("", response=None)
     def addArea(self, area: AreaVentaModifySchema):
-        area = area.model_dump()
+        new_area = area.model_dump()
         try:
-            AreaVenta.objects.create(**area)
+            AreaVenta.objects.create(**new_area)
             return
         except:
             return HttpError(500, "Error inesperado.")
@@ -110,11 +110,11 @@ class AreasVentasController:
         id: int,
         area: AreaVentaModifySchema,
     ):
-        area = area.model_dump()
+        new_area = area.model_dump()
         area_to_edit = get_object_or_404(AreaVenta, pk=id)
         try:
-            area_to_edit.nombre = area["nombre"]
-            area_to_edit.color = area["color"]
+            area_to_edit.nombre = new_area["nombre"]
+            area_to_edit.color = new_area["color"]
             area_to_edit.save()
             return {"success": True}
         except:
