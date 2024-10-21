@@ -1,0 +1,129 @@
+from ninja.errors import HttpError
+from inventario.models import Transferencia, AreaVenta, ProductoInfo, Producto, User
+from ..schema import (
+    TransferenciaSchema,
+    AllTransferenciasSchema,
+    TransferenciasModifySchema,
+)
+from ninja_extra import api_controller, route
+from django.shortcuts import get_object_or_404
+from ..custom_permissions import isAdmin
+from django.db import transaction
+import re
+
+
+@api_controller("transferencias/", tags=["Transferencias"], permissions=[isAdmin])
+class TransferenciasController:
+    @route.get("", response=AllTransferenciasSchema)
+    def get_all_transferencias(self):
+        transferencias = Transferencia.objects.all()
+        areas_ventas = AreaVenta.objects.all()
+        productos_info = ProductoInfo.objects.filter(
+            producto__area_venta__isnull=False,
+            producto__almacen_revoltosa=False,
+            producto__venta__isnull=True,
+        ).distinct()
+        return {
+            "transferencias": transferencias,
+            "areas_ventas": areas_ventas,
+            "productos_info": productos_info,
+        }
+
+    @route.post("")
+    def addTransferencia(self, request, body: TransferenciasModifySchema):
+        body_dict = body.model_dump()
+
+        area_origen = get_object_or_404(AreaVenta, pk=body_dict["de"])
+        area_destino = get_object_or_404(AreaVenta, pk=body_dict["para"])
+        usuario = get_object_or_404(User, pk=request.auth["id"])
+
+        try:
+            with transaction.atomic():
+                new_products = []
+                for producto in body_dict["productos"]:
+                    product = get_object_or_404(ProductoInfo, pk=producto["producto"])
+                    if producto["cantidad"] and not producto["zapatos_id"]:
+                        filtro = Producto.objects.filter(
+                            info=product,
+                            area_venta=area_origen,
+                            almacen_revoltosa=False,
+                            venta__isnull=True,
+                        )[: producto["cantidad"]]
+
+                        if filtro.count() < producto["cantidad"]:
+                            raise HttpError(
+                                400,
+                                f"No hay {product.descripcion} suficientes en {area_origen.nombre} para esta acción",
+                            )
+
+                        for producto in filtro:
+                            new_products.append(
+                                Producto(
+                                    id=producto.pk,
+                                    area_venta=area_destino,
+                                )
+                            )
+
+                    elif producto["zapatos_id"] and not producto["cantidad"]:
+                        zapatos_ids = re.split(r"[;,]", producto["zapatos_id"])
+
+                        zapatos = Producto.objects.filter(
+                            pk__in=zapatos_ids,
+                            info=product,
+                            area_venta=area_origen,
+                            almacen_revoltosa=False,
+                            venta__isnull=True,
+                        )
+                        if zapatos.count() < len(zapatos_ids):
+                            raise HttpError(
+                                400,
+                                f"No hay {product.descripcion} suficientes en {area_origen.nombre} para esta acción",
+                            )
+
+                        for zapato in zapatos:
+                            new_products.append(
+                                Producto(
+                                    id=zapato.pk,
+                                    area_venta=area_destino,
+                                )
+                            )
+
+                Producto.objects.bulk_update(
+                    new_products,
+                    fields=["area_venta"],
+                )
+
+                transferencia = Transferencia.objects.create(
+                    de=area_origen, para=area_destino, usuario=usuario
+                )
+                transferencia.productos.set(new_products)
+
+            return
+        except Exception as e:
+            if isinstance(e, HttpError) and e.status_code == 400:
+                raise
+            raise HttpError(500, f"Error inesperado: {str(e)}")
+
+    # @route.put("{id}/")
+    # def updateCategoria(
+    #     self,
+    #     id: int,
+    #     body: CategoriasModifySchema,
+    # ):
+    #     body = body.model_dump()
+    #     categoria = get_object_or_404(Categorias, pk=id)
+    #     try:
+    #         categoria.nombre = body["nombre"]
+    #         categoria.save()
+    #         return {"success": True}
+    #     except:
+    #         raise HttpError(500, "Error inesperado.")
+
+    # @route.delete("{id}/")
+    # def deleteCategoria(self, id: int):
+    #     categoria = get_object_or_404(Categorias, pk=id)
+    #     try:
+    #         categoria.delete()
+    #         return {"success": True}
+    #     except:
+    #         raise HttpError(500, "Error inesperado.")
