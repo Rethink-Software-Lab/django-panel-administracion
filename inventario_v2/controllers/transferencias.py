@@ -16,7 +16,7 @@ import re
 class TransferenciasController:
     @route.get("", response=AllTransferenciasSchema)
     def get_all_transferencias(self):
-        transferencias = Transferencia.objects.all()
+        transferencias = Transferencia.objects.all().order_by("-id")
         areas_ventas = AreaVenta.objects.all()
         productos_info = ProductoInfo.objects.filter(
             producto__area_venta__isnull=False,
@@ -104,26 +104,24 @@ class TransferenciasController:
                 raise
             raise HttpError(500, f"Error inesperado: {str(e)}")
 
-    # @route.put("{id}/")
-    # def updateCategoria(
-    #     self,
-    #     id: int,
-    #     body: CategoriasModifySchema,
-    # ):
-    #     body = body.model_dump()
-    #     categoria = get_object_or_404(Categorias, pk=id)
-    #     try:
-    #         categoria.nombre = body["nombre"]
-    #         categoria.save()
-    #         return {"success": True}
-    #     except:
-    #         raise HttpError(500, "Error inesperado.")
+    @route.delete("{id}/")
+    def deleteTransferencia(self, id: int):
+        transferencia = get_object_or_404(Transferencia, pk=id)
+        productos = transferencia.productos.all()
+        productos_to_update = Producto.objects.filter(
+            pk__in=productos.values_list("id", flat=True),
+            area_venta=transferencia.para,
+            venta__isnull=True,
+            almacen_revoltosa=False,
+        )
 
-    # @route.delete("{id}/")
-    # def deleteCategoria(self, id: int):
-    #     categoria = get_object_or_404(Categorias, pk=id)
-    #     try:
-    #         categoria.delete()
-    #         return {"success": True}
-    #     except:
-    #         raise HttpError(500, "Error inesperado.")
+        if productos_to_update.count() != productos.count():
+            raise HttpError(
+                400, "Alguno productos ya no se encuentran en el área de venta."
+            )
+        try:
+            productos_to_update.update(area_venta=transferencia.de)
+            transferencia.delete()
+            return
+        except:
+            raise HttpError(500, "Error inesperado.")
