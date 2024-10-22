@@ -10,6 +10,7 @@ from django.shortcuts import get_object_or_404
 from ..custom_permissions import isAdmin
 from django.db import transaction
 import re
+from django.db.models import Count
 
 
 @api_controller("transferencias/", tags=["Transferencias"], permissions=[isAdmin])
@@ -17,6 +18,26 @@ class TransferenciasController:
     @route.get("", response=AllTransferenciasSchema)
     def get_all_transferencias(self):
         transferencias = Transferencia.objects.all().order_by("-id")
+        transferencias_con_productos = []
+        for transferencia in transferencias:
+            productos = transferencia.productos.all()
+            infos = (
+                ProductoInfo.objects.filter(producto__in=productos)
+                .annotate(total_transfers=Count("producto"))
+                .distinct()
+            )
+
+            transferencias_con_productos.append(
+                {
+                    "id": transferencia.pk,
+                    "created_at": transferencia.created_at,
+                    "usuario": transferencia.usuario,
+                    "de": transferencia.de,
+                    "para": transferencia.para,
+                    "productos": infos,
+                }
+            )
+
         areas_ventas = AreaVenta.objects.all()
         productos_info = ProductoInfo.objects.filter(
             producto__area_venta__isnull=False,
@@ -24,7 +45,7 @@ class TransferenciasController:
             producto__venta__isnull=True,
         ).distinct()
         return {
-            "transferencias": transferencias,
+            "transferencias": transferencias_con_productos,
             "areas_ventas": areas_ventas,
             "productos_info": productos_info,
         }
