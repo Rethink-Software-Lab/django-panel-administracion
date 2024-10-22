@@ -21,6 +21,7 @@ from inventario_v2.controllers.productos import ProductoController
 from inventario_v2.controllers.usuarios import UsuariosController
 from inventario_v2.controllers.reportes import ReportesController
 from .controllers.areas_ventas import AreasVentasController
+from .controllers.transferencias import TransferenciasController
 
 
 class AuthBearer(HttpBearer):
@@ -137,4 +138,5 @@ app.register_controllers(
     UsuariosController,
     ReportesController,
     AreasVentasController,
+    TransferenciasController,
 )

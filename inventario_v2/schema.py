@@ -326,3 +326,31 @@ class GraficasSchema(Schema):
     ventasHoy: Decimal
     ventasSemana: Decimal
     ventasMes: Decimal
+
+
+class TransferenciaSchema(ModelSchema):
+    usuario: UsuariosSchema
+    de: AreaVentaSchema
+    para: AreaVentaSchema
+
+    class Meta:
+        model = Transferencia
+        fields = "__all__"
+
+
+class AllTransferenciasSchema(Schema):
+    transferencias: List[TransferenciaSchema]
+    areas_ventas: List[AreaVentaSchema]
+    productos_info: List[ProductoInfoSchema]
+
+
+class ProductosTransfer(Schema):
+    producto: int
+    cantidad: Optional[int] = None
+    zapatos_id: Optional[str] = None
+
+
+class TransferenciasModifySchema(Schema):
+    de: int
+    para: int
+    productos: List[ProductosTransfer]

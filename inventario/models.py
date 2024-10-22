@@ -141,3 +141,22 @@ class Producto(models.Model):
     venta = models.ForeignKey(Ventas, on_delete=models.SET_NULL, null=True)
     area_venta = models.ForeignKey(AreaVenta, on_delete=models.SET_NULL, null=True)
     almacen_revoltosa = models.BooleanField(default=False)
+
+
+class Transferencia(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    productos = models.ManyToManyField(Producto, blank=False)
+    de = models.ForeignKey(
+        AreaVenta, on_delete=models.SET_NULL, null=True, related_name="area_remitente"
+    )
+    para = models.ForeignKey(
+        AreaVenta, on_delete=models.SET_NULL, null=True, related_name="area_destino"
+    )
+
+    def __str__(self):
+        return f"{self.created_at}"
+
+    class Meta:
+        verbose_name = "Transferencia"
+        verbose_name_plural = "Transferencias"

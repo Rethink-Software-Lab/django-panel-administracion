@@ -23,3 +23,20 @@ class ProductInfoAdmin(admin.ModelAdmin):
         "precio_venta",
         "pago_trabajador",
     ]
+
+
+@admin.register(Transferencia)
+class TransferenciaAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "usuario",
+        "de",
+        "para",
+        "created_at",
+        "mostrar_productos",
+    ]
+
+    def mostrar_productos(self, obj):
+        return ", ".join([str(producto) for producto in obj.productos.all()])
+
+    mostrar_productos.short_description = "Productos"
