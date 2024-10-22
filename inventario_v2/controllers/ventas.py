@@ -105,6 +105,8 @@ class VentasController:
                         area_venta=area_venta,
                         usuario=usuario_search,
                         metodo_pago=metodo_pago,
+                        efectivo=efectivo,
+                        transferencia=transferencia,
                     )
                     productos.update(venta=venta)
 
