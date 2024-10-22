@@ -332,10 +332,16 @@ class GraficasSchema(Schema):
     ventasMes: Decimal
 
 
+class ProductosDentroDeTransferencia(Schema):
+    descripcion: str
+    total_transfers: int
+
+
 class TransferenciaSchema(ModelSchema):
     usuario: UsuariosSchema
     de: AreaVentaSchema
     para: AreaVentaSchema
+    productos: List[ProductosDentroDeTransferencia]
 
     class Meta:
         model = Transferencia
