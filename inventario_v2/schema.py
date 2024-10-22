@@ -111,6 +111,10 @@ class Salidas(Schema):
     created_at: datetime.datetime
     cantidad: int
 
+    @validator("area_venta__nombre", pre=True, always=True)
+    def set_default_area_venta(cls, v):
+        return v or "Almacén Revoltosa"
+
 
 class ProductoCodigoSchema(Schema):
     codigo: str
