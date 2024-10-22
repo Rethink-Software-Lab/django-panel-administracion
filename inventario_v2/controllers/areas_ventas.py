@@ -2,7 +2,6 @@ from ninja.errors import HttpError
 from inventario.models import (
     ProductoInfo,
     Producto,
-    User,
     Ventas,
     AreaVenta,
     Categorias,
@@ -23,7 +22,7 @@ class AreasVentasController:
         return areas
 
     @route.get("{id}/", response=OneAreaVentaSchema)
-    def get_one_area_de_venta(self, request, id: int):
+    def get_one_area_de_venta(self, id: int):
         area_venta = get_object_or_404(AreaVenta, id=id)
 
         producto_info = (
@@ -63,9 +62,6 @@ class AreasVentasController:
 
         categorias = Categorias.objects.all()
 
-        user = User.objects.get(pk=request.auth["id"])
-        if (user.area_venta is None or id != user.area_venta.pk) and not user.is_staff:
-            raise HttpError(401, "Unauthorized")
         ventas = (
             Ventas.objects.filter(area_venta=id)
             .annotate(
