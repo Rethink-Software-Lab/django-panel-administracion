@@ -1,7 +1,6 @@
 from ninja.errors import HttpError
 from inventario.models import Transferencia, AreaVenta, ProductoInfo, Producto, User
 from ..schema import (
-    TransferenciaSchema,
     AllTransferenciasSchema,
     TransferenciasModifySchema,
 )
@@ -43,6 +42,7 @@ class TransferenciasController:
             producto__area_venta__isnull=False,
             producto__almacen_revoltosa=False,
             producto__venta__isnull=True,
+            producto__ajusteinventario__isnull=True,
         ).distinct()
         return {
             "transferencias": transferencias_con_productos,
@@ -69,6 +69,7 @@ class TransferenciasController:
                             area_venta=area_origen,
                             almacen_revoltosa=False,
                             venta__isnull=True,
+                            ajusteinventario__isnull=True,
                         )[: producto["cantidad"]]
 
                         if filtro.count() < producto["cantidad"]:
@@ -94,6 +95,7 @@ class TransferenciasController:
                             area_venta=area_origen,
                             almacen_revoltosa=False,
                             venta__isnull=True,
+                            ajusteinventario__isnull=True,
                         )
                         if zapatos.count() < len(zapatos_ids):
                             raise HttpError(
@@ -134,6 +136,7 @@ class TransferenciasController:
             area_venta=transferencia.para,
             venta__isnull=True,
             almacen_revoltosa=False,
+            ajusteinventario__isnull=True,
         )
 
         if productos_to_update.count() != productos.count():

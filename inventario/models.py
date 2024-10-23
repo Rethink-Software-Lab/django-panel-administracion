@@ -160,3 +160,12 @@ class Transferencia(models.Model):
     class Meta:
         verbose_name = "Transferencia"
         verbose_name_plural = "Transferencias"
+
+
+class AjusteInventario(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    productos = models.ManyToManyField(Producto, blank=False)
+    motivo = models.CharField(max_length=100, null=False)
+    usuario = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name="ajuste"
+    )

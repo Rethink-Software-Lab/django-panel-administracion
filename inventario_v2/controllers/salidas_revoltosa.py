@@ -9,7 +9,6 @@ from inventario.models import (
 from ..schema import AddSalidaRevoltosaSchema, ProductoInfoSalidaAlmacenRevoltosaSchema
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
-from typing import List
 from django.db import transaction
 from django.db.models import Count
 
@@ -39,6 +38,7 @@ class SalidasRevoltosaController:
                 ProductoInfo.objects.filter(
                     producto__area_venta__isnull=True,
                     producto__almacen_revoltosa=True,
+                    producto__ajusteinventario__isnull=True,
                 )
                 .only("codigo", "categoria")
                 .distinct()
@@ -84,7 +84,10 @@ class SalidasRevoltosaController:
             if filtro3.count() < len(ids_unicos):
                 raise HttpError(400, "Algunos productos ya están en un área de venta.")
 
-            productos = filtro3.filter(almacen_revoltosa=True)
+            productos = filtro3.filter(
+                almacen_revoltosa=True,
+                ajusteinventario__isnull=True,
+            )
 
             if productos.count() < len(ids_unicos):
                 raise HttpError(400, "Algunos productos no están en el almacén.")
@@ -115,6 +118,7 @@ class SalidasRevoltosaController:
                     area_venta__isnull=True,
                     almacen_revoltosa=True,
                     info=producto_info,
+                    ajusteinventario__isnull=True,
                 )[:cantidad]
 
                 if productos.count() < cantidad:
