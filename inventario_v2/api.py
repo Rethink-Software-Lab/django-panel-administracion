@@ -22,6 +22,7 @@ from inventario_v2.controllers.usuarios import UsuariosController
 from inventario_v2.controllers.reportes import ReportesController
 from .controllers.areas_ventas import AreasVentasController
 from .controllers.transferencias import TransferenciasController
+from .controllers.ajuste_inventario import AjusteInventarioController
 
 
 class AuthBearer(HttpBearer):
@@ -87,12 +88,16 @@ def search_product(request, codigo: str):
                 info__categoria__nombre="Zapatos",
                 info__codigo=codigo,
                 area_venta=area["id"],
+                ajusteinventario__isnull=True,
             ).values("id", "color", "numero")
             if len(data) > 0:
                 dataDict.append({"area": area["nombre"], "productos": data})
         else:
             data = Producto.objects.filter(
-                venta__isnull=True, info__codigo=codigo, area_venta=area["id"]
+                venta__isnull=True,
+                info__codigo=codigo,
+                area_venta=area["id"],
+                ajusteinventario__isnull=True,
             ).count()
             if data > 0:
                 dataDict.append({"area": area["nombre"], "cantidad": data})
@@ -103,6 +108,7 @@ def search_product(request, codigo: str):
             info__codigo=codigo,
             area_venta__isnull=True,
             info__categoria__nombre="Zapatos",
+            ajusteinventario__isnull=True,
         ).values("id", "color", "numero")
         if productos_almacen.count() > 0:
             dataDict.append({"area": "Almacén", "productos": productos_almacen})
@@ -112,6 +118,7 @@ def search_product(request, codigo: str):
                 venta__isnull=True,
                 info__codigo=codigo,
                 area_venta__isnull=True,
+                ajusteinventario__isnull=True,
             )
             .exclude(info__categoria__nombre="Zapatos")
             .count()
@@ -139,4 +146,5 @@ app.register_controllers(
     ReportesController,
     AreasVentasController,
     TransferenciasController,
+    AjusteInventarioController,
 )
