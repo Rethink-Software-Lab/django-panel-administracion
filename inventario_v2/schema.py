@@ -212,7 +212,17 @@ class VentaReporteSchema(Schema):
     subtotal: condecimal(ge=0) | None
     efectivo: condecimal(ge=0) | None
     transferencia: condecimal(ge=0) | None
-    area: Optional[str] = None
+    area: str
+
+
+class ProductosReporteInventario(Schema):
+    descripcion: str
+    cantidad: int
+
+
+class InventarioReporteSchema(Schema):
+    productos: List[ProductosReporteInventario]
+    area: str
 
 
 class Zapatos(Schema):
