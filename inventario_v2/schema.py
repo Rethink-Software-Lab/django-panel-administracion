@@ -364,3 +364,30 @@ class TransferenciasModifySchema(Schema):
     de: int
     para: int
     productos: List[ProductosTransfer]
+
+
+class AjusteSchema(ModelSchema):
+    usuario: UsuariosSchema
+    productos: List[ProductosDentroDeTransferencia]
+
+    class Meta:
+        model = AjusteInventario
+        fields = "__all__"
+
+
+class AllAjustesSchema(Schema):
+    ajustes: List[AjusteSchema]
+    areas_ventas: List[AreaVentaSchema]
+    productos_info: List[ProductoInfoSchema]
+
+
+class ProductosAjuste(Schema):
+    producto: int
+    cantidad: Optional[int] = None
+    zapatos_id: Optional[str] = None
+    area_venta: Optional[str] = None
+
+
+class AjustesModifySchema(Schema):
+    motivo: str
+    productos: List[ProductosAjuste]
