@@ -14,7 +14,7 @@ class isAdmin(BasePermission):
 
 class isStaff(BasePermission):
     def has_permission(self, request, view=None, controller=None):
-        return request.auth["rol"] == "ADMIN" or request.auth == "ALMACENERO"
+        return request.auth["rol"] == "ADMIN" or request.auth["rol"] == "ALMACENERO"
 
 
 class isAuthenticated(BasePermission):
