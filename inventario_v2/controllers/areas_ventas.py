@@ -29,6 +29,7 @@ class AreasVentasController:
             ProductoInfo.objects.filter(
                 producto__venta__isnull=True,
                 producto__area_venta=area_venta,
+                producto__ajusteinventario__isnull=True,
             )
             .annotate(cantidad=Count(F("producto")))
             .exclude(Q(cantidad__lt=1) | Q(categoria__nombre="Zapatos"))
@@ -42,7 +43,10 @@ class AreasVentasController:
             )
         )
         zapatos = Producto.objects.filter(
-            venta__isnull=True, area_venta=area_venta, info__categoria__nombre="Zapatos"
+            venta__isnull=True,
+            area_venta=area_venta,
+            info__categoria__nombre="Zapatos",
+            ajusteinventario__isnull=True,
         ).values(
             "id",
             "info__codigo",
@@ -55,6 +59,7 @@ class AreasVentasController:
             ProductoInfo.objects.filter(
                 producto__venta__isnull=True,
                 producto__area_venta=area_venta,
+                producto__ajusteinventario__isnull=True,
             )
             .only("codigo", "categoria")
             .distinct()

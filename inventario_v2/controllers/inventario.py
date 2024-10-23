@@ -1,5 +1,5 @@
 from inventario.models import AreaVenta, ProductoInfo, Producto, Categorias
-from ..schema import InventarioSchema, InventarioAreaVentaSchema, Almacenes
+from ..schema import InventarioAreaVentaSchema, Almacenes
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
 from django.db.models import F, Count, Q
@@ -16,6 +16,7 @@ class InventarioController:
                 producto__venta__isnull=True,
                 producto__area_venta__isnull=True,
                 producto__almacen_revoltosa=False,
+                producto__ajusteinventario__isnull=True,
             )
             .annotate(cantidad=Count(F("producto")))
             .exclude(Q(cantidad__lt=1) | Q(categoria__nombre="Zapatos"))
@@ -33,6 +34,7 @@ class InventarioController:
             area_venta__isnull=True,
             info__categoria__nombre="Zapatos",
             almacen_revoltosa=False,
+            ajusteinventario__isnull=True,
         ).values(
             "id",
             "info__codigo",
@@ -93,6 +95,7 @@ class InventarioController:
                 producto__venta__isnull=True,
                 producto__area_venta__isnull=True,
                 producto__almacen_revoltosa=True,
+                producto__ajusteinventario__isnull=True,
             )
             .annotate(cantidad=Count(F("producto")))
             .exclude(Q(cantidad__lt=1) | Q(categoria__nombre="Zapatos"))
@@ -110,6 +113,7 @@ class InventarioController:
             area_venta__isnull=True,
             almacen_revoltosa=True,
             info__categoria__nombre="Zapatos",
+            ajusteinventario__isnull=True,
         ).values(
             "id",
             "info__codigo",

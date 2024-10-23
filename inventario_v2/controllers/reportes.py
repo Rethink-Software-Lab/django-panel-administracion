@@ -1,5 +1,4 @@
 from datetime import datetime
-from ninja.errors import HttpError
 from inventario.models import ProductoInfo, Ventas
 from ..schema import VentaReporteSchema
 from ninja_extra import api_controller, route
@@ -23,6 +22,7 @@ class ReportesController:
                 ProductoInfo.objects.filter(
                     producto__venta__created_at__date__range=(parse_desde, parse_hasta),
                     producto__area_venta_id=area,
+                    producto__ajusteinventario__isnull=True,
                 )
                 .annotate(
                     cantidad=Count("producto"),
@@ -92,6 +92,7 @@ class ReportesController:
         producto_info = (
             ProductoInfo.objects.filter(
                 producto__venta__created_at__date__range=(parse_desde, parse_hasta),
+                producto__ajusteinventario__isnull=True,
             )
             .annotate(
                 cantidad=Count("producto"),

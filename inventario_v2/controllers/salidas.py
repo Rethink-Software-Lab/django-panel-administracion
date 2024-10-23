@@ -42,6 +42,7 @@ class SalidasController:
                 ProductoInfo.objects.filter(
                     producto__area_venta__isnull=True,
                     producto__almacen_revoltosa=False,
+                    producto__ajusteinventario__isnull=True,
                 )
                 .only("codigo", "categoria")
                 .distinct()
@@ -93,7 +94,10 @@ class SalidasController:
             if filtro3.count() < len(ids_unicos):
                 raise HttpError(400, "Algunos productos ya están en un área de venta.")
 
-            productos = filtro3.filter(almacen_revoltosa=False)
+            productos = filtro3.filter(
+                almacen_revoltosa=False,
+                ajusteinventario__isnull=True,
+            )
 
             if productos.count() < len(ids_unicos):
                 raise HttpError(
@@ -128,6 +132,7 @@ class SalidasController:
                     almacen_revoltosa=False,
                     area_venta__isnull=True,
                     info=producto_info,
+                    ajusteinventario__isnull=True,
                 )[:cantidad]
 
                 if productos.count() < cantidad:

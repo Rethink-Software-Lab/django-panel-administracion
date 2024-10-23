@@ -24,7 +24,7 @@ class VentasController:
     @route.get("{id}/", response=list[VentasSchema])
     def getVenta(self, request, id: int):
         user = User.objects.get(pk=request.auth["id"])
-        if (user.area_venta is None or id != user.area_venta.id) and not user.is_staff:
+        if (user.area_venta is None or id != user.area_venta.pk) and not user.is_staff:
             raise HttpError(401, "Unauthorized")
         ventas = (
             Ventas.objects.filter(area_venta=id)
@@ -94,10 +94,13 @@ class VentasController:
             if filtro2.count() < len(ids_unicos):
                 raise HttpError(400, "Algunos productos ya han sido vendidos.")
 
-            productos = filtro2.filter(area_venta=area_venta)
+            productos = filtro2.filter(
+                area_venta=area_venta,
+                ajusteinventario__isnull=True,
+            )
 
             if productos.count() < len(ids_unicos):
-                raise HttpError(400, "Algunos productos no están en el almacén.")
+                raise HttpError(400, "Algunos productos no están en el inventario.")
 
             try:
                 with transaction.atomic():
@@ -127,7 +130,10 @@ class VentasController:
                 )
 
                 productos = Producto.objects.filter(
-                    area_venta=area_venta, venta__isnull=True, info=producto_info
+                    area_venta=area_venta,
+                    venta__isnull=True,
+                    info=producto_info,
+                    ajusteinventario__isnull=True,
                 )[:cantidad]
 
                 if productos.count() < cantidad:
