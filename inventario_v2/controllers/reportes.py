@@ -61,7 +61,7 @@ class ReportesController:
                             parse_desde,
                             parse_hasta,
                         ),
-                        producto__area_venta_id=area,
+                        producto__area_venta=area,
                         producto__ajusteinventario__isnull=True,
                     )
                     .annotate(
@@ -82,7 +82,7 @@ class ReportesController:
 
                 ventas_hoy = Ventas.objects.filter(
                     created_at__date__range=(parse_desde, parse_hasta),
-                    area_venta_id=area,
+                    area_venta=area,
                 )
 
             pagos = ventas_hoy.aggregate(
