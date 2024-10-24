@@ -204,25 +204,20 @@ class ProductoInfoModifySchema(Schema):
     importe: condecimal(gt=0)
 
 
-class VentaReporteSchema(Schema):
-    productos: List[ProductoInfoModifySchema]
+class ProductosReporteInventario(Schema):
+    descripcion: str
+    cantidad: int
+
+
+class ReportesSchema(Schema):
+    productos: List[ProductosReporteInventario | ProductoInfoModifySchema]
+    area: str
     total: condecimal() | None
     pago_trabajador: conint(ge=0) | None
     costo_producto: condecimal() | None
     subtotal: condecimal(ge=0) | None
     efectivo: condecimal(ge=0) | None
     transferencia: condecimal(ge=0) | None
-    area: str
-
-
-class ProductosReporteInventario(Schema):
-    descripcion: str
-    cantidad: int
-
-
-class InventarioReporteSchema(Schema):
-    productos: List[ProductosReporteInventario]
-    area: str
 
 
 class Zapatos(Schema):

@@ -1,16 +1,16 @@
 from datetime import datetime
-from typing import Literal, Union
+from typing import Literal
 
 from django.shortcuts import get_object_or_404
 from inventario.models import ProductoInfo, Ventas, AreaVenta
-from ..schema import VentaReporteSchema, InventarioReporteSchema
+from ..schema import ReportesSchema
 from ninja_extra import api_controller, route
 from django.db.models import F, Count, Q, Sum
 
 
 @api_controller("reportes/", tags=["Categorías"], permissions=[])
 class ReportesController:
-    @route.get("")
+    @route.get("", response=ReportesSchema)
     def getReportes(
         self,
         type: Literal["ventas", "inventario"] = "ventas",
@@ -21,11 +21,7 @@ class ReportesController:
         parse_desde = desde.date()
         parse_hasta = hasta.date()
 
-        print(type)
-        print(area)
-
         if type == "ventas":
-            print("entro en ventas")
             if area == "general":
                 area_venta = "General"
                 producto_info = (
@@ -116,21 +112,6 @@ class ReportesController:
 
             total_costos = pago_trabajador + costo_producto or 0
 
-            print(
-                {
-                    "productos": list(producto_info),
-                    "subtotal": subtotal,
-                    "costo_producto": costo_producto,
-                    "pago_trabajador": pago_trabajador,
-                    "efectivo": (pagos["efectivo_venta"] or 0)
-                    + (pagos["efectivo_mixto"] or 0),
-                    "transferencia": (pagos["transferencia_venta"] or 0)
-                    + (pagos["transferencia_mixto"] or 0),
-                    "total": (subtotal - total_costos),
-                    "area": area_venta,
-                }
-            )
-
             return {
                 "productos": list(producto_info),
                 "subtotal": subtotal,
@@ -145,7 +126,6 @@ class ReportesController:
             }
 
         elif type == "inventario":
-            print("entro en inventario")
             if area == "general":
                 area_venta = "General"
                 producto_info = (
