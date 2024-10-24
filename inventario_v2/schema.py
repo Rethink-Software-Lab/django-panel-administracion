@@ -200,24 +200,19 @@ class ProductoInfoModifySchema(Schema):
     id: int
     descripcion: str
     cantidad: int
-    precio_venta: condecimal(gt=0)
-    importe: condecimal(gt=0)
-
-
-class ProductosReporteInventario(Schema):
-    descripcion: str
-    cantidad: int
+    precio_venta: Optional[condecimal(gt=0)] = None
+    importe: Optional[condecimal(gt=0)] = None
 
 
 class ReportesSchema(Schema):
-    productos: List[ProductosReporteInventario | ProductoInfoModifySchema]
+    productos: List[ProductoInfoModifySchema]
     area: str
-    total: condecimal() | None
-    pago_trabajador: conint(ge=0) | None
-    costo_producto: condecimal() | None
-    subtotal: condecimal(ge=0) | None
-    efectivo: condecimal(ge=0) | None
-    transferencia: condecimal(ge=0) | None
+    total: Optional[condecimal()] = None
+    pago_trabajador: Optional[conint(ge=0)] = None
+    costo_producto: Optional[condecimal()] = None
+    subtotal: Optional[condecimal(ge=0)] = None
+    efectivo: Optional[condecimal(ge=0)] = None
+    transferencia: Optional[condecimal(ge=0)] = None
 
 
 class Zapatos(Schema):
