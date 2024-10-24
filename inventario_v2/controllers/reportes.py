@@ -136,6 +136,7 @@ class ReportesController:
                     .annotate(cantidad=Count(F("producto")))
                     .exclude(cantidad__lt=1)
                     .values(
+                        "id",
                         "descripcion",
                         "cantidad",
                     )
@@ -153,6 +154,7 @@ class ReportesController:
                     .annotate(cantidad=Count(F("producto")))
                     .exclude(cantidad__lt=1)
                     .values(
+                        "id",
                         "descripcion",
                         "cantidad",
                     )
@@ -170,6 +172,7 @@ class ReportesController:
                     .annotate(cantidad=Count(F("producto")))
                     .exclude(cantidad__lt=1)
                     .values(
+                        "id",
                         "descripcion",
                         "cantidad",
                     )
