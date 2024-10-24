@@ -21,8 +21,11 @@ class ReportesController:
         parse_desde = desde.date()
         parse_hasta = hasta.date()
 
-        if type == "ventas":
+        print(type)
+        print(area)
 
+        if type == "ventas":
+            print("entro en ventas")
             if area == "general":
                 area_venta = "General"
                 producto_info = (
@@ -127,7 +130,7 @@ class ReportesController:
             }
 
         elif type == "inventario":
-
+            print("entro en inventario")
             if area == "general":
                 area_venta = "General"
                 producto_info = (
