@@ -10,7 +10,7 @@ from django.db.models import F, Count, Q, Sum
 
 @api_controller("reportes/", tags=["Categorías"], permissions=[])
 class ReportesController:
-    @route.get("", response=Union[VentaReporteSchema, InventarioReporteSchema])
+    @route.get("")
     def getReportes(
         self,
         type: Literal["ventas", "inventario"] = "ventas",
@@ -115,6 +115,21 @@ class ReportesController:
             )
 
             total_costos = pago_trabajador + costo_producto or 0
+
+            print(
+                {
+                    "productos": list(producto_info),
+                    "subtotal": subtotal,
+                    "costo_producto": costo_producto,
+                    "pago_trabajador": pago_trabajador,
+                    "efectivo": (pagos["efectivo_venta"] or 0)
+                    + (pagos["efectivo_mixto"] or 0),
+                    "transferencia": (pagos["transferencia_venta"] or 0)
+                    + (pagos["transferencia_mixto"] or 0),
+                    "total": (subtotal - total_costos),
+                    "area": area_venta,
+                }
+            )
 
             return {
                 "productos": list(producto_info),
