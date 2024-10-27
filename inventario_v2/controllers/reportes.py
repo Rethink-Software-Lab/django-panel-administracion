@@ -2,10 +2,11 @@ from datetime import datetime
 from typing import Literal
 
 from django.shortcuts import get_object_or_404
-from inventario.models import ProductoInfo, Ventas, AreaVenta
+from inventario.models import ProductoInfo, Ventas, AreaVenta, Salario
 from ..schema import ReportesSchema
 from ninja_extra import api_controller, route
 from django.db.models import F, Count, Q, Sum
+from datetime import timedelta
 
 
 @api_controller("reportes/", tags=["Categorías"], permissions=[])
@@ -20,6 +21,17 @@ class ReportesController:
     ):
         parse_desde = desde.date()
         parse_hasta = hasta.date()
+
+        def calcular_dias_laborables(desde, hasta):
+            delta = timedelta(days=1)
+            dias_laborables = 0
+            while desde <= hasta:
+                if desde.weekday() != 6:
+                    dias_laborables += 1
+                desde += delta
+            return dias_laborables
+
+        dias_laborables = calcular_dias_laborables(parse_desde, parse_hasta)
 
         if type == "ventas":
             if area == "general":
@@ -103,6 +115,13 @@ class ReportesController:
                 )["costo_producto"]
                 or 0
             )
+
+            all_salarios = (
+                Salario.objects.aggregate(salario=Sum("cantidad"))["salario"] or 0
+            )
+
+            salarios = all_salarios * dias_laborables
+
             pago_trabajador = (
                 producto_info.aggregate(
                     pago_trabajador=Sum(F("pago_trabajador") * F("cantidad"))
@@ -110,12 +129,13 @@ class ReportesController:
                 or 0
             )
 
-            total_costos = pago_trabajador + costo_producto or 0
+            total_costos = pago_trabajador + costo_producto + salarios or 0
 
             return {
                 "productos": list(producto_info),
                 "subtotal": subtotal,
                 "costo_producto": costo_producto,
+                "salarios": salarios,
                 "pago_trabajador": pago_trabajador,
                 "efectivo": (pagos["efectivo_venta"] or 0)
                 + (pagos["efectivo_mixto"] or 0),
