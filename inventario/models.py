@@ -169,3 +169,8 @@ class AjusteInventario(models.Model):
     usuario = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name="ajuste"
     )
+
+
+class Salario(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
+    cantidad = models.IntegerField(null=False, blank=False)

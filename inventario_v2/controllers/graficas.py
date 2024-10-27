@@ -1,4 +1,4 @@
-from inventario.models import Producto, AreaVenta, ProductoInfo
+from inventario.models import Producto, AreaVenta, ProductoInfo, Salario
 from ..schema import GraficasSchema
 from ninja_extra import api_controller, route
 from django.utils import timezone
@@ -7,6 +7,9 @@ from django.db.models import F, Sum
 
 from inventario_v2.utils import get_month_name
 from ..utils import get_day_name
+
+from datetime import datetime
+import calendar
 
 
 @api_controller("graficas/", tags=["Gráficas"], permissions=[])
@@ -31,6 +34,25 @@ class GraficasController:
             "ventasMes": 0,
         }
 
+        salarios = Salario.objects.aggregate(salario=Sum("cantidad"))["salario"] or 0
+
+        def calcular_dias_laborables(desde, hasta):
+            delta = timedelta(days=1)
+            dias_laborables = 0
+            while desde <= hasta:
+                if desde.weekday() != 6:
+                    dias_laborables += 1
+                desde += delta
+            return dias_laborables
+
+        def obtener_inicio_fin_mes(anio, mes):
+            inicio_mes = datetime(anio, mes, 1)
+
+            ultimo_dia = calendar.monthrange(anio, mes)[1]
+            fin_mes = datetime(anio, mes, ultimo_dia)
+
+            return inicio_mes, fin_mes
+
         # Ventas por área
         areas = AreaVenta.objects.all()
         if areas:
@@ -49,8 +71,17 @@ class GraficasController:
                         )
                         .aggregate(total=Sum("diferencia"))
                     )
+                    if dia_fecha.weekday() != 6:
+                        total_ventas_areas = (
+                            total_ventas["total"] if total_ventas["total"] else 0
+                        ) - salarios
+                    else:
+                        total_ventas_areas = (
+                            total_ventas["total"] if total_ventas["total"] else 0
+                        )
+
                     dia_ventas[area.nombre] = {
-                        "ventas": total_ventas["total"] if total_ventas["total"] else 0,
+                        "ventas": total_ventas_areas,
                         "color": area.color if area.color else "#000",
                     }
                 respuestas["ventasPorArea"].append(dia_ventas)
@@ -70,11 +101,25 @@ class GraficasController:
                     )
                     .aggregate(total=Sum("diferencia"))
                 )
+                inicio_mes_graf_anual, fin_mes_graf_anual = obtener_inicio_fin_mes(
+                    datetime.now().year, mes
+                )
+
+                dias_laborables_graf_anual = calcular_dias_laborables(
+                    inicio_mes_graf_anual, fin_mes_graf_anual
+                )
+
+                total_mes_graf_anual = salarios * dias_laborables_graf_anual
+
                 nombre_mes = get_month_name(mes)
+
                 respuestas["ventasAnuales"].append(
                     {
                         "mes": nombre_mes.capitalize(),
-                        "ventas": prod["total"] if prod["total"] else 0,
+                        "ventas": (
+                            (prod["total"] if prod["total"] else 0)
+                            - total_mes_graf_anual
+                        ),
                     }
                 )
 
@@ -88,9 +133,15 @@ class GraficasController:
             )
             .aggregate(ventaHoy=Sum("diferencia"))
         )
-        respuestas["ventasHoy"] = (
-            productos_hoy["ventaHoy"] if productos_hoy["ventaHoy"] else 0
-        )
+
+        if hoy.weekday() != 6:
+            total_ventas_hoy = productos_hoy["ventaHoy"] - salarios
+        else:
+            total_ventas_hoy = (
+                productos_hoy["ventaHoy"] if productos_hoy["ventaHoy"] else 0
+            )
+
+        respuestas["ventasHoy"] = total_ventas_hoy
 
         # Ventas de la semana
         productos_semana = (
@@ -104,9 +155,14 @@ class GraficasController:
             )
             .aggregate(ventaSemana=Sum("diferencia"))
         )
-        respuestas["ventasSemana"] = (
-            productos_semana["ventaSemana"] if productos_semana["ventaSemana"] else 0
+
+        total_ventas_semana = (
+            productos_semana["ventaSemana"]
+            if productos_semana["ventaSemana"]
+            else 0 - salarios * calcular_dias_laborables(inicio_semana, fin_semana)
         )
+
+        respuestas["ventasSemana"] = total_ventas_semana
 
         # Ventas del mes
         productos_mes = (
@@ -116,11 +172,14 @@ class GraficasController:
                 - F("info__precio_costo")
                 - F("info__pago_trabajador")
             )
-            .aggregate(ventaMes=Sum("diferencia"))
+            .aggregate(ventaMes=Sum("diferencia") or 0)
         )
-        respuestas["ventasMes"] = (
-            productos_mes["ventaMes"] if productos_mes["ventaMes"] else 0
-        )
+
+        salarios_mes = salarios * calcular_dias_laborables(inicio_mes, fin_mes)
+
+        total_ventas_mes = productos_mes["ventaMes"] - salarios_mes
+
+        respuestas["ventasMes"] = total_ventas_mes
 
         # Más vendidos
         product_info = ProductoInfo.objects.all()
