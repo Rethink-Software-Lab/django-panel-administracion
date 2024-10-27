@@ -25,6 +25,15 @@ class ProductInfoAdmin(admin.ModelAdmin):
     ]
 
 
+@admin.register(Salario)
+class SalariosAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "usuario",
+        "cantidad",
+    ]
+
+
 @admin.register(Transferencia)
 class TransferenciaAdmin(admin.ModelAdmin):
     list_display = [
