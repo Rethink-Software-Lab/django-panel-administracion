@@ -2,8 +2,9 @@ import datetime
 from ninja import ModelSchema, Schema
 from inventario.models import *
 from typing import List, Optional, Literal, Any
-from pydantic import condecimal, conint, validator
+from pydantic import condecimal, conint, validator, Field
 from decimal import Decimal
+from typing_extensions import Annotated
 
 
 class TokenSchema(Schema):
@@ -210,6 +211,8 @@ class ReportesSchema(Schema):
     total: Optional[condecimal()] = None
     pago_trabajador: Optional[conint(ge=0)] = None
     salarios: Optional[int] = None
+    gastos_variables: Optional[Annotated[int, Field(ge=0)]]
+    gastos_fijos: Optional[Annotated[int, Field(ge=0)]]
     costo_producto: Optional[condecimal()] = None
     subtotal: Optional[condecimal(ge=0)] = None
     efectivo: Optional[condecimal(ge=0)] = None
@@ -410,3 +413,25 @@ class AllSalariosSchema(Schema):
 class SalarioModifySchema(Schema):
     usuario: int
     cantidad: int
+
+
+class GastosSchema(ModelSchema):
+    usuario: UsuariosSchema
+
+    class Meta:
+        model = Gastos
+        fields = "__all__"
+
+
+class AllGastosSchema(Schema):
+    fijos: List[GastosSchema]
+    variables: List[GastosSchema]
+
+
+class GastosModifySchema(Schema):
+    descripcion: str
+    tipo: GastosChoices
+    cantidad: Annotated[int, Field(strict=True, gt=0)]
+    frecuencia: Optional[FrecuenciaChoices] = None
+    dia_semana: Optional[Annotated[int, Field(strict=True, ge=0, le=6)]] = None
+    dia_mes: Optional[Annotated[int, Field(strict=True, ge=1, le=31)]] = None
