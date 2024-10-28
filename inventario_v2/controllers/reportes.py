@@ -1,8 +1,15 @@
 from datetime import datetime
-from typing import Literal
+from typing import Counter, Literal
 
 from django.shortcuts import get_object_or_404
-from inventario.models import ProductoInfo, Ventas, AreaVenta, Salario
+from inventario.models import (
+    ProductoInfo,
+    Ventas,
+    AreaVenta,
+    Salario,
+    Gastos,
+    GastosChoices,
+)
 from ..schema import ReportesSchema
 from ninja_extra import api_controller, route
 from django.db.models import F, Count, Q, Sum
@@ -32,6 +39,9 @@ class ReportesController:
             return dias_laborables
 
         dias_laborables = calcular_dias_laborables(parse_desde, parse_hasta)
+        total_gastos = 0
+        gastos_variables = 0
+        total_gastos_fijos = 0
 
         if type == "ventas":
             if area == "general":
@@ -62,6 +72,49 @@ class ReportesController:
                 ventas_hoy = Ventas.objects.filter(
                     created_at__date__range=(parse_desde, parse_hasta),
                 )
+
+                gastos_variables = (
+                    Gastos.objects.filter(
+                        tipo=GastosChoices.VARIABLE,
+                        created_at__date__range=(parse_desde, parse_hasta),
+                    ).aggregate(total=Sum("cantidad"))["total"]
+                    or 0
+                )
+
+                gastos_fijos = Gastos.objects.filter(
+                    tipo=GastosChoices.FIJO,
+                    created_at__date__gte=parse_desde,
+                )
+                gastos_fijos_mensuales = (
+                    gastos_fijos.filter(
+                        dia_mes__range=(parse_desde.day, parse_hasta.day + 1),
+                    ).aggregate(total=Sum("cantidad"))["total"]
+                    or 0
+                )
+
+                def obtener_dias_semana_rango(desde, hasta):
+                    dias_semana = Counter()
+                    while desde <= hasta:
+                        dias_semana[desde.weekday()] += 1
+                        desde += timedelta(days=1)
+                    return dias_semana
+
+                dias_semana = obtener_dias_semana_rango(parse_desde, parse_hasta)
+
+                gastos_fijos_semanales = gastos_fijos.filter(
+                    dia_semana__in=dias_semana,
+                )
+
+                total_gastos_fijos_semanales = sum(
+                    gasto.cantidad * dias_semana.get(gasto.dia_semana, 0)
+                    for gasto in gastos_fijos_semanales
+                )
+
+                total_gastos_fijos = gastos_fijos_mensuales + (
+                    total_gastos_fijos_semanales if total_gastos_fijos_semanales else 0
+                )
+
+                total_gastos = gastos_variables + total_gastos_fijos
 
             else:
                 area_venta = get_object_or_404(AreaVenta, pk=area).nombre
@@ -129,13 +182,17 @@ class ReportesController:
                 or 0
             )
 
-            total_costos = pago_trabajador + costo_producto + salarios or 0
+            total_costos = (
+                pago_trabajador + costo_producto + salarios + total_gastos or 0
+            )
 
             return {
                 "productos": list(producto_info),
                 "subtotal": subtotal,
                 "costo_producto": costo_producto,
                 "salarios": salarios,
+                "gastos_variables": gastos_variables,
+                "gastos_fijos": total_gastos_fijos,
                 "pago_trabajador": pago_trabajador,
                 "efectivo": (pagos["efectivo_venta"] or 0)
                 + (pagos["efectivo_mixto"] or 0),
