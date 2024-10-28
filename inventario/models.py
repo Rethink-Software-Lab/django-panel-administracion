@@ -1,5 +1,4 @@
 from django.db import models
-from cloudinary.models import CloudinaryField
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
@@ -174,3 +173,31 @@ class AjusteInventario(models.Model):
 class Salario(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.CASCADE)
     cantidad = models.IntegerField(null=False, blank=False)
+
+
+class GastosChoices(models.TextChoices):
+    FIJO = "FIJO", "Fijo"
+    VARIABLE = "VARIABLE", "Variable"
+
+
+class FrecuenciaChoices(models.TextChoices):
+    SEMANAL = "SEMANAL", "Semanal"
+    MENSUAL = "MENSUAL", "Mensual"
+
+
+class Gastos(models.Model):
+    tipo = models.CharField(
+        max_length=30, choices=GastosChoices, blank=False, null=False
+    )
+    descripcion = models.CharField(max_length=100, blank=False, null=False)
+    cantidad = models.IntegerField(null=False, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    # Fijos
+    frecuencia = models.CharField(
+        max_length=30, choices=FrecuenciaChoices, blank=True, null=True
+    )
+    # mensuales
+    dia_mes = models.IntegerField(null=True, blank=True)
+    # semanales
+    dia_semana = models.IntegerField(null=True, blank=True)

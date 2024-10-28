@@ -24,6 +24,7 @@ from .controllers.areas_ventas import AreasVentasController
 from .controllers.transferencias import TransferenciasController
 from .controllers.ajuste_inventario import AjusteInventarioController
 from .controllers.salarios import SalariosController
+from .controllers.gastos import GastosController
 
 
 class AuthBearer(HttpBearer):
@@ -149,4 +150,5 @@ app.register_controllers(
     TransferenciasController,
     AjusteInventarioController,
     SalariosController,
+    GastosController,
 )
