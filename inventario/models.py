@@ -176,6 +176,7 @@ class GastosChoices(models.TextChoices):
 
 
 class FrecuenciaChoices(models.TextChoices):
+    LUNES_SABADO = "LUNES_SABADO", "Lunes-Sábado"
     SEMANAL = "SEMANAL", "Semanal"
     MENSUAL = "MENSUAL", "Mensual"
 
@@ -184,6 +185,7 @@ class Gastos(models.Model):
     tipo = models.CharField(
         max_length=30, choices=GastosChoices, blank=False, null=False
     )
+    area_venta = models.ForeignKey(AreaVenta, on_delete=models.CASCADE, null=False)
     descripcion = models.CharField(max_length=100, blank=False, null=False)
     cantidad = models.IntegerField(null=False, blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
