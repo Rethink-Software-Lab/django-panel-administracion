@@ -398,6 +398,7 @@ class AjustesModifySchema(Schema):
 
 class GastosSchema(ModelSchema):
     usuario: UsuariosSchema
+    area_venta: AreaVentaSchema
 
     class Meta:
         model = Gastos
@@ -407,13 +408,13 @@ class GastosSchema(ModelSchema):
 class AllGastosSchema(Schema):
     fijos: List[GastosSchema]
     variables: List[GastosSchema]
-    # areas_venta: List[AreaVentaSchema]
+    areas_venta: List[AreaVentaSchema]
 
 
 class GastosModifySchema(Schema):
     descripcion: str
     tipo: GastosChoices
-    # area_venta: int
+    area_venta: int
     cantidad: Annotated[int, Field(strict=True, gt=0)]
     frecuencia: Optional[FrecuenciaChoices] = None
     dia_semana: Optional[Annotated[int, Field(strict=True, ge=0, le=6)]] = None

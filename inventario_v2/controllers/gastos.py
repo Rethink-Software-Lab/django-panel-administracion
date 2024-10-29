@@ -1,5 +1,5 @@
 from ninja.errors import HttpError
-from inventario.models import User, Gastos, GastosChoices
+from inventario.models import User, Gastos, GastosChoices, AreaVenta
 
 from ..schema import AllGastosSchema, GastosModifySchema
 from ninja_extra import api_controller, route
@@ -22,9 +22,12 @@ class GastosController:
             .order_by("-id")
         )
 
+        areas_venta = AreaVenta.objects.all()
+
         return {
             "fijos": gastos_fijos,
             "variables": gastos_variables,
+            "areas_venta": areas_venta,
         }
 
     @route.post("")
@@ -32,9 +35,25 @@ class GastosController:
         body_dict = body.model_dump()
 
         usuario = get_object_or_404(User, pk=request.auth["id"])
+        area_venta = get_object_or_404(AreaVenta, pk=body_dict["area_venta"])
+        tipo = body_dict["tipo"]
+        dia_mes = body_dict["dia_mes"]
+        frecuencia = body_dict["frecuencia"]
+        cantidad = body_dict["cantidad"]
+        descripcion = body_dict["descripcion"]
+        dia_semana = body_dict["dia_semana"]
 
         try:
-            Gastos.objects.create(usuario=usuario, **body_dict)
+            Gastos.objects.create(
+                usuario=usuario,
+                area_venta=area_venta,
+                tipo=tipo,
+                cantidad=cantidad,
+                descripcion=descripcion,
+                dia_mes=dia_mes,
+                frecuencia=frecuencia,
+                dia_semana=dia_semana,
+            )
             return
         except Exception as e:
             raise HttpError(500, f"Error inesperado: {str(e)}")
@@ -44,8 +63,11 @@ class GastosController:
         gasto = get_object_or_404(Gastos, pk=id)
         body_dict = body.model_dump()
 
+        area_venta = get_object_or_404(AreaVenta, pk=body_dict["area_venta"])
+
         gasto.tipo = body_dict["tipo"]
         gasto.descripcion = body_dict["descripcion"]
+        gasto.area_venta = area_venta
         gasto.cantidad = body_dict["cantidad"]
         gasto.frecuencia = body_dict["frecuencia"]
         gasto.dia_mes = body_dict["dia_mes"]

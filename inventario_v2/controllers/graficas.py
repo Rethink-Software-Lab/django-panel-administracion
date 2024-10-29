@@ -15,7 +15,7 @@ from django.db.models import F, Sum, Case, When, IntegerField
 from inventario_v2.utils import get_month_name
 from ..utils import (
     get_day_name,
-    # calcular_dias_laborables,
+    calcular_dias_laborables,
     obtener_inicio_fin_mes,
     obtener_ultimo_dia_mes,
     obtener_dias_semana_rango,
@@ -70,8 +70,54 @@ class GraficasController:
                         or 0
                     )
 
+                    gastos_variables_graf_areas = (
+                        gastos_variables.filter(
+                            created_at=dia_fecha, area_venta=area
+                        ).aggregate(total=Sum("cantidad"))["total"]
+                        or 0
+                    )
+
+                    gastos_fijos_mesuales_graf_areas = (
+                        gastos_fijos.filter(
+                            frecuencia=FrecuenciaChoices.MENSUAL,
+                            dia_mes=dia_fecha.day,
+                            area_venta=area,
+                        ).aggregate(total=Sum("cantidad"))["total"]
+                        or 0
+                    )
+
+                    gastos_fijos_semanales_graf_areas = (
+                        gastos_fijos.filter(
+                            frecuencia=FrecuenciaChoices.SEMANAL,
+                            dia_semana=dia_fecha.weekday(),
+                            area_venta=area,
+                        ).aggregate(total=Sum("cantidad"))["total"]
+                        or 0
+                    )
+
+                    gastos_lunes_sabado_graf_areas = (
+                        (
+                            gastos_fijos.filter(
+                                frecuencia=FrecuenciaChoices.LUNES_SABADO,
+                                area_venta=area,
+                            ).aggregate(total=Sum("cantidad"))["total"]
+                            or 0
+                        )
+                        if dia_fecha.weekday() != 6
+                        else 0
+                    )
+
+                    total_gastos_graf_areas = (
+                        gastos_variables_graf_areas
+                        + gastos_fijos_mesuales_graf_areas
+                        + gastos_fijos_semanales_graf_areas
+                        + gastos_lunes_sabado_graf_areas
+                    )
+
+                    total_ventas_graf_areas = total_ventas - total_gastos_graf_areas
+
                     dia_ventas[area.nombre] = {
-                        "ventas": total_ventas,
+                        "ventas": round(total_ventas_graf_areas, 2),
                         "color": area.color if area.color else "#000",
                     }
                 respuestas["ventasPorArea"].append(dia_ventas)
@@ -144,10 +190,26 @@ class GraficasController:
                     or 0
                 )
 
+                dias_laborales_graf_anual = calcular_dias_laborables(
+                    inicio_mes_graf_anual, fin_mes_graf_anual
+                )
+
+                gastos_lunes_sabado_graf_anual = (
+                    gastos_fijos.filter(
+                        frecuencia=FrecuenciaChoices.LUNES_SABADO
+                    ).aggregate(total=Sum("cantidad"))["total"]
+                    or 0
+                )
+
+                total_gastos_lunes_sabado_graf_anual = (
+                    gastos_lunes_sabado_graf_anual * dias_laborales_graf_anual
+                )
+
                 total_gastos_graf_anual = (
                     gastos_variables__graf_anual
                     + gastos_fijos_mesuales_graf_anual
                     + gastos_fijos_semanales_graf_anual
+                    + total_gastos_lunes_sabado_graf_anual
                 )
 
                 nombre_mes = get_month_name(mes)
@@ -155,9 +217,10 @@ class GraficasController:
                 respuestas["ventasAnuales"].append(
                     {
                         "mes": nombre_mes.capitalize(),
-                        "ventas": (
+                        "ventas": round(
                             (prod["total"] if prod["total"] else 0)
-                            - total_gastos_graf_anual
+                            - total_gastos_graf_anual,
+                            2,
                         ),
                     }
                 )
@@ -195,15 +258,27 @@ class GraficasController:
             or 0
         )
 
+        gastos_lunes_sabado = (
+            (
+                gastos_fijos.filter(
+                    frecuencia=FrecuenciaChoices.LUNES_SABADO
+                ).aggregate(total=Sum("cantidad"))["total"]
+                or 0
+            )
+            if hoy.weekday() == 6
+            else 0
+        )
+
         total_gastos_hoy = (
             gastos_variables_hoy
             + gastos_fijos_mesuales_hoy
             + gastos_fijos_semanales_hoy
+            + gastos_lunes_sabado
         )
 
         total_ventas_hoy = productos_hoy - total_gastos_hoy
 
-        respuestas["ventasHoy"] = total_ventas_hoy
+        respuestas["ventasHoy"] = round(total_ventas_hoy, 2)
 
         # Ventas de la semana
         productos_semana = (
@@ -243,15 +318,25 @@ class GraficasController:
             or 0
         )
 
+        gastos_lunes_sabado_semanal = (
+            gastos_fijos.filter(frecuencia=FrecuenciaChoices.LUNES_SABADO).aggregate(
+                total=Sum("cantidad")
+            )["total"]
+            or 0
+        )
+
+        total_gastos_lunes_sabado_semanal = gastos_lunes_sabado_semanal * 6
+
         total_gastos_semana = (
             gastos_variables_semana
             + gastos_fijos_mesuales_semana
             + gastos_fijos_semanales_semana
+            + total_gastos_lunes_sabado_semanal
         )
 
         total_ventas_semana = productos_semana - total_gastos_semana
 
-        respuestas["ventasSemana"] = total_ventas_semana
+        respuestas["ventasSemana"] = round(total_ventas_semana, 2)
 
         # Ventas del mes
         productos_mes = (
@@ -306,15 +391,27 @@ class GraficasController:
             or 0
         )
 
+        dias_laborales_mes = calcular_dias_laborables(inicio_mes, fin_mes)
+
+        gastos_lunes_sabado_mes = (
+            gastos_fijos.filter(frecuencia=FrecuenciaChoices.LUNES_SABADO).aggregate(
+                total=Sum("cantidad")
+            )["total"]
+            or 0
+        )
+
+        total_gastos_lunes_sabado_mes = gastos_lunes_sabado_mes * dias_laborales_mes
+
         total_gastos_mes = (
             gastos_variables_mes
             + gastos_fijos_mesuales_mes
             + gastos_fijos_semanales_mes
+            + total_gastos_lunes_sabado_mes
         )
 
         total_ventas_mes = productos_mes - total_gastos_mes
 
-        respuestas["ventasMes"] = total_ventas_mes
+        respuestas["ventasMes"] = round(total_ventas_mes, 2)
 
         # Más vendidos
         product_info = ProductoInfo.objects.all()

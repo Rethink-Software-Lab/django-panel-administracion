@@ -8,12 +8,13 @@ from inventario.models import (
     AreaVenta,
     Gastos,
     GastosChoices,
+    FrecuenciaChoices,
 )
 from ..schema import ReportesSchema
 from ninja_extra import api_controller, route
 from django.db.models import F, Count, Q, Sum, When, Case, IntegerField
 from ..utils import (
-    # calcular_dias_laborables,
+    calcular_dias_laborables,
     obtener_dias_semana_rango,
     obtener_ultimo_dia_mes,
 )
@@ -32,10 +33,29 @@ class ReportesController:
         parse_desde = desde.date()
         parse_hasta = hasta.date()
 
-        # dias_laborables = calcular_dias_laborables(parse_desde, parse_hasta)
+        dias_laborables = calcular_dias_laborables(parse_desde, parse_hasta)
+        ultimo_dia_hasta = obtener_ultimo_dia_mes(parse_hasta)
+        dias_semana = obtener_dias_semana_rango(parse_desde, parse_hasta)
+
         total_gastos = 0
-        gastos_variables = 0
+        total_gastos_variables = 0
         total_gastos_fijos = 0
+
+        gastos_variables = Gastos.objects.filter(
+            tipo=GastosChoices.VARIABLE,
+            created_at__date__range=(parse_desde, parse_hasta),
+        )
+
+        gastos_fijos = Gastos.objects.filter(
+            tipo=GastosChoices.FIJO,
+            created_at__date__gte=parse_desde,
+        ).annotate(
+            dia_mes_ajustado=Case(
+                When(dia_mes__gt=ultimo_dia_hasta, then=ultimo_dia_hasta),
+                default=F("dia_mes"),
+                output_field=IntegerField(),
+            )
+        )
 
         if type == "ventas":
             if area == "general":
@@ -67,37 +87,20 @@ class ReportesController:
                     created_at__date__range=(parse_desde, parse_hasta),
                 )
 
-                gastos_variables = (
-                    Gastos.objects.filter(
-                        tipo=GastosChoices.VARIABLE,
-                        created_at__date__range=(parse_desde, parse_hasta),
-                    ).aggregate(total=Sum("cantidad"))["total"]
-                    or 0
-                )
-
-                ultimo_dia_hasta = obtener_ultimo_dia_mes(parse_hasta)
-
-                gastos_fijos = Gastos.objects.filter(
-                    tipo=GastosChoices.FIJO,
-                    created_at__date__gte=parse_desde,
-                ).annotate(
-                    dia_mes_ajustado=Case(
-                        When(dia_mes__gt=ultimo_dia_hasta, then=ultimo_dia_hasta),
-                        default=F("dia_mes"),
-                        output_field=IntegerField(),
-                    )
+                total_gastos_variables = (
+                    gastos_variables.aggregate(total=Sum("cantidad"))["total"] or 0
                 )
 
                 gastos_fijos_mensuales = (
                     gastos_fijos.filter(
+                        frecuencia=FrecuenciaChoices.MENSUAL,
                         dia_mes_ajustado__range=(parse_desde.day, parse_hasta.day + 1),
                     ).aggregate(total=Sum("cantidad"))["total"]
                     or 0
                 )
 
-                dias_semana = obtener_dias_semana_rango(parse_desde, parse_hasta)
-
                 gastos_fijos_semanales = gastos_fijos.filter(
+                    frecuencia=FrecuenciaChoices.SEMANAL,
                     dia_semana__in=dias_semana,
                 )
 
@@ -106,11 +109,21 @@ class ReportesController:
                     for gasto in gastos_fijos_semanales
                 )
 
-                total_gastos_fijos = gastos_fijos_mensuales + (
-                    total_gastos_fijos_semanales if total_gastos_fijos_semanales else 0
+                gastos_lunes_sabado = (
+                    gastos_fijos.filter(
+                        frecuencia=FrecuenciaChoices.LUNES_SABADO
+                    ).aggregate(total=Sum("cantidad"))["total"]
+                    or 0
+                )
+                total_gastos_lunes_sabado = gastos_lunes_sabado * dias_laborables
+
+                total_gastos_fijos = (
+                    gastos_fijos_mensuales
+                    + total_gastos_fijos_semanales
+                    + total_gastos_lunes_sabado
                 )
 
-                total_gastos = gastos_variables + total_gastos_fijos
+                total_gastos = total_gastos_variables + total_gastos_fijos
 
             else:
                 area_venta = get_object_or_404(AreaVenta, pk=area).nombre
@@ -145,6 +158,51 @@ class ReportesController:
                     area_venta=area,
                 )
 
+                total_gastos_variables = (
+                    gastos_variables.filter(
+                        area_venta=area,
+                    ).aggregate(
+                        total=Sum("cantidad")
+                    )["total"]
+                    or 0
+                )
+
+                gastos_fijos_mensuales = (
+                    gastos_fijos.filter(
+                        area_venta=area,
+                        frecuencia=FrecuenciaChoices.MENSUAL,
+                        dia_mes_ajustado__range=(parse_desde.day, parse_hasta.day + 1),
+                    ).aggregate(total=Sum("cantidad"))["total"]
+                    or 0
+                )
+
+                gastos_fijos_semanales = gastos_fijos.filter(
+                    area_venta=area,
+                    frecuencia=FrecuenciaChoices.SEMANAL,
+                    dia_semana__in=dias_semana,
+                )
+
+                total_gastos_fijos_semanales = sum(
+                    gasto.cantidad * dias_semana.get(gasto.dia_semana, 0)
+                    for gasto in gastos_fijos_semanales
+                )
+
+                gastos_lunes_sabado = (
+                    gastos_fijos.filter(
+                        area_venta=area, frecuencia=FrecuenciaChoices.LUNES_SABADO
+                    ).aggregate(total=Sum("cantidad"))["total"]
+                    or 0
+                )
+                total_gastos_lunes_sabado = gastos_lunes_sabado * dias_laborables
+
+                total_gastos_fijos = (
+                    gastos_fijos_mensuales
+                    + total_gastos_fijos_semanales
+                    + total_gastos_lunes_sabado
+                )
+
+                total_gastos = total_gastos_variables + total_gastos_fijos
+
             pagos = ventas_hoy.aggregate(
                 efectivo_venta=Sum(
                     "producto__info__precio_venta", filter=Q(metodo_pago="EFECTIVO")
@@ -177,15 +235,15 @@ class ReportesController:
             return {
                 "productos": list(producto_info),
                 "subtotal": subtotal,
-                "costo_producto": costo_producto,
-                "gastos_variables": gastos_variables,
+                "costo_producto": round(costo_producto, 2),
+                "gastos_variables": total_gastos_variables,
                 "gastos_fijos": total_gastos_fijos,
-                "pago_trabajador": pago_trabajador,
+                "pago_trabajador": round(pago_trabajador, 2),
                 "efectivo": (pagos["efectivo_venta"] or 0)
                 + (pagos["efectivo_mixto"] or 0),
                 "transferencia": (pagos["transferencia_venta"] or 0)
                 + (pagos["transferencia_mixto"] or 0),
-                "total": (subtotal - total_costos),
+                "total": round(subtotal - total_costos, 2),
                 "area": area_venta,
             }
 
