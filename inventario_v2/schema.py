@@ -210,7 +210,6 @@ class ReportesSchema(Schema):
     area: str
     total: Optional[condecimal()] = None
     pago_trabajador: Optional[conint(ge=0)] = None
-    salarios: Optional[int] = None
     gastos_variables: Optional[Annotated[int, Field(ge=0)]]
     gastos_fijos: Optional[Annotated[int, Field(ge=0)]]
     costo_producto: Optional[condecimal()] = None
@@ -395,24 +394,6 @@ class ProductosAjuste(Schema):
 class AjustesModifySchema(Schema):
     motivo: str
     productos: List[ProductosAjuste]
-
-
-class SalarioSchema(ModelSchema):
-    usuario: UsuariosSchema
-
-    class Meta:
-        model = Salario
-        fields = "__all__"
-
-
-class AllSalariosSchema(Schema):
-    salarios: List[SalarioSchema]
-    usuarios: List[UsuariosSchema]
-
-
-class SalarioModifySchema(Schema):
-    usuario: int
-    cantidad: int
 
 
 class GastosSchema(ModelSchema):

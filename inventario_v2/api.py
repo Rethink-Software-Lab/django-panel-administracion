@@ -23,7 +23,6 @@ from inventario_v2.controllers.reportes import ReportesController
 from .controllers.areas_ventas import AreasVentasController
 from .controllers.transferencias import TransferenciasController
 from .controllers.ajuste_inventario import AjusteInventarioController
-from .controllers.salarios import SalariosController
 from .controllers.gastos import GastosController
 
 
@@ -149,6 +148,5 @@ app.register_controllers(
     AreasVentasController,
     TransferenciasController,
     AjusteInventarioController,
-    SalariosController,
     GastosController,
 )

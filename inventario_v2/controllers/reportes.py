@@ -6,7 +6,6 @@ from inventario.models import (
     ProductoInfo,
     Ventas,
     AreaVenta,
-    Salario,
     Gastos,
     GastosChoices,
 )
@@ -14,7 +13,7 @@ from ..schema import ReportesSchema
 from ninja_extra import api_controller, route
 from django.db.models import F, Count, Q, Sum, When, Case, IntegerField
 from ..utils import (
-    calcular_dias_laborables,
+    # calcular_dias_laborables,
     obtener_dias_semana_rango,
     obtener_ultimo_dia_mes,
 )
@@ -33,7 +32,7 @@ class ReportesController:
         parse_desde = desde.date()
         parse_hasta = hasta.date()
 
-        dias_laborables = calcular_dias_laborables(parse_desde, parse_hasta)
+        # dias_laborables = calcular_dias_laborables(parse_desde, parse_hasta)
         total_gastos = 0
         gastos_variables = 0
         total_gastos_fijos = 0
@@ -166,12 +165,6 @@ class ReportesController:
                 or 0
             )
 
-            all_salarios = (
-                Salario.objects.aggregate(salario=Sum("cantidad"))["salario"] or 0
-            )
-
-            salarios = all_salarios * dias_laborables
-
             pago_trabajador = (
                 producto_info.aggregate(
                     pago_trabajador=Sum(F("pago_trabajador") * F("cantidad"))
@@ -179,15 +172,12 @@ class ReportesController:
                 or 0
             )
 
-            total_costos = (
-                pago_trabajador + costo_producto + salarios + total_gastos or 0
-            )
+            total_costos = pago_trabajador + costo_producto + total_gastos or 0
 
             return {
                 "productos": list(producto_info),
                 "subtotal": subtotal,
                 "costo_producto": costo_producto,
-                "salarios": salarios,
                 "gastos_variables": gastos_variables,
                 "gastos_fijos": total_gastos_fijos,
                 "pago_trabajador": pago_trabajador,
