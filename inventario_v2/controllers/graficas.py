@@ -2,7 +2,6 @@ from inventario.models import (
     Producto,
     AreaVenta,
     ProductoInfo,
-    Salario,
     Gastos,
     GastosChoices,
     FrecuenciaChoices,
@@ -16,7 +15,7 @@ from django.db.models import F, Sum, Case, When, IntegerField
 from inventario_v2.utils import get_month_name
 from ..utils import (
     get_day_name,
-    calcular_dias_laborables,
+    # calcular_dias_laborables,
     obtener_inicio_fin_mes,
     obtener_ultimo_dia_mes,
     obtener_dias_semana_rango,
@@ -51,8 +50,6 @@ class GraficasController:
             "ventasMes": 0,
         }
 
-        salarios = Salario.objects.aggregate(salario=Sum("cantidad"))["salario"] or 0
-
         # Ventas por área
         areas = AreaVenta.objects.all()
         if areas:
@@ -69,19 +66,12 @@ class GraficasController:
                             - F("info__precio_costo")
                             - F("info__pago_trabajador")
                         )
-                        .aggregate(total=Sum("diferencia"))
+                        .aggregate(total=Sum("diferencia"))["total"]
+                        or 0
                     )
-                    if dia_fecha.weekday() != 6:
-                        total_ventas_areas = (
-                            total_ventas["total"] if total_ventas["total"] else 0
-                        ) - salarios
-                    else:
-                        total_ventas_areas = (
-                            total_ventas["total"] if total_ventas["total"] else 0
-                        )
 
                     dia_ventas[area.nombre] = {
-                        "ventas": total_ventas_areas,
+                        "ventas": total_ventas,
                         "color": area.color if area.color else "#000",
                     }
                 respuestas["ventasPorArea"].append(dia_ventas)
@@ -160,14 +150,6 @@ class GraficasController:
                     + gastos_fijos_semanales_graf_anual
                 )
 
-                dias_laborables_graf_anual = calcular_dias_laborables(
-                    inicio_mes_graf_anual, fin_mes_graf_anual
-                )
-
-                total_mes_graf_anual = (
-                    total_gastos_graf_anual + salarios * dias_laborables_graf_anual
-                )
-
                 nombre_mes = get_month_name(mes)
 
                 respuestas["ventasAnuales"].append(
@@ -175,7 +157,7 @@ class GraficasController:
                         "mes": nombre_mes.capitalize(),
                         "ventas": (
                             (prod["total"] if prod["total"] else 0)
-                            - total_mes_graf_anual
+                            - total_gastos_graf_anual
                         ),
                     }
                 )
@@ -219,7 +201,7 @@ class GraficasController:
             + gastos_fijos_semanales_hoy
         )
 
-        total_ventas_hoy = productos_hoy - total_gastos_hoy - salarios
+        total_ventas_hoy = productos_hoy - total_gastos_hoy
 
         respuestas["ventasHoy"] = total_ventas_hoy
 
@@ -267,11 +249,7 @@ class GraficasController:
             + gastos_fijos_semanales_semana
         )
 
-        total_ventas_semana = (
-            productos_semana
-            - total_gastos_semana
-            - salarios * calcular_dias_laborables(inicio_semana, fin_semana)
-        )
+        total_ventas_semana = productos_semana - total_gastos_semana
 
         respuestas["ventasSemana"] = total_ventas_semana
 
@@ -334,9 +312,7 @@ class GraficasController:
             + gastos_fijos_semanales_mes
         )
 
-        salarios_mes = salarios * calcular_dias_laborables(inicio_mes, fin_mes)
-
-        total_ventas_mes = productos_mes - total_gastos_mes - salarios_mes
+        total_ventas_mes = productos_mes - total_gastos_mes
 
         respuestas["ventasMes"] = total_ventas_mes
 
