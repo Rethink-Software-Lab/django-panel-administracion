@@ -131,15 +131,13 @@ class GraficasController:
                 - F("info__precio_costo")
                 - F("info__pago_trabajador")
             )
-            .aggregate(ventaHoy=Sum("diferencia"))
-        )
+            .aggregate(ventaHoy=Sum("diferencia"))["ventaHoy"]
+        ) or 0
 
         if hoy.weekday() != 6:
-            total_ventas_hoy = productos_hoy["ventaHoy"] - salarios
+            total_ventas_hoy = productos_hoy - salarios
         else:
-            total_ventas_hoy = (
-                productos_hoy["ventaHoy"] if productos_hoy["ventaHoy"] else 0
-            )
+            total_ventas_hoy = productos_hoy
 
         respuestas["ventasHoy"] = total_ventas_hoy
 
