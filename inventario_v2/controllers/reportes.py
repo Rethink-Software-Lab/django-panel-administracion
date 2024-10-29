@@ -12,8 +12,9 @@ from inventario.models import (
 )
 from ..schema import ReportesSchema
 from ninja_extra import api_controller, route
-from django.db.models import F, Count, Q, Sum
+from django.db.models import F, Count, Q, Sum, When, Case, IntegerField
 from datetime import timedelta
+import calendar
 
 
 @api_controller("reportes/", tags=["Categorías"], permissions=[])
@@ -81,13 +82,26 @@ class ReportesController:
                     or 0
                 )
 
+                def obtener_ultimo_dia_mes(fecha):
+                    _, ultimo_dia = calendar.monthrange(fecha.year, fecha.month)
+                    return ultimo_dia
+
+                ultimo_dia_hasta = obtener_ultimo_dia_mes(parse_hasta)
+
                 gastos_fijos = Gastos.objects.filter(
                     tipo=GastosChoices.FIJO,
                     created_at__date__gte=parse_desde,
+                ).annotate(
+                    dia_mes_ajustado=Case(
+                        When(dia_mes__gt=ultimo_dia_hasta, then=ultimo_dia_hasta),
+                        default=F("dia_mes"),
+                        output_field=IntegerField(),
+                    )
                 )
+
                 gastos_fijos_mensuales = (
                     gastos_fijos.filter(
-                        dia_mes__range=(parse_desde.day, parse_hasta.day + 1),
+                        dia_mes_ajustado__range=(parse_desde.day, parse_hasta.day + 1),
                     ).aggregate(total=Sum("cantidad"))["total"]
                     or 0
                 )
