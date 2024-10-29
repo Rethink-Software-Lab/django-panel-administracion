@@ -210,8 +210,8 @@ class ReportesSchema(Schema):
     area: str
     total: Optional[condecimal()] = None
     pago_trabajador: Optional[conint(ge=0)] = None
-    gastos_variables: Optional[Annotated[int, Field(ge=0)]]
-    gastos_fijos: Optional[Annotated[int, Field(ge=0)]]
+    gastos_variables: Optional[Annotated[int, Field(ge=0)]] = None
+    gastos_fijos: Optional[Annotated[int, Field(ge=0)]] = None
     costo_producto: Optional[condecimal()] = None
     subtotal: Optional[condecimal(ge=0)] = None
     efectivo: Optional[condecimal(ge=0)] = None
@@ -407,11 +407,13 @@ class GastosSchema(ModelSchema):
 class AllGastosSchema(Schema):
     fijos: List[GastosSchema]
     variables: List[GastosSchema]
+    # areas_venta: List[AreaVentaSchema]
 
 
 class GastosModifySchema(Schema):
     descripcion: str
     tipo: GastosChoices
+    # area_venta: int
     cantidad: Annotated[int, Field(strict=True, gt=0)]
     frecuencia: Optional[FrecuenciaChoices] = None
     dia_semana: Optional[Annotated[int, Field(strict=True, ge=0, le=6)]] = None
