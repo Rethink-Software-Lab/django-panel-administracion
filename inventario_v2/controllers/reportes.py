@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Counter, Literal
+from typing import Literal
 
 from django.shortcuts import get_object_or_404
 from inventario.models import (
@@ -12,8 +12,12 @@ from inventario.models import (
 )
 from ..schema import ReportesSchema
 from ninja_extra import api_controller, route
-from django.db.models import F, Count, Q, Sum
-from datetime import timedelta
+from django.db.models import F, Count, Q, Sum, When, Case, IntegerField
+from ..utils import (
+    calcular_dias_laborables,
+    obtener_dias_semana_rango,
+    obtener_ultimo_dia_mes,
+)
 
 
 @api_controller("reportes/", tags=["Categorías"], permissions=[])
@@ -28,15 +32,6 @@ class ReportesController:
     ):
         parse_desde = desde.date()
         parse_hasta = hasta.date()
-
-        def calcular_dias_laborables(desde, hasta):
-            delta = timedelta(days=1)
-            dias_laborables = 0
-            while desde <= hasta:
-                if desde.weekday() != 6:
-                    dias_laborables += 1
-                desde += delta
-            return dias_laborables
 
         dias_laborables = calcular_dias_laborables(parse_desde, parse_hasta)
         total_gastos = 0
@@ -81,23 +76,25 @@ class ReportesController:
                     or 0
                 )
 
+                ultimo_dia_hasta = obtener_ultimo_dia_mes(parse_hasta)
+
                 gastos_fijos = Gastos.objects.filter(
                     tipo=GastosChoices.FIJO,
                     created_at__date__gte=parse_desde,
+                ).annotate(
+                    dia_mes_ajustado=Case(
+                        When(dia_mes__gt=ultimo_dia_hasta, then=ultimo_dia_hasta),
+                        default=F("dia_mes"),
+                        output_field=IntegerField(),
+                    )
                 )
+
                 gastos_fijos_mensuales = (
                     gastos_fijos.filter(
-                        dia_mes__range=(parse_desde.day, parse_hasta.day + 1),
+                        dia_mes_ajustado__range=(parse_desde.day, parse_hasta.day + 1),
                     ).aggregate(total=Sum("cantidad"))["total"]
                     or 0
                 )
-
-                def obtener_dias_semana_rango(desde, hasta):
-                    dias_semana = Counter()
-                    while desde <= hasta:
-                        dias_semana[desde.weekday()] += 1
-                        desde += timedelta(days=1)
-                    return dias_semana
 
                 dias_semana = obtener_dias_semana_rango(parse_desde, parse_hasta)
 
