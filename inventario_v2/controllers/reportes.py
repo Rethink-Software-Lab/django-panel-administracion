@@ -48,7 +48,7 @@ class ReportesController:
 
         gastos_fijos = Gastos.objects.filter(
             tipo=GastosChoices.FIJO,
-            created_at__date__gte=parse_desde,
+            created_at__date__lte=parse_hasta,
         ).annotate(
             dia_mes_ajustado=Case(
                 When(dia_mes__gt=ultimo_dia_hasta, then=ultimo_dia_hasta),
@@ -115,6 +115,7 @@ class ReportesController:
                     ).aggregate(total=Sum("cantidad"))["total"]
                     or 0
                 )
+
                 total_gastos_lunes_sabado = gastos_lunes_sabado * dias_laborables
 
                 total_gastos_fijos = (

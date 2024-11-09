@@ -38,7 +38,7 @@ class GraficasController:
         mes_actual = hoy.month
         gastos_variables = Gastos.objects.filter(tipo=GastosChoices.VARIABLE)
         gastos_fijos = Gastos.objects.filter(
-            tipo=GastosChoices.FIJO, created_at__date__gte=inicio_mes
+            tipo=GastosChoices.FIJO, created_at__date__lte=inicio_mes
         )
 
         respuestas = {
