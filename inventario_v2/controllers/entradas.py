@@ -6,9 +6,9 @@ from inventario.models import (
     Producto,
     SalidaAlmacen,
     SalidaAlmacenRevoltosa,
-    SalidaAlmacenCafeteria,
     User,
     Ventas,
+    Categorias,
 )
 from ..schema import (
     AddEntradaSchema,
@@ -50,9 +50,9 @@ class EntradasController:
     @route.get("cafeteria/", response=EntradaAlmacenCafeteriaEndpoint)
     def get_entradas_cafeteria(self):
         entradas = EntradaAlmacenCafeteria.objects.all().order_by("-created_at")
-
+        categoria_cafeteria = Categorias.objects.filter(nombre="Cafetería").first()
         productos = (
-            ProductoInfo.objects.filter(categoria__nombre__exact="Cafetería")
+            ProductoInfo.objects.filter(categoria=categoria_cafeteria)
             .only("codigo", "descripcion")
             .distinct()
         )
