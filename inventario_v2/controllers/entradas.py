@@ -52,7 +52,7 @@ class EntradasController:
         entradas = EntradaAlmacenCafeteria.objects.all().order_by("-created_at")
 
         productos = (
-            ProductoInfo.objects.filter(categoria__nombre="Cafetería")
+            ProductoInfo.objects.filter(categoria__nombre__exact="Cafetería")
             .only("codigo", "descripcion")
             .distinct()
         )
