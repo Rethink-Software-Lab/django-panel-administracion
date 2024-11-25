@@ -1,5 +1,5 @@
 from inventario.models import AreaVenta, ProductoInfo, Producto, Categorias
-from ..schema import InventarioAreaVentaSchema, Almacenes
+from ..schema import InventarioAreaVentaSchema, Almacenes, AlmacenCafeteria
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
 from django.db.models import F, Count, Q
@@ -126,5 +126,34 @@ class InventarioController:
 
         return {
             "inventario": {"productos": producto_info, "zapatos": zapatos},
+            "categorias": categorias,
+        }
+
+    @route.get("almacen-cafeteria/", response=AlmacenCafeteria)
+    def get_inventario_almacen_cafeteria(self):
+        producto_info = (
+            ProductoInfo.objects.filter(
+                producto__venta__isnull=True,
+                producto__area_venta__isnull=True,
+                producto__almacen_revoltosa=False,
+                producto__ajusteinventario__isnull=True,
+                producto__almacen_cafeteria=True,
+            )
+            .annotate(cantidad=Count(F("producto")))
+            .exclude(cantidad__lt=1)
+            .values(
+                "id",
+                "descripcion",
+                "codigo",
+                "cantidad",
+                "categoria__nombre",
+                "precio_venta",
+            )
+        )
+
+        categorias = Categorias.objects.all()
+
+        return {
+            "productos": producto_info,
             "categorias": categorias,
         }

@@ -301,6 +301,25 @@ class ReportesController:
                     )
                 )
 
+            elif area == "almacen-cafeteria":
+                area_venta = "Almacén Cafetería"
+                producto_info = (
+                    ProductoInfo.objects.filter(
+                        producto__area_venta__isnull=True,
+                        producto__almacen_revoltosa=False,
+                        producto__almacen_cafeteria=True,
+                        producto__venta__isnull=True,
+                        producto__ajusteinventario__isnull=True,
+                    )
+                    .annotate(cantidad=Count(F("producto")))
+                    .exclude(cantidad__lt=1)
+                    .values(
+                        "id",
+                        "descripcion",
+                        "cantidad",
+                    )
+                )
+
             else:
                 area_venta = get_object_or_404(AreaVenta, pk=area).nombre
                 producto_info = (

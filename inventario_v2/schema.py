@@ -83,6 +83,46 @@ class EntradaAlmacenSchema(Schema):
     cantidad: int
 
 
+class ProductoParaEntradaAlmacenCafeteriaSchema(Schema):
+    id: int
+    codigo: str
+    descripcion: str
+
+
+class AreaVentaSchema(ModelSchema):
+    class Meta:
+        model = AreaVenta
+        fields = "__all__"
+
+
+class UsuariosSchema(ModelSchema):
+    area_venta: Optional[AreaVentaSchema] = None
+
+    class Meta:
+        model = User
+        fields = ["id", "username", "rol", "almacen"]
+
+
+class EntradaAlmacenCafeteriaSchema(ModelSchema):
+    info_producto: ProductoInfoSchema
+    usuario: UsuariosSchema
+
+    class Meta:
+        model = EntradaAlmacenCafeteria
+        fields = "__all__"
+
+
+class EntradaAlmacenCafeteriaEndpoint(Schema):
+    entradas: List[EntradaAlmacenCafeteriaSchema]
+    productos: List[ProductoParaEntradaAlmacenCafeteriaSchema]
+
+
+class ProductoCodigoSchema(Schema):
+    id: int
+    codigo: str
+    categoria: CategoriasSchema
+
+
 class AddEntradaSchema(Schema):
     metodoPago: str
     proveedor: str
@@ -92,10 +132,12 @@ class AddEntradaSchema(Schema):
     comprador: str
 
 
-class AreaVentaSchema(ModelSchema):
-    class Meta:
-        model = AreaVenta
-        fields = "__all__"
+class AddEntradaCafeteria(Schema):
+    metodoPago: METODO_PAGO
+    proveedor: str
+    cantidad: Annotated[int, Field(strict=True, gt=0)]
+    producto: str
+    comprador: str
 
 
 class AreaVentaModifySchema(ModelSchema):
@@ -117,11 +159,6 @@ class Salidas(Schema):
         return v or "Almacén Revoltosa"
 
 
-class ProductoCodigoSchema(Schema):
-    codigo: str
-    categoria: CategoriasSchema
-
-
 class SalidaAlmacenSchema(Schema):
     salidas: List[Salidas]
     areas_de_venta: List[AreaVentaSchema]
@@ -141,6 +178,20 @@ class ProductoInfoSalidaAlmacenRevoltosaSchema(Schema):
     productos: List[ProductoCodigoSchema]
 
 
+class SalidaAlmacenCafeteriaSchema(ModelSchema):
+    usuario: UsuariosSchema
+    info_producto: ProductoInfoSchema
+
+    class Meta:
+        model = SalidaAlmacenCafeteria
+        fields = "__all__"
+
+
+class SalidaAlmacenCafeteriaSchemaEndpoint(Schema):
+    salidas: List[SalidaAlmacenCafeteriaSchema]
+    productos: List[ProductoParaEntradaAlmacenCafeteriaSchema]
+
+
 class AddSalidaSchema(Schema):
     area_venta: int | Literal["almacen-revoltosa"]
     producto_info: str
@@ -152,6 +203,11 @@ class AddSalidaRevoltosaSchema(Schema):
     producto_info: str
     cantidad: Optional[int] = None
     zapatos_id: Optional[List[int]] = None
+
+
+class AddSalidaCafeteriaSchema(Schema):
+    producto: int
+    cantidad: Annotated[int, Field(strict=True, gt=0)]
 
 
 class VentasSchema(Schema):
@@ -249,6 +305,11 @@ class Almacenes(Schema):
     categorias: List[CategoriasSchema]
 
 
+class AlmacenCafeteria(Schema):
+    productos: List[OtrosProductos]
+    categorias: List[CategoriasSchema]
+
+
 class AddProductoSchema(Schema):
     codigo: str
     descripcion: str
@@ -268,14 +329,6 @@ class UpdateProductoSchema(Schema):
     deletePhoto: bool
 
 
-class UsuariosSchema(ModelSchema):
-    area_venta: Optional[AreaVentaSchema] = None
-
-    class Meta:
-        model = User
-        fields = ["id", "username", "rol"]
-
-
 class GetUsuariosSchema(Schema):
     usuarios: List[UsuariosSchema]
     areas_ventas: List[AreaVentaSchema]
@@ -283,10 +336,21 @@ class GetUsuariosSchema(Schema):
 
 class UsuariosAuthSchema(ModelSchema):
     area_venta: Optional[int] = None
+    almacen: Optional[str] = None
 
     class Meta:
         model = User
         fields = ["username", "password", "rol"]
+
+    @validator("area_venta", "almacen", pre=True, always=True)
+    def validate_area_venta_or_almacen(cls, v, values, **kwargs):
+        if values.get("rol") == RolesChoices.VENDEDOR:
+            if v is None:
+                raise ValueError("area_venta debe tener valor si rol es vendedor")
+        elif values.get("rol") == RolesChoices.ALMACENERO:
+            if v is None:
+                raise ValueError("almacen debe tener valor si rol es almacenero")
+        return v
 
 
 class Otros(Schema):

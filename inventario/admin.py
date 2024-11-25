@@ -40,3 +40,26 @@ class TransferenciaAdmin(admin.ModelAdmin):
         return ", ".join([str(producto) for producto in obj.productos.all()])
 
     mostrar_productos.short_description = "Productos"
+
+
+@admin.register(EntradaAlmacenCafeteria)
+class EntradaAlmacenCafeteriaAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "usuario",
+        "metodo_pago",
+        "proveedor",
+        "comprador",
+        "created_at",
+        "cantidad",
+    ]
+
+
+@admin.register(SalidaAlmacenCafeteria)
+class SalidaAlmacenCafeteriaAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "usuario",
+        "created_at",
+        "cantidad",
+    ]
