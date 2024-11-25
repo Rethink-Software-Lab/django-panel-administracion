@@ -24,6 +24,7 @@ from .controllers.areas_ventas import AreasVentasController
 from .controllers.transferencias import TransferenciasController
 from .controllers.ajuste_inventario import AjusteInventarioController
 from .controllers.gastos import GastosController
+from .controllers.salidas_cafeteria import SalidasCafeteriaController
 
 
 class AuthBearer(HttpBearer):
@@ -67,6 +68,7 @@ def login(request, data: LoginSchema):
             "id": user.pk,
             "rol": user.rol,
             "area_venta": user.area_venta.pk if user.area_venta else None,
+            "almacen": user.almacen,
             "exp": datetime.utcnow() + timedelta(weeks=4),
         }
 
@@ -149,4 +151,5 @@ app.register_controllers(
     TransferenciasController,
     AjusteInventarioController,
     GastosController,
+    SalidasCafeteriaController,
 )

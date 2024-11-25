@@ -1,6 +1,6 @@
 from django.db import IntegrityError
 from ninja.errors import HttpError
-from inventario.models import AreaVenta, User
+from inventario.models import AreaVenta, User, RolesChoices
 from inventario_v2.custom_permissions import isAdmin
 from ..schema import GetUsuariosSchema, UsuariosAuthSchema
 from ninja_extra import api_controller, route
@@ -24,12 +24,15 @@ class UsuariosController:
                 username=dataDict["username"], rol=dataDict["rol"]
             )
 
-            if dataDict["rol"] == "ADMIN":
+            if dataDict["rol"] == RolesChoices.ADMIN:
                 user.is_staff = True
 
-            if dataDict["area_venta"] is not None:
+            if dataDict["rol"] == RolesChoices.VENDEDOR:
                 area_venta = get_object_or_404(AreaVenta, pk=dataDict["area_venta"])
                 user.area_venta = area_venta
+
+            if dataDict["rol"] == RolesChoices.ALMACENERO:
+                user.almacen = dataDict["almacen"]
 
             user.set_password(dataDict["password"])
             user.save()
@@ -43,18 +46,26 @@ class UsuariosController:
     @route.put("{id}/")
     def updateUsuario(self, id: int, data: UsuariosAuthSchema):
         dataDict = data.model_dump()
-        print(dataDict)
         try:
             user = get_object_or_404(User, pk=id)
             user.username = dataDict["username"]
             user.rol = dataDict["rol"]
             if dataDict["password"]:
                 user.set_password(dataDict["password"])
-            if not dataDict["area_venta"]:
-                user.area_venta = None
-            else:
+            if dataDict["rol"] == RolesChoices.VENDEDOR:
                 area = get_object_or_404(AreaVenta, pk=dataDict["area_venta"])
                 user.area_venta = area
+                user.almacen = None
+
+            if dataDict["rol"] == RolesChoices.ALMACENERO:
+                user.almacen = dataDict["almacen"]
+                user.area_venta = None
+
+            if dataDict["rol"] == RolesChoices.ADMIN:
+                user.is_staff = True
+                user.area_venta = None
+                user.almacen = None
+
             user.save()
             return {"success": True}
 

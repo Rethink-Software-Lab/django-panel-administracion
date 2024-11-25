@@ -2,5 +2,5 @@ from django.apps import AppConfig
 
 
 class InventarioV2Config(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'inventario_v2'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "inventario_v2"
