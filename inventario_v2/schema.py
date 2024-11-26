@@ -167,7 +167,7 @@ class SalidaAlmacenSchema(Schema):
 
 class SalidaAlmacenRevoltosaSchema(Schema):
     id: int
-    usuario__username: str
+    usuario__username: str | None
     producto__info__descripcion: str | None
     created_at: datetime.datetime
     cantidad: int
