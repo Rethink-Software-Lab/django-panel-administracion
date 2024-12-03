@@ -215,7 +215,7 @@ class VentasSchema(Schema):
     created_at: datetime.datetime
     importe: condecimal() | None
     metodo_pago: str
-    usuario__username: str
+    usuario__username: str | None
     producto__info__descripcion: str | None
     cantidad: int
 
