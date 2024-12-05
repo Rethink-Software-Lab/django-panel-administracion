@@ -16,6 +16,7 @@ class InventarioController:
                 producto__venta__isnull=True,
                 producto__area_venta__isnull=True,
                 producto__almacen_revoltosa=False,
+                producto__almacen_cafeteria=False,
                 producto__ajusteinventario__isnull=True,
             )
             .annotate(cantidad=Count(F("producto")))
@@ -34,6 +35,7 @@ class InventarioController:
             area_venta__isnull=True,
             info__categoria__nombre="Zapatos",
             almacen_revoltosa=False,
+            almacen_cafeteria=False,
             ajusteinventario__isnull=True,
         ).values(
             "id",
