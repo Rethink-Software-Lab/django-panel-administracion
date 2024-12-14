@@ -38,6 +38,7 @@ class RolesChoices(models.TextChoices):
     ADMIN = "ADMIN", "Admin"
     ALMACENERO = "ALMACENERO", "Almacenero"
     VENDEDOR = "VENDEDOR", "Vendedor"
+    SUPERVISOR = "SUPERVISOR", "Supervisor"
 
 
 class AlmacenChoices(models.TextChoices):
@@ -95,7 +96,6 @@ class ProductoInfo(models.Model):
 
 
 class METODO_PAGO(models.TextChoices):
-    FIJO = "FIJO", "Fijo"
     EFECTIVO = (
         "EFECTIVO",
         "Efectivo",
@@ -241,3 +241,54 @@ class Gastos(models.Model):
     dia_mes = models.IntegerField(null=True, blank=True)
     # semanales
     dia_semana = models.IntegerField(null=True, blank=True)
+
+
+class BancoChoices(models.TextChoices):
+    BPA = "BPA", "BPA"
+    BANDEC = "BANDEC", "Bandec"
+
+
+class Tarjetas(models.Model):
+    nombre = models.CharField(max_length=50, blank=False, null=False)
+    banco = models.CharField(
+        max_length=50, choices=BancoChoices.choices, blank=False, null=False
+    )
+
+
+class BalanceTarjetas(models.Model):
+    tarjeta = models.OneToOneField(
+        Tarjetas,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+        related_name="balance",
+    )
+    valor = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=False, null=False
+    )
+
+
+class TipoTranferenciaChoices(models.TextChoices):
+    INGRESO = "INGRESO", "Ingreso"
+    EGRESO = "EGRESO", "Egreso"
+
+
+class TransferenciasTarjetas(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    cantidad = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=False, null=False
+    )
+    descripcion = models.CharField(max_length=50, blank=False, null=False)
+    tarjeta = models.ForeignKey(
+        Tarjetas, on_delete=models.CASCADE, null=False, blank=False
+    )
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    tipo = models.CharField(
+        max_length=30,
+        choices=TipoTranferenciaChoices.choices,
+        blank=False,
+        null=False,
+    )
+    venta = models.OneToOneField(
+        Ventas, on_delete=models.CASCADE, null=True, blank=True
+    )

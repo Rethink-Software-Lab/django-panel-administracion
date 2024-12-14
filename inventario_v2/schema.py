@@ -228,6 +228,7 @@ class AddVentaSchema(Schema):
     zapatos_id: Optional[List[int]] = None
     efectivo: Optional[condecimal(gt=0)] = None
     transferencia: Optional[condecimal(gt=0)] = None
+    tarjeta: Optional[int] = None
 
     @validator("efectivo", "transferencia", pre=True, always=True)
     def check_mixto(cls, v, values, **kwargs):
@@ -241,6 +242,16 @@ class AddVentaSchema(Schema):
                 raise ValueError(
                     "efectivo y transferencia deben ser None si metodoPago no es MIXTO"
                 )
+        return v
+
+    @validator("tarjetas", pre=True, always=True, check_fields=False)
+    def check_tarjeta(cls, v, values, **kwargs):
+        if (
+            values.get("metodoPago") == "MIXTO"
+            or values.get("metodoPago") == METODO_PAGO.TRANSFERENCIA
+        ):
+            if v is None:
+                raise ValueError("Debe seleccionar una tarjeta")
         return v
 
 
@@ -291,13 +302,6 @@ class InventarioAreaVentaSchema(Schema):
     productos: List[OtrosProductos]
     zapatos: List[Zapatos]
     categorias: List[CategoriasSchema]
-
-
-class OneAreaVentaSchema(Schema):
-    inventario: InventarioAreaVentaSchema
-    ventas: List[VentasSchema]
-    area_venta: str
-    all_productos: List[ProductoInfoSchema]
 
 
 class Almacenes(Schema):
@@ -483,3 +487,61 @@ class GastosModifySchema(Schema):
     frecuencia: Optional[FrecuenciaChoices] = None
     dia_semana: Optional[Annotated[int, Field(strict=True, ge=0, le=6)]] = None
     dia_mes: Optional[Annotated[int, Field(strict=True, ge=1, le=31)]] = None
+
+
+class BalanceTarjetasSchema(ModelSchema):
+    class Meta:
+        model = BalanceTarjetas
+        fields = "__all__"
+
+
+class TarjetasWithTotalMESyDIASchema(Schema):
+    id: int
+    balance: BalanceTarjetasSchema
+    total_transferencias_mes: Decimal
+    total_transferencias_dia: Decimal
+    nombre: str
+    banco: str
+
+
+class TarjetasSchema(ModelSchema):
+    balance: BalanceTarjetasSchema
+
+    class Meta:
+        model = Tarjetas
+        fields = "__all__"
+
+
+class TarjetasModifySchema(Schema):
+    nombre: str
+    banco: BancoChoices
+    saldo_inicial: str
+
+
+class TransferenciasTarjetasSchema(ModelSchema):
+    tarjeta: TarjetasSchema
+    usuario: UsuariosSchema
+
+    class Meta:
+        model = TransferenciasTarjetas
+        fields = "__all__"
+
+
+class TransferenciasTarjetasModify(Schema):
+    tarjeta: int
+    cantidad: str
+    descripcion: str
+    tipo: str
+
+
+class TarjetasEndpoint(Schema):
+    tarjetas: List[TarjetasWithTotalMESyDIASchema]
+    transferencias: List[TransferenciasTarjetasSchema]
+
+
+class OneAreaVentaSchema(Schema):
+    inventario: InventarioAreaVentaSchema
+    ventas: List[VentasSchema]
+    area_venta: str
+    all_productos: List[ProductoInfoSchema]
+    tarjetas: List[TarjetasWithTotalMESyDIASchema]
