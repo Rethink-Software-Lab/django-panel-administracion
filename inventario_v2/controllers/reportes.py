@@ -29,6 +29,7 @@ class ReportesController:
         area: str = "general",
         desde: datetime = datetime.today(),
         hasta: datetime = datetime.today(),
+        categoria: str = "todas",
     ):
         parse_desde = desde.date()
         parse_hasta = hasta.date()
@@ -261,9 +262,12 @@ class ReportesController:
                     .values(
                         "id",
                         "descripcion",
+                        "codigo",
                         "cantidad",
                     )
                 )
+                if categoria != "todas":
+                    producto_info = producto_info.filter(categoria__id=categoria)
 
             elif area == "almacen-principal":
                 area_venta = "Almacén Principal"
@@ -279,9 +283,12 @@ class ReportesController:
                     .values(
                         "id",
                         "descripcion",
+                        "codigo",
                         "cantidad",
                     )
                 )
+                if categoria != "todas":
+                    producto_info = producto_info.filter(categoria__id=categoria)
 
             elif area == "almacen-revoltosa":
                 area_venta = "Almacén Revoltosa"
@@ -297,9 +304,12 @@ class ReportesController:
                     .values(
                         "id",
                         "descripcion",
+                        "codigo",
                         "cantidad",
                     )
                 )
+                if categoria != "todas":
+                    producto_info = producto_info.filter(categoria__id=categoria)
 
             elif area == "almacen-cafeteria":
                 area_venta = "Almacén Cafetería"
@@ -316,9 +326,12 @@ class ReportesController:
                     .values(
                         "id",
                         "descripcion",
+                        "codigo",
                         "cantidad",
                     )
                 )
+                if categoria != "todas":
+                    producto_info = producto_info.filter(categoria__id=categoria)
 
             else:
                 area_venta = get_object_or_404(AreaVenta, pk=area).nombre
@@ -334,8 +347,11 @@ class ReportesController:
                     .values(
                         "id",
                         "descripcion",
+                        "codigo",
                         "cantidad",
                     )
                 )
+                if categoria != "todas":
+                    producto_info = producto_info.filter(categoria__id=categoria)
 
             return {"productos": producto_info, "area": area_venta}

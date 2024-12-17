@@ -272,8 +272,15 @@ class ProductoInfoModifySchema(Schema):
     importe: Optional[condecimal(gt=0)] = None
 
 
+class ProductoInfoParaReporte(Schema):
+    id: int
+    descripcion: str
+    codigo: str
+    cantidad: int
+
+
 class ReportesSchema(Schema):
-    productos: List[ProductoInfoModifySchema]
+    productos: List[ProductoInfoParaReporte]
     area: str
     total: Optional[condecimal()] = None
     pago_trabajador: Optional[conint(ge=0)] = None
@@ -401,6 +408,7 @@ class GraficasSchema(Schema):
     ventasHoy: Decimal
     ventasSemana: Decimal
     ventasMes: Decimal
+    total_zapatos: int
 
 
 class ProductosDentroDeTransferencia(Schema):

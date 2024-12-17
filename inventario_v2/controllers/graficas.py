@@ -48,6 +48,7 @@ class GraficasController:
             "ventasHoy": 0,
             "ventasSemana": 0,
             "ventasMes": 0,
+            "total_zapatos": 0,
         }
 
         # Ventas por área
@@ -428,5 +429,13 @@ class GraficasController:
 
             products.sort(key=lambda producto: producto["cantidad"], reverse=True)
         respuestas["masVendidos"] = products[0:5]
+
+        # Total Zapatos
+        total_zapatos = Producto.objects.filter(
+            info__categoria__nombre="Zapatos",
+            venta__isnull=True,
+            ajusteinventario__isnull=True,
+        ).count()
+        respuestas["total_zapatos"] = total_zapatos
 
         return respuestas
