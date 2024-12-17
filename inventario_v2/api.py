@@ -25,6 +25,7 @@ from .controllers.transferencias import TransferenciasController
 from .controllers.ajuste_inventario import AjusteInventarioController
 from .controllers.gastos import GastosController
 from .controllers.salidas_cafeteria import SalidasCafeteriaController
+from .controllers.tarjetas import TarjetasController
 
 
 class AuthBearer(HttpBearer):
@@ -152,4 +153,5 @@ app.register_controllers(
     AjusteInventarioController,
     GastosController,
     SalidasCafeteriaController,
+    TarjetasController,
 )

@@ -5,12 +5,17 @@ from inventario.models import (
     Ventas,
     AreaVenta,
     Categorias,
+    Tarjetas,
+    TipoTranferenciaChoices,
 )
 from ..schema import AreaVentaSchema, OneAreaVentaSchema, AreaVentaModifySchema
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
 from typing import List
-from django.db.models import Count, Q, F, Sum
+from django.db.models import Count, Q, F, Sum, Value
+from django.db.models.functions import Coalesce, Round
+from datetime import datetime
+from decimal import Decimal
 
 
 @api_controller("areas-ventas/", tags=["Áreas de ventas"], permissions=[])
@@ -85,6 +90,40 @@ class AreasVentasController:
             )
             .order_by("-created_at")
         )
+
+        tarjetas = (
+            Tarjetas.objects.select_related("balance")
+            .annotate(
+                total_transferencias_mes=Round(
+                    Coalesce(
+                        Sum(
+                            "transferenciastarjetas__cantidad",
+                            filter=Q(
+                                transferenciastarjetas__created_at__month=datetime.now().month,
+                                transferenciastarjetas__tipo=TipoTranferenciaChoices.EGRESO,
+                            ),
+                        ),
+                        Value(Decimal(0)),
+                    ),
+                    2,
+                ),
+                total_transferencias_dia=Round(
+                    Coalesce(
+                        Sum(
+                            "transferenciastarjetas__cantidad",
+                            filter=Q(
+                                transferenciastarjetas__created_at=datetime.now(),
+                                transferenciastarjetas__tipo=TipoTranferenciaChoices.EGRESO,
+                            ),
+                        ),
+                        Value(Decimal(0)),
+                    ),
+                    2,
+                ),
+            )
+            .all()
+            .order_by("-id")
+        )
         return {
             "inventario": {
                 "productos": producto_info,
@@ -94,6 +133,7 @@ class AreasVentasController:
             "ventas": ventas,
             "area_venta": area_venta.nombre,
             "all_productos": all_productos,
+            "tarjetas": tarjetas,
         }
 
     @route.post("", response=None)

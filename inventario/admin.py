@@ -9,6 +9,9 @@ admin.site.register(SalidaAlmacen)
 admin.site.register(AreaVenta)
 admin.site.register(Ventas)
 admin.site.register(Categorias)
+admin.site.register(Tarjetas)
+admin.site.register(BalanceTarjetas)
+admin.site.register(TransferenciasTarjetas)
 
 
 @admin.register(ProductoInfo)

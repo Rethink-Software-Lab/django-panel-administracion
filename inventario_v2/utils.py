@@ -1,6 +1,14 @@
 import calendar
 from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Counter
+
+from inventario.models import Tarjetas, TipoTranferenciaChoices
+from django.db.models import Sum, Value, Q
+from django.db.models.functions import Coalesce, Round
+from django.http import Http404
+from django.core.exceptions import ValidationError
+from django.db.models import QuerySet
 
 
 days_names = {
@@ -68,3 +76,54 @@ def obtener_dias_semana_rango(desde, hasta):
         dias_semana[desde.weekday()] += 1
         desde += timedelta(days=1)
     return dias_semana
+
+
+MAX_TRANSF_MES = 120000
+MAX_TRANSF_DIA = 80000
+
+
+def validate_transferencia(id_tarjeta: int) -> Tarjetas | ValidationError | Http404:
+    qs_tarjeta = Tarjetas.objects.annotate(
+        total_transferencias_mes=Round(
+            Coalesce(
+                Sum(
+                    "transferenciastarjetas__cantidad",
+                    filter=Q(
+                        transferenciastarjetas__created_at__month=datetime.now().month,
+                        transferenciastarjetas__tipo=TipoTranferenciaChoices.EGRESO,
+                    ),
+                ),
+                Value(Decimal(0)),
+            ),
+            2,
+        ),
+        total_transferencias_dia=Round(
+            Coalesce(
+                Sum(
+                    "transferenciastarjetas__cantidad",
+                    filter=Q(
+                        transferenciastarjetas__created_at=datetime.now(),
+                        transferenciastarjetas__tipo=TipoTranferenciaChoices.EGRESO,
+                    ),
+                ),
+                Value(Decimal(0)),
+            ),
+            2,
+        ),
+    ).filter(pk=id_tarjeta)
+
+    tarjeta = qs_tarjeta.first()
+
+    if not tarjeta:
+        raise Http404("Tarjeta no encontrada")
+
+    total_transferencias_mes = getattr(tarjeta, "total_transferencias_mes", Decimal(0))
+    total_transferencias_dia = getattr(tarjeta, "total_transferencias_dia", Decimal(0))
+
+    if total_transferencias_mes >= MAX_TRANSF_MES:
+        raise ValidationError("Ha superado el límite de transferencias mensuales")
+
+    if total_transferencias_dia >= MAX_TRANSF_DIA:
+        raise ValidationError("Ha superado el límite de transferencias diarias")
+
+    return tarjeta

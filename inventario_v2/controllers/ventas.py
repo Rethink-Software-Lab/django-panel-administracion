@@ -5,6 +5,11 @@ from inventario.models import (
     User,
     AreaVenta,
     Producto,
+    TransferenciasTarjetas,
+    TipoTranferenciaChoices,
+    METODO_PAGO,
+    Tarjetas,
+    BalanceTarjetas,
 )
 from ..schema import (
     AddVentaSchema,
@@ -66,6 +71,9 @@ class VentasController:
         efectivo = dataDict["efectivo"] if metodo_pago == "MIXTO" else None
         transferencia = dataDict["transferencia"] if metodo_pago == "MIXTO" else None
 
+        if metodo_pago == METODO_PAGO.MIXTO or metodo_pago == METODO_PAGO.TRANSFERENCIA:
+            tarjeta = get_object_or_404(Tarjetas, pk=dataDict["tarjeta"])
+
         if (
             efectivo
             and transferencia
@@ -113,9 +121,39 @@ class VentasController:
                     )
                     productos.update(venta=venta)
 
+                    if (
+                        metodo_pago == METODO_PAGO.MIXTO
+                        or metodo_pago == METODO_PAGO.TRANSFERENCIA
+                    ):
+                        if metodo_pago == METODO_PAGO.MIXTO:
+                            if transferencia is None:
+                                raise HttpError(400, "transferencia es requerida")
+                            cantidad = (
+                                ids_count * transferencia if transferencia else None
+                            )
+                            decripcion = f"[MIXTO] {ids_count}x {dataDict['producto_info']} - {area_venta.nombre}"
+                            sumar_al_balance = transferencia
+
+                        elif metodo_pago == METODO_PAGO.TRANSFERENCIA:
+                            cantidad = ids_count * producto_info.precio_venta
+                            decripcion = f"{ids_count}x {dataDict['producto_info']} - {area_venta.nombre}"
+                            sumar_al_balance = ids_count * producto_info.precio_venta
+
+                        TransferenciasTarjetas.objects.create(
+                            tarjeta=tarjeta,
+                            cantidad=cantidad,
+                            descripcion=decripcion,
+                            tipo=TipoTranferenciaChoices.INGRESO,
+                            usuario=usuario_search,
+                            venta=venta,
+                        )
+                        balance = BalanceTarjetas.objects.get(tarjeta=tarjeta)
+                        balance.valor = balance.valor + sumar_al_balance
+                        balance.save()
+
                     return {"success": True}
-            except:
-                raise HttpError(500, "Algo salió mal al agregar la salida.")
+            except Exception as e:
+                raise HttpError(500, f"Algo salió mal al agregar la venta. {e}")
 
         elif dataDict["cantidad"] and dataDict["cantidad"] > 0:
 
@@ -128,6 +166,24 @@ class VentasController:
                     efectivo=efectivo,
                     transferencia=transferencia,
                 )
+
+                if (
+                    metodo_pago == METODO_PAGO.MIXTO
+                    or metodo_pago == METODO_PAGO.TRANSFERENCIA
+                ):
+                    TransferenciasTarjetas.objects.create(
+                        tarjeta=tarjeta,
+                        cantidad=dataDict["cantidad"] * producto_info.precio_venta,
+                        descripcion=f"{dataDict["cantidad"]}x {dataDict["producto_info"]} - {area_venta.nombre}",
+                        tipo=TipoTranferenciaChoices.INGRESO,
+                        usuario=usuario_search,
+                        venta=venta,
+                    )
+                    balance = BalanceTarjetas.objects.get(tarjeta=tarjeta)
+                    balance.valor = balance.valor + (
+                        dataDict["cantidad"] * producto_info.precio_venta
+                    )
+                    balance.save()
 
                 productos = Producto.objects.filter(
                     area_venta=area_venta,
@@ -158,7 +214,14 @@ class VentasController:
         if venta.area_venta != user.area_venta and not user.is_staff:
             raise HttpError(401, "Unauthorized")
         try:
-            venta.delete()
+            with transaction.atomic():
+                transferencia = get_object_or_404(TransferenciasTarjetas, venta=venta)
+                balance = BalanceTarjetas.objects.get(tarjeta=transferencia.tarjeta)
+
+                balance.valor = balance.valor - transferencia.cantidad
+                balance.save()
+
+                venta.delete()
             return {"success": True}
         except:
             raise HttpError(500, "Error inesperado.")
