@@ -277,6 +277,8 @@ class ProductoInfoParaReporte(Schema):
     descripcion: str
     codigo: Optional[str] = None
     cantidad: int
+    precio_venta: Optional[condecimal(gt=0)] = None
+    importe: Optional[condecimal(gt=0)] = None
 
 
 class ReportesSchema(Schema):
