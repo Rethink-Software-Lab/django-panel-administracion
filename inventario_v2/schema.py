@@ -77,8 +77,8 @@ class EntradaAlmacenSchema(Schema):
     metodo_pago: str
     proveedor: str
     comprador: str
-    usuario__username: str
-    producto__info__descripcion: str | None
+    usuario__username: Optional[str] = None
+    producto__info__descripcion: Optional[str] = None
     created_at: datetime.datetime
     cantidad: int
 
@@ -148,9 +148,9 @@ class AreaVentaModifySchema(ModelSchema):
 
 class Salidas(Schema):
     id: int
-    area_venta__nombre: str | None
-    usuario__username: str
-    producto__info__descripcion: str | None
+    area_venta__nombre: Optional[str] = None
+    usuario__username: Optional[str] = None
+    producto__info__descripcion: Optional[str] = None
     created_at: datetime.datetime
     cantidad: int
 
