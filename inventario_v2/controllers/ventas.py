@@ -215,11 +215,14 @@ class VentasController:
             raise HttpError(401, "Unauthorized")
         try:
             with transaction.atomic():
-                transferencia = get_object_or_404(TransferenciasTarjetas, venta=venta)
-                balance = BalanceTarjetas.objects.get(tarjeta=transferencia.tarjeta)
+                if venta.metodo_pago != METODO_PAGO.EFECTIVO:
+                    transferencia = get_object_or_404(
+                        TransferenciasTarjetas, venta=venta
+                    )
+                    balance = BalanceTarjetas.objects.get(tarjeta=transferencia.tarjeta)
 
-                balance.valor = balance.valor - transferencia.cantidad
-                balance.save()
+                    balance.valor = balance.valor - transferencia.cantidad
+                    balance.save()
 
                 venta.delete()
             return {"success": True}

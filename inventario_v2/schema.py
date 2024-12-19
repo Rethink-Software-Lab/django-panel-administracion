@@ -419,9 +419,9 @@ class ProductosDentroDeTransferencia(Schema):
 
 
 class TransferenciaSchema(ModelSchema):
-    usuario: UsuariosSchema
-    de: AreaVentaSchema
-    para: AreaVentaSchema
+    usuario: Optional[UsuariosSchema] = None
+    de: Optional[AreaVentaSchema] = None
+    para: Optional[AreaVentaSchema] = None
     productos: List[ProductosDentroDeTransferencia]
 
     class Meta:
@@ -448,7 +448,7 @@ class TransferenciasModifySchema(Schema):
 
 
 class AjusteSchema(ModelSchema):
-    usuario: UsuariosSchema
+    usuario: Optional[UsuariosSchema] = None
     productos: List[ProductosDentroDeTransferencia]
 
     class Meta:
@@ -475,8 +475,8 @@ class AjustesModifySchema(Schema):
 
 
 class GastosSchema(ModelSchema):
-    usuario: UsuariosSchema
-    area_venta: AreaVentaSchema
+    usuario: Optional[UsuariosSchema] = None
+    area_venta: Optional[AreaVentaSchema] = None
 
     class Meta:
         model = Gastos
