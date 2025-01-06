@@ -163,26 +163,6 @@ class Producto(models.Model):
     venta = models.ForeignKey(Ventas, on_delete=models.SET_NULL, null=True)
     area_venta = models.ForeignKey(AreaVenta, on_delete=models.SET_NULL, null=True)
     almacen_revoltosa = models.BooleanField(default=False)
-    almacen_cafeteria = models.BooleanField(default=False)
-
-
-class SalidaAlmacenCafeteria(models.Model):
-    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    info_producto = models.ForeignKey(ProductoInfo, on_delete=models.CASCADE)
-    cantidad = models.IntegerField(null=False, blank=False)
-
-
-class EntradaAlmacenCafeteria(models.Model):
-    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    info_producto = models.ForeignKey(ProductoInfo, on_delete=models.CASCADE)
-    metodo_pago = models.CharField(
-        max_length=30, choices=METODO_PAGO.choices, blank=False, null=False
-    )
-    cantidad = models.IntegerField(null=False, blank=False)
-    proveedor = models.CharField(max_length=30, blank=False, null=False)
-    comprador = models.CharField(max_length=30, blank=False, null=False)
 
 
 class Transferencia(models.Model):
@@ -228,7 +208,8 @@ class Gastos(models.Model):
     tipo = models.CharField(
         max_length=30, choices=GastosChoices.choices, blank=False, null=False
     )
-    area_venta = models.ForeignKey(AreaVenta, on_delete=models.CASCADE, null=False)
+    area_venta = models.ForeignKey(AreaVenta, on_delete=models.CASCADE, null=True)
+    is_cafeteria = models.BooleanField(default=False)
     descripcion = models.CharField(max_length=100, blank=False, null=False)
     cantidad = models.IntegerField(null=False, blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -268,6 +249,107 @@ class BalanceTarjetas(models.Model):
     )
 
 
+# CAFERTERIA
+class Productos_Cafeteria(models.Model):
+    nombre = models.CharField(max_length=50, blank=False, null=False)
+    precio_costo = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=False, null=False
+    )
+    precio_venta = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=False, null=False
+    )
+
+
+class Inventario_Producto_Cafeteria(models.Model):
+    producto = models.OneToOneField(
+        Productos_Cafeteria,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+        related_name="inventario",
+    )
+    cantidad = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=False, null=False
+    )
+
+
+class Ingrediente_Cantidad(models.Model):
+    ingrediente = models.ForeignKey(
+        Productos_Cafeteria, on_delete=models.CASCADE, null=False, blank=False
+    )
+    cantidad = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=False, null=False
+    )
+
+
+class Elaboraciones(models.Model):
+    nombre = models.CharField(max_length=50, blank=False, null=False)
+    ingredientes_cantidad = models.ManyToManyField(Ingrediente_Cantidad, blank=False)
+    precio = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=False, null=False
+    )
+    mano_obra = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=False, null=False
+    )
+
+
+class Productos_Entradas_Cafeteria(models.Model):
+    producto = models.ForeignKey(
+        Productos_Cafeteria,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+    )
+    cantidad = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=False, null=False
+    )
+
+
+class Entradas_Cafeteria(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    productos = models.ManyToManyField(Productos_Entradas_Cafeteria, blank=False)
+    metodo_pago = models.CharField(
+        max_length=30, choices=METODO_PAGO.choices, blank=False, null=False
+    )
+    proveedor = models.CharField(max_length=30, blank=False, null=False)
+    comprador = models.CharField(max_length=30, blank=False, null=False)
+
+
+class Productos_Ventas_Cafeteria(models.Model):
+    # Cantidad de cada producto de una venta de la cafeteria
+    producto = models.ForeignKey(
+        Productos_Cafeteria,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+    )
+    cantidad = models.DecimalField(max_digits=7, decimal_places=2, null=True)
+
+
+class Elaboraciones_Ventas_Cafeteria(models.Model):
+    # Cantidad de cada elaboraciones de una venta de la cafeteria
+    producto = models.ForeignKey(
+        Elaboraciones,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+    )
+    cantidad = models.IntegerField(null=False, blank=False)
+
+
+class Ventas_Cafeteria(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    productos = models.ManyToManyField(Productos_Ventas_Cafeteria, blank=False)
+    elaboraciones = models.ManyToManyField(Elaboraciones_Ventas_Cafeteria, blank=False)
+    metodo_pago = models.CharField(
+        max_length=30, choices=METODO_PAGO.choices, blank=False, null=False
+    )
+    efectivo = models.DecimalField(max_digits=7, decimal_places=2, null=True)
+    transferencia = models.DecimalField(max_digits=7, decimal_places=2, null=True)
+
+
 class TipoTranferenciaChoices(models.TextChoices):
     INGRESO = "INGRESO", "Ingreso"
     EGRESO = "EGRESO", "Egreso"
@@ -291,4 +373,7 @@ class TransferenciasTarjetas(models.Model):
     )
     venta = models.OneToOneField(
         Ventas, on_delete=models.CASCADE, null=True, blank=True
+    )
+    venta_cafeteria = models.OneToOneField(
+        Ventas_Cafeteria, on_delete=models.CASCADE, null=True, blank=True
     )
