@@ -1,4 +1,5 @@
 import datetime
+from django.forms import DecimalField
 from ninja import ModelSchema, Schema
 from inventario.models import *
 from typing import List, Optional, Literal, Any
@@ -108,7 +109,7 @@ class EntradaAlmacenCafeteriaSchema(ModelSchema):
     usuario: UsuariosSchema
 
     class Meta:
-        model = EntradaAlmacenCafeteria
+        model = Entradas_Cafeteria
         fields = "__all__"
 
 
@@ -176,20 +177,6 @@ class SalidaAlmacenRevoltosaSchema(Schema):
 class ProductoInfoSalidaAlmacenRevoltosaSchema(Schema):
     salidas: List[SalidaAlmacenRevoltosaSchema]
     productos: List[ProductoCodigoSchema]
-
-
-class SalidaAlmacenCafeteriaSchema(ModelSchema):
-    usuario: UsuariosSchema
-    info_producto: ProductoInfoSchema
-
-    class Meta:
-        model = SalidaAlmacenCafeteria
-        fields = "__all__"
-
-
-class SalidaAlmacenCafeteriaSchemaEndpoint(Schema):
-    salidas: List[SalidaAlmacenCafeteriaSchema]
-    productos: List[ProductoParaEntradaAlmacenCafeteriaSchema]
 
 
 class AddSalidaSchema(Schema):
@@ -276,7 +263,7 @@ class ProductoInfoParaReporte(Schema):
     id: int
     descripcion: str
     codigo: Optional[str] = None
-    cantidad: int
+    cantidad: Decimal
     precio_venta: Optional[condecimal(gt=0)] = None
     importe: Optional[condecimal(gt=0)] = None
 
@@ -492,7 +479,7 @@ class AllGastosSchema(Schema):
 class GastosModifySchema(Schema):
     descripcion: str
     tipo: GastosChoices
-    area_venta: int
+    area_venta: int | Literal["cafeteria"]
     cantidad: Annotated[int, Field(strict=True, gt=0)]
     frecuencia: Optional[FrecuenciaChoices] = None
     dia_semana: Optional[Annotated[int, Field(strict=True, ge=0, le=6)]] = None
@@ -508,6 +495,14 @@ class BalanceTarjetasSchema(ModelSchema):
 class TarjetasWithTotalMESyDIASchema(Schema):
     id: int
     balance: BalanceTarjetasSchema
+    total_transferencias_mes: Decimal
+    total_transferencias_dia: Decimal
+    nombre: str
+    banco: str
+
+
+class TarjetasForVentas(Schema):
+    id: int
     total_transferencias_mes: Decimal
     total_transferencias_dia: Decimal
     nombre: str
@@ -554,4 +549,193 @@ class OneAreaVentaSchema(Schema):
     ventas: List[VentasSchema]
     area_venta: str
     all_productos: List[ProductoInfoSchema]
-    tarjetas: List[TarjetasWithTotalMESyDIASchema]
+    tarjetas: List[TarjetasForVentas]
+
+
+class Inventario_Producto_Cafeteria_Schema(ModelSchema):
+    class Meta:
+        model = Inventario_Producto_Cafeteria
+        fields = "id", "cantidad"
+
+
+class Producto_Cafeteria_Schema(ModelSchema):
+    inventario: Inventario_Producto_Cafeteria_Schema
+
+    class Meta:
+        model = Productos_Cafeteria
+        fields = "__all__"
+
+
+class User_Only_Username(Schema):
+    username: str
+
+
+class Producto_Entrada(Schema):
+    id: int
+    nombre: str
+
+
+class Productos_Inside_Entradas(Schema):
+    id: int
+    producto: Producto_Entrada
+    cantidad: Decimal
+
+
+class Entradas_CafeteriaSchema(ModelSchema):
+    usuario: Optional[User_Only_Username] = None
+    productos: List[Productos_Inside_Entradas]
+
+    class Meta:
+        model = Entradas_Cafeteria
+        fields = "__all__"
+
+
+class Productos_Entrada_Cafeteria(Schema):
+    id: int
+    nombre: str
+
+
+class Entradas_Almacen_Cafeteria_Schema(Schema):
+    entradas: List[Entradas_CafeteriaSchema]
+    productos: List[Productos_Entrada_Cafeteria]
+
+
+class Add_Entrada_Cafeteria_Productos(Schema):
+    producto: int
+    cantidad: str
+
+
+class Add_Entrada_Cafeteria(Schema):
+    proveedor: str
+    comprador: str
+    metodo_pago: METODO_PAGO
+    productos: List[Add_Entrada_Cafeteria_Productos]
+
+
+class Producto_Cafeteria_Endpoint_Schema(Schema):
+    id: int
+    nombre: str
+    precio_costo: Annotated[Decimal, Field(strict=True, gt=0)]
+    precio_venta: Annotated[Decimal, Field(strict=True, gt=0)]
+
+
+class Add_Producto_Cafeteria(Schema):
+    nombre: str
+    precio_costo: str
+    precio_venta: str
+
+
+class Ingrediente_Cantidad_Schema(Schema):
+    ingrediente: Productos_Entrada_Cafeteria
+    cantidad: Decimal
+
+
+class ElaboracionesSchema(ModelSchema):
+    ingredientes_cantidad: List[Ingrediente_Cantidad_Schema]
+
+    class Meta:
+        model = Elaboraciones
+        fields = "__all__"
+
+
+class ElaboracionesEndpoint(Schema):
+    elaboraciones: List[ElaboracionesSchema]
+    productos: List[Productos_Entrada_Cafeteria]
+
+
+class IngredienteSchema(Schema):
+    producto: int
+    cantidad: str
+
+
+class Add_Elaboracion(Schema):
+    nombre: str
+    precio: str
+    mano_obra: str
+    ingredientes: List[IngredienteSchema]
+
+
+class Productos_Ventas_Cafeteria(Schema):
+    producto: Productos_Entrada_Cafeteria
+    cantidad: Decimal
+
+
+class Elaboraciones_Ventas_Cafeteria(Schema):
+    producto: Productos_Entrada_Cafeteria
+    cantidad: Decimal
+
+
+class Ventas_Cafeteria_Schema(ModelSchema):
+    usuario: Optional[User_Only_Username] = None
+    productos: List[Productos_Ventas_Cafeteria]
+    elaboraciones: List[Elaboraciones_Ventas_Cafeteria]
+    importe: Decimal
+    tarjeta: Optional[str] = None
+
+    class Meta:
+        model = Ventas_Cafeteria
+        fields = "__all__"
+
+
+class Productos_Elaboraciones_Schema(Schema):
+    id: int
+    nombre: str
+    isElaboracion: bool
+
+
+class TarjetasVentasCafeteriaSchema(Schema):
+    id: int
+    nombre: str
+    banco: str
+    isAvailable: bool
+
+
+class Ventas_Cafeteria_Endpoint(Schema):
+    ventas: List[Ventas_Cafeteria_Schema]
+    productos_elaboraciones: List[Productos_Elaboraciones_Schema]
+    tarjetas: List[TarjetasVentasCafeteriaSchema]
+
+
+class Prod_Add_Venta(Schema):
+    producto: int
+    cantidad: str
+    isElaboracion: bool
+
+
+class Add_Venta_Cafeteria(Schema):
+    metodo_pago: METODO_PAGO
+    transferencia: Optional[str] = None
+    efectivo: Optional[str] = None
+    tarjeta: Optional[int] = None
+    productos: List[Prod_Add_Venta]
+
+
+class Productos_Reportes_Cafeteria(ModelSchema):
+    cantidad: Decimal
+    importe: Decimal
+
+    class Meta:
+        model = Productos_Cafeteria
+        fields = "__all__"
+
+
+class Elaboraciones_Reportes_Cafeteria(ModelSchema):
+    cantidad: Decimal
+    importe: Decimal
+
+    class Meta:
+        model = Elaboraciones
+        fields = "__all__"
+
+
+class CafeteriaReporteSchema(Schema):
+    productos: List[Productos_Reportes_Cafeteria]
+    elaboraciones: List[Elaboraciones_Reportes_Cafeteria]
+    total: Decimal
+    costo_producto: Decimal
+    subtotal: Decimal
+    efectivo: Decimal
+    transferencia: Decimal
+    mano_obra: Decimal
+    gastos_variables: Decimal
+    gastos_fijos: Decimal

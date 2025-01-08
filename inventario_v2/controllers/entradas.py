@@ -2,7 +2,7 @@ from ninja.errors import HttpError
 from inventario.models import (
     ProductoInfo,
     EntradaAlmacen,
-    EntradaAlmacenCafeteria,
+    Entradas_Cafeteria,
     Producto,
     SalidaAlmacen,
     SalidaAlmacenRevoltosa,
@@ -49,7 +49,7 @@ class EntradasController:
 
     @route.get("cafeteria/", response=EntradaAlmacenCafeteriaEndpoint)
     def get_entradas_cafeteria(self):
-        entradas = EntradaAlmacenCafeteria.objects.all().order_by("-created_at")
+        entradas = Entradas_Cafeteria.objects.all().order_by("-created_at")
         categoria_cafeteria = Categorias.objects.filter(nombre="Cafetería").first()
         productos = (
             ProductoInfo.objects.filter(categoria=categoria_cafeteria)
@@ -134,7 +134,7 @@ class EntradasController:
         user = get_object_or_404(User, pk=request.auth["id"])
         try:
             with transaction.atomic():
-                EntradaAlmacenCafeteria.objects.create(
+                Entradas_Cafeteria.objects.create(
                     metodo_pago=dataDict["metodoPago"],
                     proveedor=dataDict["proveedor"],
                     usuario=user,
@@ -188,7 +188,7 @@ class EntradasController:
     def delete_entrada_cafeteria(self, id: int):
         try:
             with transaction.atomic():
-                entrada = get_object_or_404(EntradaAlmacenCafeteria, pk=id)
+                entrada = get_object_or_404(Entradas_Cafeteria, pk=id)
 
                 productos = Producto.objects.filter(
                     almacen_cafeteria=True,

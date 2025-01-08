@@ -9,6 +9,7 @@ from inventario.models import (
     Gastos,
     GastosChoices,
     FrecuenciaChoices,
+    Productos_Cafeteria,
 )
 from ..schema import ReportesSchema
 from ninja_extra import api_controller, route
@@ -269,6 +270,22 @@ class ReportesController:
                 if categoria != "todas":
                     producto_info = producto_info.filter(categoria__id=categoria)
 
+            elif area == "cafeteria":
+                area_venta = "Cafetería"
+                productos = Productos_Cafeteria.objects.filter(
+                    inventario__cantidad__gt=0
+                )
+                producto_info = []
+                for producto in productos:
+                    producto_info.append(
+                        {
+                            "id": producto.pk,
+                            "descripcion": producto.nombre,
+                            "codigo": None,
+                            "cantidad": producto.inventario.cantidad,
+                        }
+                    )
+
             elif area == "almacen-principal":
                 area_venta = "Almacén Principal"
                 producto_info = (
@@ -296,28 +313,6 @@ class ReportesController:
                     ProductoInfo.objects.filter(
                         producto__area_venta__isnull=True,
                         producto__almacen_revoltosa=True,
-                        producto__venta__isnull=True,
-                        producto__ajusteinventario__isnull=True,
-                    )
-                    .annotate(cantidad=Count(F("producto")))
-                    .exclude(cantidad__lt=1)
-                    .values(
-                        "id",
-                        "descripcion",
-                        "codigo",
-                        "cantidad",
-                    )
-                )
-                if categoria != "todas":
-                    producto_info = producto_info.filter(categoria__id=categoria)
-
-            elif area == "almacen-cafeteria":
-                area_venta = "Almacén Cafetería"
-                producto_info = (
-                    ProductoInfo.objects.filter(
-                        producto__area_venta__isnull=True,
-                        producto__almacen_revoltosa=False,
-                        producto__almacen_cafeteria=True,
                         producto__venta__isnull=True,
                         producto__ajusteinventario__isnull=True,
                     )

@@ -35,7 +35,8 @@ class GastosController:
         body_dict = body.model_dump()
 
         usuario = get_object_or_404(User, pk=request.auth["id"])
-        area_venta = get_object_or_404(AreaVenta, pk=body_dict["area_venta"])
+        if body_dict["area_venta"] != "cafeteria":
+            area_venta = get_object_or_404(AreaVenta, pk=body_dict["area_venta"])
         tipo = body_dict["tipo"]
         dia_mes = body_dict["dia_mes"]
         frecuencia = body_dict["frecuencia"]
@@ -44,16 +45,28 @@ class GastosController:
         dia_semana = body_dict["dia_semana"]
 
         try:
-            Gastos.objects.create(
-                usuario=usuario,
-                area_venta=area_venta,
-                tipo=tipo,
-                cantidad=cantidad,
-                descripcion=descripcion,
-                dia_mes=dia_mes,
-                frecuencia=frecuencia,
-                dia_semana=dia_semana,
-            )
+            if body_dict["area_venta"] == "cafeteria":
+                Gastos.objects.create(
+                    usuario=usuario,
+                    is_cafeteria=True,
+                    tipo=tipo,
+                    cantidad=cantidad,
+                    descripcion=descripcion,
+                    dia_mes=dia_mes,
+                    frecuencia=frecuencia,
+                    dia_semana=dia_semana,
+                )
+            else:
+                Gastos.objects.create(
+                    usuario=usuario,
+                    area_venta=area_venta,
+                    tipo=tipo,
+                    cantidad=cantidad,
+                    descripcion=descripcion,
+                    dia_mes=dia_mes,
+                    frecuencia=frecuencia,
+                    dia_semana=dia_semana,
+                )
             return
         except Exception as e:
             raise HttpError(500, f"Error inesperado: {str(e)}")
@@ -63,11 +76,15 @@ class GastosController:
         gasto = get_object_or_404(Gastos, pk=id)
         body_dict = body.model_dump()
 
-        area_venta = get_object_or_404(AreaVenta, pk=body_dict["area_venta"])
+        if body_dict["area_venta"] != "cafeteria":
+            area_venta = get_object_or_404(AreaVenta, pk=body_dict["area_venta"])
 
         gasto.tipo = body_dict["tipo"]
         gasto.descripcion = body_dict["descripcion"]
-        gasto.area_venta = area_venta
+        gasto.area_venta = (
+            area_venta if body_dict["area_venta"] != "cafeteria" else None
+        )
+        gasto.is_cafeteria = True if body_dict["area_venta"] == "cafeteria" else False
         gasto.cantidad = body_dict["cantidad"]
         gasto.frecuencia = body_dict["frecuencia"]
         gasto.dia_mes = body_dict["dia_mes"]
