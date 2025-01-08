@@ -14,7 +14,6 @@ from inventario.models import (
     TransferenciasTarjetas,
     TipoTranferenciaChoices,
     Elaboraciones,
-    ProductoInfo,
     Ingrediente_Cantidad,
     Productos_Cafeteria,
     Inventario_Producto_Cafeteria,
@@ -26,13 +25,8 @@ from inventario_v2.utils import (
     calcular_dias_laborables,
     obtener_dias_semana_rango,
     obtener_ultimo_dia_mes,
-    validate_transferencia,
 )
 from ..schema import (
-    TarjetasModifySchema,
-    TarjetasEndpoint,
-    TransferenciasTarjetasModify,
-    ElaboracionesSchema,
     ElaboracionesEndpoint,
     Add_Elaboracion,
     Producto_Cafeteria_Schema,
@@ -46,14 +40,13 @@ from ..schema import (
 )
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
-from ..custom_permissions import isAdmin, isSupervisor
 from django.db import transaction
 from decimal import Decimal
 from django.db.models import Q, Sum, Value, F, Case, When, BooleanField, IntegerField
 from django.db.models.functions import Coalesce, Round
 
 
-@api_controller("cafeteria/", tags=["Cafetería"], permissions=[isAdmin])
+@api_controller("cafeteria/", tags=["Cafetería"], permissions=[])
 class CafeteriaController:
     @route.get("inventario/", response=List[Producto_Cafeteria_Schema])
     def get_inventario_cafeteria(self):
