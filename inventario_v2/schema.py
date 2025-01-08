@@ -615,8 +615,8 @@ class Add_Entrada_Cafeteria(Schema):
 class Producto_Cafeteria_Endpoint_Schema(Schema):
     id: int
     nombre: str
-    precio_costo: Annotated[Decimal, Field(strict=True, gt=0)]
-    precio_venta: Annotated[Decimal, Field(strict=True, gt=0)]
+    precio_costo: Annotated[Decimal, Field(strict=True, ge=0)]
+    precio_venta: Annotated[Decimal, Field(strict=True, ge=0)]
 
 
 class Add_Producto_Cafeteria(Schema):
