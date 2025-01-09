@@ -16,7 +16,6 @@ class InventarioController:
                 producto__venta__isnull=True,
                 producto__area_venta__isnull=True,
                 producto__almacen_revoltosa=False,
-                producto__almacen_cafeteria=False,
                 producto__ajusteinventario__isnull=True,
             )
             .annotate(cantidad=Count(F("producto")))
@@ -35,7 +34,6 @@ class InventarioController:
             area_venta__isnull=True,
             info__categoria__nombre="Zapatos",
             almacen_revoltosa=False,
-            almacen_cafeteria=False,
             ajusteinventario__isnull=True,
         ).values(
             "id",
@@ -128,34 +126,5 @@ class InventarioController:
 
         return {
             "inventario": {"productos": producto_info, "zapatos": zapatos},
-            "categorias": categorias,
-        }
-
-    @route.get("almacen-cafeteria/", response=AlmacenCafeteria)
-    def get_inventario_almacen_cafeteria(self):
-        producto_info = (
-            ProductoInfo.objects.filter(
-                producto__venta__isnull=True,
-                producto__area_venta__isnull=True,
-                producto__almacen_revoltosa=False,
-                producto__ajusteinventario__isnull=True,
-                producto__almacen_cafeteria=True,
-            )
-            .annotate(cantidad=Count(F("producto")))
-            .exclude(cantidad__lt=1)
-            .values(
-                "id",
-                "descripcion",
-                "codigo",
-                "cantidad",
-                "categoria__nombre",
-                "precio_venta",
-            )
-        )
-
-        categorias = Categorias.objects.all()
-
-        return {
-            "productos": producto_info,
             "categorias": categorias,
         }
