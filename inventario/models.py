@@ -278,7 +278,7 @@ class Ingrediente_Cantidad(models.Model):
         Productos_Cafeteria, on_delete=models.CASCADE, null=False, blank=False
     )
     cantidad = models.DecimalField(
-        max_digits=12, decimal_places=2, blank=False, null=False
+        max_digits=12, decimal_places=3, blank=False, null=False
     )
 
 
