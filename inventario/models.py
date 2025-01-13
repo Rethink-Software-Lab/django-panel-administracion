@@ -38,6 +38,7 @@ class RolesChoices(models.TextChoices):
     ADMIN = "ADMIN", "Admin"
     ALMACENERO = "ALMACENERO", "Almacenero"
     VENDEDOR = "VENDEDOR", "Vendedor"
+    VENDEDOR_CAFETERIA = "VENDEDOR CAFETERÍA", "Vendedor Cafetería"
     SUPERVISOR = "SUPERVISOR", "Supervisor"
 
 
