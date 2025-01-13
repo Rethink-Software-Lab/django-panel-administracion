@@ -200,7 +200,7 @@ class AddSalidaCafeteriaSchema(Schema):
 class VentasSchema(Schema):
     id: int
     created_at: datetime.datetime
-    importe: condecimal() | None
+    importe: Decimal | None
     metodo_pago: str
     usuario__username: str | None
     producto__info__descripcion: str | None
@@ -552,14 +552,28 @@ class OneAreaVentaSchema(Schema):
     tarjetas: List[TarjetasForVentas]
 
 
-class Inventario_Producto_Cafeteria_Schema(ModelSchema):
+class Inventario_Almacen_Cafeteria_Schema(ModelSchema):
     class Meta:
-        model = Inventario_Producto_Cafeteria
+        model = Inventario_Almacen_Cafeteria
         fields = "id", "cantidad"
 
 
 class Producto_Cafeteria_Schema(ModelSchema):
-    inventario: Inventario_Producto_Cafeteria_Schema
+    inventario_almacen: Inventario_Almacen_Cafeteria_Schema
+
+    class Meta:
+        model = Productos_Cafeteria
+        fields = "__all__"
+
+
+class Inventario_Area_Cafeteria_Schema(ModelSchema):
+    class Meta:
+        model = Inventario_Area_Cafeteria
+        fields = "id", "cantidad"
+
+
+class Producto_Cafeteria_Area_Schema(ModelSchema):
+    inventario_area: Inventario_Almacen_Cafeteria_Schema
 
     class Meta:
         model = Productos_Cafeteria
@@ -568,6 +582,53 @@ class Producto_Cafeteria_Schema(ModelSchema):
 
 class User_Only_Username(Schema):
     username: str
+
+
+class Productos_Entrada_Cafeteria(Schema):
+    id: int
+    nombre: str
+
+
+class Productos_Ventas_Cafeteria(Schema):
+    producto: Productos_Entrada_Cafeteria
+    cantidad: Decimal
+
+
+class Elaboraciones_Ventas_Cafeteria(Schema):
+    producto: Productos_Entrada_Cafeteria
+    cantidad: Decimal
+
+
+class Ventas_Cafeteria_Schema(ModelSchema):
+    usuario: Optional[User_Only_Username] = None
+    productos: List[Productos_Ventas_Cafeteria]
+    elaboraciones: List[Elaboraciones_Ventas_Cafeteria]
+    importe: Decimal
+    tarjeta: Optional[str] = None
+
+    class Meta:
+        model = Ventas_Cafeteria
+        fields = "__all__"
+
+
+class TarjetasVentasCafeteriaSchema(Schema):
+    id: int
+    nombre: str
+    banco: str
+    isAvailable: bool
+
+
+class Productos_Elaboraciones_Schema(Schema):
+    id: int
+    nombre: str
+    isElaboracion: bool
+
+
+class EndPointCafeteria(Schema):
+    inventario: List[Producto_Cafeteria_Area_Schema]
+    ventas: List[Ventas_Cafeteria_Schema]
+    productos_elaboraciones: List[Productos_Elaboraciones_Schema]
+    tarjetas: List[TarjetasVentasCafeteriaSchema]
 
 
 class Producto_Entrada(Schema):
@@ -588,11 +649,6 @@ class Entradas_CafeteriaSchema(ModelSchema):
     class Meta:
         model = Entradas_Cafeteria
         fields = "__all__"
-
-
-class Productos_Entrada_Cafeteria(Schema):
-    id: int
-    nombre: str
 
 
 class Entradas_Almacen_Cafeteria_Schema(Schema):
@@ -655,41 +711,6 @@ class Add_Elaboracion(Schema):
     ingredientes: List[IngredienteSchema]
 
 
-class Productos_Ventas_Cafeteria(Schema):
-    producto: Productos_Entrada_Cafeteria
-    cantidad: Decimal
-
-
-class Elaboraciones_Ventas_Cafeteria(Schema):
-    producto: Productos_Entrada_Cafeteria
-    cantidad: Decimal
-
-
-class Ventas_Cafeteria_Schema(ModelSchema):
-    usuario: Optional[User_Only_Username] = None
-    productos: List[Productos_Ventas_Cafeteria]
-    elaboraciones: List[Elaboraciones_Ventas_Cafeteria]
-    importe: Decimal
-    tarjeta: Optional[str] = None
-
-    class Meta:
-        model = Ventas_Cafeteria
-        fields = "__all__"
-
-
-class Productos_Elaboraciones_Schema(Schema):
-    id: int
-    nombre: str
-    isElaboracion: bool
-
-
-class TarjetasVentasCafeteriaSchema(Schema):
-    id: int
-    nombre: str
-    banco: str
-    isAvailable: bool
-
-
 class Ventas_Cafeteria_Endpoint(Schema):
     ventas: List[Ventas_Cafeteria_Schema]
     productos_elaboraciones: List[Productos_Elaboraciones_Schema]
@@ -739,3 +760,31 @@ class CafeteriaReporteSchema(Schema):
     mano_obra: Decimal
     gastos_variables: Decimal
     gastos_fijos: Decimal
+
+
+class Producto_Salida_Schema(Schema):
+    producto: Producto_Entrada
+    cantidad: Decimal
+
+
+class Salidas_Almacen_Cafeteria_Schema(ModelSchema):
+    usuario: Optional[User_Only_Username] = None
+    productos: List[Producto_Salida_Schema]
+
+    class Meta:
+        model = Salidas_Cafeteria
+        fields = "__all__"
+
+
+class EndPointSalidasAlmacenCafeteria(Schema):
+    salidas: List[Salidas_Almacen_Cafeteria_Schema]
+    productos: List[Productos_Entrada_Cafeteria]
+
+
+class productosSalidas(Schema):
+    producto: int
+    cantidad: Decimal
+
+
+class Add_Salida_Cafeteria(Schema):
+    productos: List[productosSalidas]

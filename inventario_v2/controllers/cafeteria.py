@@ -7,6 +7,7 @@ from inventario.models import (
     FrecuenciaChoices,
     Gastos,
     GastosChoices,
+    Inventario_Area_Cafeteria,
     Productos_Ventas_Cafeteria,
     User,
     Tarjetas,
@@ -16,7 +17,7 @@ from inventario.models import (
     Elaboraciones,
     Ingrediente_Cantidad,
     Productos_Cafeteria,
-    Inventario_Producto_Cafeteria,
+    Inventario_Almacen_Cafeteria,
     Entradas_Cafeteria,
     Productos_Entradas_Cafeteria,
     Ventas_Cafeteria,
@@ -37,6 +38,7 @@ from ..schema import (
     Ventas_Cafeteria_Endpoint,
     Add_Venta_Cafeteria,
     CafeteriaReporteSchema,
+    EndPointCafeteria,
 )
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
@@ -48,32 +50,10 @@ from django.db.models.functions import Coalesce, Round
 
 @api_controller("cafeteria/", tags=["Cafetería"], permissions=[])
 class CafeteriaController:
-    @route.get("inventario/", response=List[Producto_Cafeteria_Schema])
+    @route.get("", response=EndPointCafeteria)
     def get_inventario_cafeteria(self):
 
-        productos = Productos_Cafeteria.objects.filter(inventario__cantidad__gt=0)
-
-        return productos
-
-    @route.get("productos/", response=List[Producto_Cafeteria_Endpoint_Schema])
-    def get_productos_cafeteria(self):
-
-        productos = Productos_Cafeteria.objects.all().order_by("-id")
-
-        return productos
-
-    @route.get("entradas/", response=Entradas_Almacen_Cafeteria_Schema)
-    def get_entradas_cafeteria(self):
-
-        entradas = Entradas_Cafeteria.objects.prefetch_related("productos").order_by(
-            "-created_at"
-        )
-        productos = Productos_Cafeteria.objects.all()
-
-        return {"entradas": entradas, "productos": productos}
-
-    @route.get("ventas/", response=Ventas_Cafeteria_Endpoint)
-    def get_ventas_cafeteria(self):
+        inventario = Productos_Cafeteria.objects.filter(inventario_area__cantidad__gt=0)
         ventas = (
             Ventas_Cafeteria.objects.all()
             .order_by("-id")
@@ -95,7 +75,6 @@ class CafeteriaController:
                 tarjeta=F("transferenciastarjetas__tarjeta__nombre"),
             )
         )
-
         productos = Productos_Cafeteria.objects.all()
         elaboraciones = Elaboraciones.objects.all()
         tarjetas = Tarjetas.objects.annotate(
@@ -179,10 +158,18 @@ class CafeteriaController:
             )
 
         return {
+            "inventario": inventario,
             "ventas": ventas,
-            "productos_elaboraciones": productos_elaboraciones,
             "tarjetas": tarjetas,
+            "productos_elaboraciones": productos_elaboraciones,
         }
+
+    @route.get("productos/", response=List[Producto_Cafeteria_Endpoint_Schema])
+    def get_productos_cafeteria(self):
+
+        productos = Productos_Cafeteria.objects.all().order_by("-id")
+
+        return productos
 
     @route.get("elaboraciones/", response=ElaboracionesEndpoint)
     def get_all_elaboraciones(self):
@@ -368,6 +355,8 @@ class CafeteriaController:
                     productos_sin_repeticion.index(producto)
                 ].importe += producto.importe
 
+        mano_obra = 0
+        costo_ingredientes_elaboraciones = 0
         for elaboracion in elaboraciones:
             if elaboracion not in elaboraciones_sin_repeticion:
                 elaboraciones_sin_repeticion.append(elaboracion)
@@ -379,6 +368,17 @@ class CafeteriaController:
                     elaboraciones_sin_repeticion.index(elaboracion)
                 ].importe += elaboracion.importe
 
+            mano_obra += elaboracion.mano_obra * elaboracion.cantidad
+
+            for ingrediente in elaboracion.ingredientes_cantidad.all():
+                costo_ingredientes_elaboraciones += (
+                    ingrediente.cantidad
+                    * ingrediente.ingrediente.precio_costo
+                    * elaboracion.cantidad
+                )
+
+        total_costo_producto = costo_producto + costo_ingredientes_elaboraciones
+
         subtotal_productos = (
             productos.aggregate(subtotal=Sum(F("importe")))["subtotal"] or 0
         )
@@ -387,23 +387,26 @@ class CafeteriaController:
         )
         subtotal = subtotal_productos + subtotal_elaboraciones
 
-        mano_obra = (
-            elaboraciones.aggregate(mano_obra=Sum(F("mano_obra")))["mano_obra"] or 0
-        )
-
         total_productos = (
             productos.aggregate(total=Sum(F("importe")) - costo_producto)["total"] or 0
         )
         total_elaboraciones = (
             elaboraciones.aggregate(total=Sum(F("importe")))["total"] or 0
         )
-        total = total_productos + total_elaboraciones - mano_obra
+        total = (
+            total_productos
+            + total_elaboraciones
+            - costo_ingredientes_elaboraciones
+            - mano_obra
+            - total_gastos_fijos
+            - gastos_variables
+        )
 
         return {
             "productos": productos_sin_repeticion,
             "elaboraciones": elaboraciones_sin_repeticion,
             "total": total,
-            "costo_producto": costo_producto,
+            "costo_producto": total_costo_producto,
             "subtotal": subtotal,
             "efectivo": efectivo,
             "transferencia": transferencia,
@@ -412,42 +415,13 @@ class CafeteriaController:
             "gastos_fijos": total_gastos_fijos,
         }
 
-    @route.post("entradas/")
-    def add_entrada_cafeteria(self, request, body: Add_Entrada_Cafeteria):
-        body_dict = body.model_dump()
-
-        usuario = get_object_or_404(User, pk=request.auth["id"])
-
-        with transaction.atomic():
-
-            entrada = Entradas_Cafeteria.objects.create(
-                metodo_pago=body_dict["metodo_pago"],
-                proveedor=body_dict["proveedor"],
-                usuario=usuario,
-                comprador=body_dict["comprador"],
-            )
-            for producto in body_dict["productos"]:
-                producto_cafeteria = get_object_or_404(
-                    Productos_Cafeteria, pk=producto.get("producto")
-                )
-                producto_cafeteria.inventario.cantidad += Decimal(
-                    producto.get("cantidad")
-                )
-                producto_cafeteria.inventario.save()
-                producto_entrada = Productos_Entradas_Cafeteria.objects.create(
-                    producto=producto_cafeteria,
-                    cantidad=producto.get("cantidad"),
-                )
-                entrada.productos.add(producto_entrada)
-
-        return
-
     @route.post("productos/")
     def add_productos_cafeteria(self, request, body: Add_Producto_Cafeteria):
         body_dict = body.model_dump()
 
         producto = Productos_Cafeteria.objects.create(**body_dict)
-        Inventario_Producto_Cafeteria.objects.create(producto=producto, cantidad=0)
+        Inventario_Almacen_Cafeteria.objects.create(producto=producto, cantidad=0)
+        Inventario_Area_Cafeteria.objects.create(producto=producto, cantidad=0)
         return
 
     @route.post("elaboraciones/")
@@ -495,8 +469,8 @@ class CafeteriaController:
                     elaboracion = get_object_or_404(Elaboraciones, id=prod_elb.producto)
                     for ingrediente in elaboracion.ingredientes_cantidad.all():
                         inventario = get_object_or_404(
-                            Inventario_Producto_Cafeteria,
-                            id=ingrediente.ingrediente.pk,
+                            Inventario_Area_Cafeteria,
+                            producto__id=ingrediente.ingrediente.pk,
                         )
 
                         if inventario.cantidad < ingrediente.cantidad * Decimal(
@@ -527,7 +501,7 @@ class CafeteriaController:
                         Productos_Cafeteria, id=prod_elb.producto
                     )
                     inventario = get_object_or_404(
-                        Inventario_Producto_Cafeteria, id=producto.pk
+                        Inventario_Area_Cafeteria, id=producto.pk
                     )
                     if inventario.cantidad < Decimal(prod_elb.cantidad):
                         raise HttpError(
@@ -662,21 +636,6 @@ class CafeteriaController:
         elaboracion.delete()
         return
 
-    @route.delete("entradas/{id}/")
-    def delete_entrada_cafeteria(self, id: int):
-        entrada = get_object_or_404(Entradas_Cafeteria, id=id)
-        with transaction.atomic():
-            for producto in entrada.productos.all():
-                inventario = get_object_or_404(
-                    Inventario_Producto_Cafeteria, producto=producto.producto
-                )
-                if inventario.cantidad - producto.cantidad <= 0:
-                    raise HttpError(400, "No hay productos suficientes")
-                inventario.cantidad -= producto.cantidad
-                inventario.save()
-
-            entrada.delete()
-
     @route.delete("ventas/{id}/")
     def delete_ventas_cafeteria(self, id: int):
         with transaction.atomic():
@@ -685,7 +644,7 @@ class CafeteriaController:
             total_venta = 0
             for producto_venta_cafeteria in venta.productos.all():
                 inventario = get_object_or_404(
-                    Inventario_Producto_Cafeteria,
+                    Inventario_Area_Cafeteria,
                     producto=producto_venta_cafeteria.producto,
                 )
                 inventario.cantidad += producto_venta_cafeteria.cantidad
@@ -698,10 +657,10 @@ class CafeteriaController:
 
             for elaboracion_venta_cafeteria in venta.elaboraciones.all():
                 for (
-                    ingrediente_cantidad,
+                    ingrediente_cantidad
                 ) in elaboracion_venta_cafeteria.producto.ingredientes_cantidad.all():
                     inventario = get_object_or_404(
-                        Inventario_Producto_Cafeteria,
+                        Inventario_Area_Cafeteria,
                         producto__id=ingrediente_cantidad.ingrediente.id,
                     )
                     inventario.cantidad += ingrediente_cantidad.cantidad

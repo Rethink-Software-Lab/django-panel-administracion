@@ -260,13 +260,26 @@ class Productos_Cafeteria(models.Model):
     )
 
 
-class Inventario_Producto_Cafeteria(models.Model):
+class Inventario_Almacen_Cafeteria(models.Model):
     producto = models.OneToOneField(
         Productos_Cafeteria,
         on_delete=models.CASCADE,
         null=False,
         blank=False,
-        related_name="inventario",
+        related_name="inventario_almacen",
+    )
+    cantidad = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=False, null=False
+    )
+
+
+class Inventario_Area_Cafeteria(models.Model):
+    producto = models.OneToOneField(
+        Productos_Cafeteria,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+        related_name="inventario_area",
     )
     cantidad = models.DecimalField(
         max_digits=12, decimal_places=2, blank=False, null=False
@@ -314,6 +327,24 @@ class Entradas_Cafeteria(models.Model):
     )
     proveedor = models.CharField(max_length=30, blank=False, null=False)
     comprador = models.CharField(max_length=30, blank=False, null=False)
+
+
+class Productos_Salidas_Cafeteria(models.Model):
+    producto = models.ForeignKey(
+        Productos_Cafeteria,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+    )
+    cantidad = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=False, null=False
+    )
+
+
+class Salidas_Cafeteria(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    productos = models.ManyToManyField(Productos_Salidas_Cafeteria, blank=False)
 
 
 class Productos_Ventas_Cafeteria(models.Model):
