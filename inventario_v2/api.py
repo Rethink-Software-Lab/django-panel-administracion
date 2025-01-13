@@ -1,3 +1,5 @@
+from decimal import Decimal
+from typing import Optional
 from ninja.errors import HttpError
 
 from .schema import SearchProductSchema, LoginSchema, TokenSchema
@@ -81,8 +83,8 @@ def login(request, data: LoginSchema):
 
 
 # TODO: Dividir info_producto y tabla_producto
-@app.get("search/{codigo}/", response=SearchProductSchema, tags=["Buscar Producto"])
-def search_product(request, codigo: str):
+@app.get("search/", response=SearchProductSchema, tags=["Buscar Producto"])
+def search_product(request, codigo: str, numero: Optional[Decimal] = None):
     areas = AreaVenta.objects.all().values("id", "nombre")
     info = get_object_or_404(ProductoInfo, codigo=codigo)
     dataDict = []
@@ -93,6 +95,7 @@ def search_product(request, codigo: str):
                 info__categoria__nombre="Zapatos",
                 info__codigo=codigo,
                 area_venta=area["id"],
+                **({"numero": numero} if numero is not None else {}),
                 ajusteinventario__isnull=True,
             ).values("id", "color", "numero")
             if len(data) > 0:
@@ -114,6 +117,7 @@ def search_product(request, codigo: str):
             area_venta__isnull=True,
             info__categoria__nombre="Zapatos",
             ajusteinventario__isnull=True,
+            **({"numero": numero} if numero is not None else {}),
         ).values("id", "color", "numero")
         if productos_almacen.count() > 0:
             dataDict.append({"area": "Almacén", "productos": productos_almacen})
