@@ -342,10 +342,25 @@ class Productos_Salidas_Cafeteria(models.Model):
     )
 
 
+class Elaboraciones_Salidas_Almacen_Cafeteria(models.Model):
+    producto = models.ForeignKey(
+        Elaboraciones,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+    )
+    cantidad = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=False, null=False
+    )
+
+
 class Salidas_Cafeteria(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    productos = models.ManyToManyField(Productos_Salidas_Cafeteria, blank=False)
+    productos = models.ManyToManyField(Productos_Salidas_Cafeteria, blank=True)
+    elaboraciones = models.ManyToManyField(
+        Elaboraciones_Salidas_Almacen_Cafeteria, blank=True
+    )
 
 
 class Productos_Ventas_Cafeteria(models.Model):

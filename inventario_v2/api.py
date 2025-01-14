@@ -84,60 +84,88 @@ def login(request, data: LoginSchema):
 
 # TODO: Dividir info_producto y tabla_producto
 @app.get("search/", response=SearchProductSchema, tags=["Buscar Producto"])
-def search_product(request, codigo: str, numero: Optional[Decimal] = None):
+def search_product(
+    request, codigo: Optional[str] = None, numero: Optional[Decimal] = None
+):
     areas = AreaVenta.objects.all().values("id", "nombre")
-    info = get_object_or_404(ProductoInfo, codigo=codigo)
+    if codigo:
+        info = get_object_or_404(ProductoInfo, codigo=codigo)
+    else:
+        info = None
     dataDict = []
-    for area in areas:
-        if info.categoria.nombre == "Zapatos":
+    if not codigo:
+        for area in areas:
             data = Producto.objects.filter(
                 venta__isnull=True,
                 info__categoria__nombre="Zapatos",
-                info__codigo=codigo,
                 area_venta=area["id"],
-                **({"numero": numero} if numero is not None else {}),
+                numero=numero,
                 ajusteinventario__isnull=True,
-            ).values("id", "color", "numero")
+            ).values("id", "info__codigo", "color", "numero")
             if len(data) > 0:
                 dataDict.append({"area": area["nombre"], "productos": data})
-        else:
-            data = Producto.objects.filter(
-                venta__isnull=True,
-                info__codigo=codigo,
-                area_venta=area["id"],
-                ajusteinventario__isnull=True,
-            ).count()
-            if data > 0:
-                dataDict.append({"area": area["nombre"], "cantidad": data})
 
-    if info.categoria.nombre == "Zapatos":
         productos_almacen = Producto.objects.filter(
             venta__isnull=True,
-            info__codigo=codigo,
             area_venta__isnull=True,
             info__categoria__nombre="Zapatos",
             ajusteinventario__isnull=True,
-            **({"numero": numero} if numero is not None else {}),
-        ).values("id", "color", "numero")
+            numero=numero,
+        ).values("id", "info__codigo", "color", "numero")
         if productos_almacen.count() > 0:
             dataDict.append({"area": "Almacén", "productos": productos_almacen})
+
     else:
-        productos_almacen = (
-            Producto.objects.filter(
+        for area in areas:
+            if info.categoria.nombre == "Zapatos":
+                data = Producto.objects.filter(
+                    venta__isnull=True,
+                    info__categoria__nombre="Zapatos",
+                    info__codigo=codigo,
+                    area_venta=area["id"],
+                    **({"numero": numero} if numero is not None else {}),
+                    ajusteinventario__isnull=True,
+                ).values("id", "color", "numero")
+                if len(data) > 0:
+                    dataDict.append({"area": area["nombre"], "productos": data})
+            else:
+                data = Producto.objects.filter(
+                    venta__isnull=True,
+                    info__codigo=codigo,
+                    area_venta=area["id"],
+                    ajusteinventario__isnull=True,
+                ).count()
+                if data > 0:
+                    dataDict.append({"area": area["nombre"], "cantidad": data})
+
+        if info.categoria.nombre == "Zapatos":
+            productos_almacen = Producto.objects.filter(
                 venta__isnull=True,
                 info__codigo=codigo,
                 area_venta__isnull=True,
+                info__categoria__nombre="Zapatos",
                 ajusteinventario__isnull=True,
+                **({"numero": numero} if numero is not None else {}),
+            ).values("id", "color", "numero")
+            if productos_almacen.count() > 0:
+                dataDict.append({"area": "Almacén", "productos": productos_almacen})
+        else:
+            productos_almacen = (
+                Producto.objects.filter(
+                    venta__isnull=True,
+                    info__codigo=codigo,
+                    area_venta__isnull=True,
+                    ajusteinventario__isnull=True,
+                )
+                .exclude(info__categoria__nombre="Zapatos")
+                .count()
             )
-            .exclude(info__categoria__nombre="Zapatos")
-            .count()
-        )
-        if productos_almacen > 0:
-            dataDict.append({"area": "Almacén", "cantidad": productos_almacen})
+            if productos_almacen > 0:
+                dataDict.append({"area": "Almacén", "cantidad": productos_almacen})
 
     return {
         "info": info,
-        "zapato": info.categoria.nombre == "Zapatos",
+        "zapato": info.categoria.nombre == "Zapatos" if info else True,
         "inventario": dataDict[::-1],
     }
 
