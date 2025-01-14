@@ -18,8 +18,6 @@ from inventario.models import (
     Ingrediente_Cantidad,
     Productos_Cafeteria,
     Inventario_Almacen_Cafeteria,
-    Entradas_Cafeteria,
-    Productos_Entradas_Cafeteria,
     Ventas_Cafeteria,
 )
 from inventario_v2.utils import (
@@ -30,12 +28,8 @@ from inventario_v2.utils import (
 from ..schema import (
     ElaboracionesEndpoint,
     Add_Elaboracion,
-    Producto_Cafeteria_Schema,
-    Entradas_Almacen_Cafeteria_Schema,
-    Add_Entrada_Cafeteria,
     Producto_Cafeteria_Endpoint_Schema,
     Add_Producto_Cafeteria,
-    Ventas_Cafeteria_Endpoint,
     Add_Venta_Cafeteria,
     CafeteriaReporteSchema,
     EndPointCafeteria,
@@ -91,19 +85,6 @@ class CafeteriaController:
                 ),
                 2,
             ),
-            total_transferencias_ingreso_mes=Round(
-                Coalesce(
-                    Sum(
-                        "transferenciastarjetas__cantidad",
-                        filter=Q(
-                            transferenciastarjetas__created_at__month=datetime.now().month,
-                            transferenciastarjetas__tipo=TipoTranferenciaChoices.INGRESO,
-                        ),
-                    ),
-                    Value(Decimal(0)),
-                ),
-                2,
-            ),
             total_transferencias_egreso_dia=Round(
                 Coalesce(
                     Sum(
@@ -117,25 +98,10 @@ class CafeteriaController:
                 ),
                 2,
             ),
-            total_transferencias_ingreso_dia=Round(
-                Coalesce(
-                    Sum(
-                        "transferenciastarjetas__cantidad",
-                        filter=Q(
-                            transferenciastarjetas__created_at=datetime.now(),
-                            transferenciastarjetas__tipo=TipoTranferenciaChoices.INGRESO,
-                        ),
-                    ),
-                    Value(Decimal(0)),
-                ),
-                2,
-            ),
             isAvailable=Case(
                 When(
                     Q(total_transferencias_egreso_mes__gte=120000)
-                    | Q(total_transferencias_ingreso_mes__gte=120000)
-                    | Q(total_transferencias_egreso_dia__gte=80000)
-                    | Q(total_transferencias_ingreso_dia__gte=80000),
+                    | Q(total_transferencias_egreso_dia__gte=80000),
                     then=Value(False),
                 ),
                 default=Value(True),

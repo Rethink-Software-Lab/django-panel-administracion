@@ -1,5 +1,4 @@
 import datetime
-from django.forms import DecimalField
 from ninja import ModelSchema, Schema
 from inventario.models import *
 from typing import List, Optional, Literal, Any
@@ -360,6 +359,7 @@ class Otros(Schema):
 
 class newZapatos(Schema):
     id: int
+    info__codigo: Optional[str] = None
     color: str
     numero: int
 
@@ -370,7 +370,7 @@ class ZapatosForSearch(Schema):
 
 
 class SearchProductSchema(Schema):
-    info: ProductoInfoSchema
+    info: Optional[ProductoInfoSchema] = None
     zapato: bool
     inventario: List[Otros] | List[ZapatosForSearch]
 
@@ -767,9 +767,15 @@ class Producto_Salida_Schema(Schema):
     cantidad: Decimal
 
 
+class Elaboraciones_Salida_Schema(Schema):
+    producto: ElaboracionesSchema
+    cantidad: Decimal
+
+
 class Salidas_Almacen_Cafeteria_Schema(ModelSchema):
     usuario: Optional[User_Only_Username] = None
     productos: List[Producto_Salida_Schema]
+    elaboraciones: List[Elaboraciones_Salida_Schema]
 
     class Meta:
         model = Salidas_Cafeteria
@@ -778,13 +784,8 @@ class Salidas_Almacen_Cafeteria_Schema(ModelSchema):
 
 class EndPointSalidasAlmacenCafeteria(Schema):
     salidas: List[Salidas_Almacen_Cafeteria_Schema]
-    productos: List[Productos_Entrada_Cafeteria]
-
-
-class productosSalidas(Schema):
-    producto: int
-    cantidad: Decimal
+    productos_elaboraciones: List[Productos_Elaboraciones_Schema]
 
 
 class Add_Salida_Cafeteria(Schema):
-    productos: List[productosSalidas]
+    productos: List[Prod_Add_Venta]
