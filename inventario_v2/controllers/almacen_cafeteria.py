@@ -163,18 +163,18 @@ class AlmacenCafeteriaController:
                     producto_area = Inventario_Area_Cafeteria.objects.get(
                         producto=producto_cafeteria
                     )
-                    if producto_almacen.cantidad < producto["cantidad"]:
+                    if producto_almacen.cantidad < Decimal(producto["cantidad"]):
                         raise HttpError(
                             400,
                             f"No hay suficiente {producto_almacen.producto.nombre} en almacen.",
                         )
-                    producto_almacen.cantidad -= producto["cantidad"]
-                    producto_area.cantidad += producto["cantidad"]
+                    producto_almacen.cantidad -= Decimal(producto["cantidad"])
+                    producto_area.cantidad += Decimal(producto["cantidad"])
                     producto_almacen.save()
                     producto_area.save()
                     producto_salida = Productos_Salidas_Cafeteria.objects.create(
                         producto=producto_cafeteria,
-                        cantidad=producto["cantidad"],
+                        cantidad=producto.get("cantidad"),
                     )
                     salida.productos.add(producto_salida)
 
