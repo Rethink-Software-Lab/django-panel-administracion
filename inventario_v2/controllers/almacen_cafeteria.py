@@ -199,35 +199,45 @@ class AlmacenCafeteriaController:
     @route.delete("salidas/{id}/")
     def delete_salidas_cafeteria(self, id: int):
         salida = get_object_or_404(Salidas_Cafeteria, id=id)
-        with transaction.atomic():
-            for producto in salida.productos.all():
-                inventario_almacen = get_object_or_404(
-                    Inventario_Almacen_Cafeteria, producto=producto.producto
-                )
-                inventario_area = get_object_or_404(
-                    Inventario_Area_Cafeteria, producto=producto.producto
-                )
-                if inventario_area.cantidad - producto.cantidad < 0:
-                    raise HttpError(400, "No hay productos suficientes")
-                inventario_area.cantidad -= producto.cantidad
-                inventario_almacen.cantidad += producto.cantidad
-                inventario_area.save()
-                inventario_almacen.save()
-
-            for elaboracion in salida.elaboraciones.all():
-                for producto in elaboracion.producto.ingredientes_cantidad.all():
+        try:
+            with transaction.atomic():
+                for producto in salida.productos.all():
                     inventario_almacen = get_object_or_404(
-                        Inventario_Almacen_Cafeteria, producto=producto.ingrediente
+                        Inventario_Almacen_Cafeteria, producto=producto.producto
                     )
                     inventario_area = get_object_or_404(
-                        Inventario_Area_Cafeteria, producto=producto.ingrediente
+                        Inventario_Area_Cafeteria, producto=producto.producto
                     )
                     if inventario_area.cantidad - producto.cantidad < 0:
                         raise HttpError(400, "No hay productos suficientes")
-
                     inventario_area.cantidad -= producto.cantidad
                     inventario_almacen.cantidad += producto.cantidad
                     inventario_area.save()
                     inventario_almacen.save()
 
-            salida.delete()
+                for elaboracion_salida_almacen_cafeteria in salida.elaboraciones.all():
+                    for (
+                        ingrediente_cantidad
+                    ) in (
+                        elaboracion_salida_almacen_cafeteria.producto.ingredientes_cantidad.all()
+                    ):
+                        inventario_almacen = get_object_or_404(
+                            Inventario_Almacen_Cafeteria,
+                            producto=ingrediente_cantidad.ingrediente,
+                        )
+                        inventario_area = get_object_or_404(
+                            Inventario_Area_Cafeteria,
+                            producto=ingrediente_cantidad.ingrediente,
+                        )
+                        if inventario_area.cantidad - producto.cantidad < 0:
+                            raise HttpError(400, "No hay productos suficientes")
+
+                        inventario_area.cantidad -= producto.cantidad
+                        inventario_almacen.cantidad += producto.cantidad
+                        inventario_area.save()
+                        inventario_almacen.save()
+
+                salida.delete()
+                return
+        except Exception as e:
+            raise HttpError(400, f"Error al eliminar salida: {e}")
