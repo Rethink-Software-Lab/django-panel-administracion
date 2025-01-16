@@ -14,7 +14,22 @@ admin.site.register(BalanceTarjetas)
 admin.site.register(TransferenciasTarjetas)
 admin.site.register(Productos_Cafeteria)
 admin.site.register(Inventario_Almacen_Cafeteria)
-admin.site.register(Inventario_Area_Cafeteria)
+
+
+@admin.register(Inventario_Area_Cafeteria)
+class InventarioAreaCafeteriaAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "producto_nombre",
+        "cantidad",
+    ]
+
+    def producto_nombre(self, obj):
+        return obj.producto.nombre
+
+    producto_nombre.short_description = "Producto"
+
+
 admin.site.register(Entradas_Cafeteria)
 admin.site.register(Productos_Entradas_Cafeteria)
 admin.site.register(Ingrediente_Cantidad)
