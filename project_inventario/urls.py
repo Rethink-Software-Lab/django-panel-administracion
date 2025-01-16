@@ -10,3 +10,7 @@ urlpatterns = [
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+admin.site.site_header = "Panel de Administración - Valero"
+admin.site.site_title = "Inicio"
+admin.site.index_title = "Panel de Administración"
