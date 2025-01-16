@@ -35,7 +35,9 @@ class ProductoAdmin(admin.ModelAdmin):
         return f"{obj.info.descripcion} - {obj.info.codigo}"
 
     def entrada_adapt(self, obj):
-        return obj.entrada.created_at.strftime("%d/%m/%Y - %H:%M")
+        return (
+            obj.entrada.created_at.strftime("%d/%m/%Y - %H:%M") if obj.entrada else None
+        )
 
     def salida_adapt(self, obj):
         return (
