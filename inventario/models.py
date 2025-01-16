@@ -10,6 +10,13 @@ class AreaVenta(models.Model):
     nombre = models.CharField(max_length=50, blank=False, null=False)
     color = models.CharField(max_length=10)
 
+    def __str__(self):
+        return self.nombre
+
+    class Meta:
+        verbose_name = "Área de Venta"
+        verbose_name_plural = "Áreas de Venta"
+
 
 class UserManager(BaseUserManager):
     # Manager para Perfiles de Usuario
@@ -95,6 +102,9 @@ class ProductoInfo(models.Model):
         max_digits=7, decimal_places=2, blank=False, null=False
     )
 
+    def __str__(self):
+        return self.descripcion
+
 
 class METODO_PAGO(models.TextChoices):
     EFECTIVO = (
@@ -122,7 +132,7 @@ class EntradaAlmacen(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.created_at}"
+        return f"{self.created_at.strftime('%d/%m/%Y - %H:%M')}"
 
     class Meta:
         verbose_name = "EntradaAlmacen"
@@ -285,6 +295,10 @@ class Inventario_Area_Cafeteria(models.Model):
     cantidad = models.DecimalField(
         max_digits=12, decimal_places=2, blank=False, null=False
     )
+
+    class Meta:
+        verbose_name = "Inventario Area Cafetería"
+        verbose_name_plural = "Inventario Area Cafetería"
 
 
 class Ingrediente_Cantidad(models.Model):

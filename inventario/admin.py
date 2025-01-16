@@ -3,10 +3,8 @@ from .models import *
 
 admin.site.register(User)
 admin.site.register(Image)
-admin.site.register(Producto)
 admin.site.register(EntradaAlmacen)
 admin.site.register(SalidaAlmacen)
-admin.site.register(AreaVenta)
 admin.site.register(Ventas)
 admin.site.register(Categorias)
 admin.site.register(Tarjetas)
@@ -16,6 +14,60 @@ admin.site.register(Productos_Cafeteria)
 admin.site.register(Inventario_Almacen_Cafeteria)
 
 
+@admin.register(Producto)
+class ProductoAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "color",
+        "numero",
+        "area_venta",
+        "info_producto",
+        "entrada_adapt",
+        "salida_adapt",
+        "salida_revoltosa_adapt",
+        "venta_adapt",
+        "almacen_revoltosa",
+    ]
+    search_fields = ["info__descripcion", "info__codigo"]
+    list_filter = ["area_venta"]
+
+    def info_producto(self, obj):
+        return f"{obj.info.descripcion} - {obj.info.codigo}"
+
+    def entrada_adapt(self, obj):
+        return obj.entrada.created_at.strftime("%d/%m/%Y - %H:%M")
+
+    def salida_adapt(self, obj):
+        return (
+            obj.salida.created_at.strftime("%d/%m/%Y - %H:%M") if obj.salida else None
+        )
+
+    def salida_revoltosa_adapt(self, obj):
+        return (
+            obj.salida_revoltosa.created_at.strftime("%d/%m/%Y - %H:%M")
+            if obj.salida_revoltosa
+            else None
+        )
+
+    def venta_adapt(self, obj):
+        return obj.venta.created_at.strftime("%d/%m/%Y - %H:%M") if obj.venta else None
+
+    info_producto.short_description = "Info"
+    entrada_adapt.short_description = "Entrada"
+    salida_adapt.short_description = "Salida"
+    salida_revoltosa_adapt.short_description = "Salida Revoltosa"
+    venta_adapt.short_description = "Venta"
+
+
+@admin.register(AreaVenta)
+class AreaVentaAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "nombre",
+        "color",
+    ]
+
+
 @admin.register(Inventario_Area_Cafeteria)
 class InventarioAreaCafeteriaAdmin(admin.ModelAdmin):
     list_display = [
@@ -23,6 +75,8 @@ class InventarioAreaCafeteriaAdmin(admin.ModelAdmin):
         "producto_nombre",
         "cantidad",
     ]
+    search_fields = ["producto__nombre"]
+    list_editable = ["cantidad"]
 
     def producto_nombre(self, obj):
         return obj.producto.nombre
