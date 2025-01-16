@@ -229,7 +229,7 @@ class AlmacenCafeteriaController:
                             Inventario_Area_Cafeteria,
                             producto=ingrediente_cantidad.ingrediente,
                         )
-                        if inventario_area.cantidad - producto.cantidad < 0:
+                        if inventario_area.cantidad - ingrediente_cantidad.cantidad < 0:
                             raise HttpError(400, "No hay productos suficientes")
 
                         inventario_area.cantidad -= ingrediente_cantidad.cantidad
