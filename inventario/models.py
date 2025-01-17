@@ -270,6 +270,9 @@ class Productos_Cafeteria(models.Model):
         max_digits=12, decimal_places=2, blank=False, null=False
     )
 
+    def __str__(self) -> str:
+        return self.nombre
+
 
 class Inventario_Almacen_Cafeteria(models.Model):
     producto = models.OneToOneField(
@@ -282,6 +285,10 @@ class Inventario_Almacen_Cafeteria(models.Model):
     cantidad = models.DecimalField(
         max_digits=12, decimal_places=2, blank=False, null=False
     )
+
+    class Meta:
+        verbose_name = "Inventario Almacén Cafetería"
+        verbose_name_plural = "Inventario Almacén Cafetería"
 
 
 class Inventario_Area_Cafeteria(models.Model):
