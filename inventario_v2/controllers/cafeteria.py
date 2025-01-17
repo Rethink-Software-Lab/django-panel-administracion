@@ -430,6 +430,8 @@ class CafeteriaController:
             total_cantidad_elaboraciones = 0
             total_venta = Decimal(0)
 
+            print(body.productos)
+
             for prod_elb in body.productos:
                 if prod_elb.isElaboracion:
                     elaboracion = get_object_or_404(Elaboraciones, id=prod_elb.producto)
@@ -467,7 +469,7 @@ class CafeteriaController:
                         Productos_Cafeteria, id=prod_elb.producto
                     )
                     inventario = get_object_or_404(
-                        Inventario_Area_Cafeteria, id=producto.pk
+                        Inventario_Area_Cafeteria, producto=producto
                     )
                     if inventario.cantidad < Decimal(prod_elb.cantidad):
                         raise HttpError(
@@ -627,9 +629,11 @@ class CafeteriaController:
                 ) in elaboracion_venta_cafeteria.producto.ingredientes_cantidad.all():
                     inventario = get_object_or_404(
                         Inventario_Area_Cafeteria,
-                        producto__id=ingrediente_cantidad.ingrediente.id,
+                        producto=ingrediente_cantidad.ingrediente,
                     )
-                    inventario.cantidad += ingrediente_cantidad.cantidad
+                    inventario.cantidad += ingrediente_cantidad.cantidad * Decimal(
+                        elaboracion_venta_cafeteria.cantidad
+                    )
                     inventario.save()
                     if venta.metodo_pago in [
                         METODO_PAGO.MIXTO,
