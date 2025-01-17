@@ -11,7 +11,6 @@ admin.site.register(Tarjetas)
 admin.site.register(BalanceTarjetas)
 admin.site.register(TransferenciasTarjetas)
 admin.site.register(Productos_Cafeteria)
-admin.site.register(Inventario_Almacen_Cafeteria)
 
 
 @admin.register(Producto)
@@ -72,6 +71,22 @@ class AreaVentaAdmin(admin.ModelAdmin):
 
 @admin.register(Inventario_Area_Cafeteria)
 class InventarioAreaCafeteriaAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "producto_nombre",
+        "cantidad",
+    ]
+    search_fields = ["producto__nombre"]
+    list_editable = ["cantidad"]
+
+    def producto_nombre(self, obj):
+        return obj.producto.nombre
+
+    producto_nombre.short_description = "Producto"
+
+
+@admin.register(Inventario_Almacen_Cafeteria)
+class InventarioAlmacenCafeteriaAdmin(admin.ModelAdmin):
     list_display = [
         "id",
         "producto_nombre",
