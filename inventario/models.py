@@ -445,3 +445,79 @@ class TransferenciasTarjetas(models.Model):
     venta_cafeteria = models.OneToOneField(
         Ventas_Cafeteria, on_delete=models.CASCADE, null=True, blank=True
     )
+
+
+class Productos_Cantidad_Merma(models.Model):
+    producto = models.ForeignKey(
+        Productos_Cafeteria,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+    )
+    cantidad = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=False, null=False
+    )
+
+
+class Elaboraciones_Cantidad_Merma(models.Model):
+    producto = models.ForeignKey(
+        Elaboraciones,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+    )
+    cantidad = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=False, null=False
+    )
+
+
+class MermaCafeteria(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    productos = models.ManyToManyField(Productos_Cantidad_Merma, blank=True)
+    elaboraciones = models.ManyToManyField(Elaboraciones_Cantidad_Merma, blank=True)
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    is_almacen = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.created_at.strftime("%d/%m/%Y - %H:%M")
+
+    class Meta:
+        verbose_name = "Merma"
+        verbose_name_plural = "Merma"
+
+
+class Productos_Cantidad_Cuenta_Casa(models.Model):
+    producto = models.ForeignKey(
+        Productos_Cafeteria,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+    )
+    cantidad = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=False, null=False
+    )
+
+
+class Elaboraciones_Cantidad_Cuenta_Casa(models.Model):
+    producto = models.ForeignKey(
+        Elaboraciones,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+    )
+    cantidad = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=False, null=False
+    )
+
+
+class CuentaCasa(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    productos = models.ManyToManyField(Productos_Cantidad_Cuenta_Casa, blank=True)
+    elaboraciones = models.ManyToManyField(
+        Elaboraciones_Cantidad_Cuenta_Casa, blank=True
+    )
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    is_almacen = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.created_at.strftime("%d/%m/%Y - %H:%M")

@@ -69,6 +69,31 @@ class AreaVentaAdmin(admin.ModelAdmin):
     ]
 
 
+@admin.register(MermaCafeteria)
+class MermaAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "created_at_adapt",
+        "productos_adapt",
+        "elaboraciones_adapt",
+        "usuario",
+        "is_almacen",
+    ]
+
+    def created_at_adapt(self, obj):
+        return obj.created_at.strftime("%d/%m/%Y - %H:%M")
+
+    def productos_adapt(self, obj):
+        return obj.productos.all().count()
+
+    def elaboraciones_adapt(self, obj):
+        return obj.elaboraciones.all().count()
+
+    created_at_adapt.short_description = "Fecha"
+    productos_adapt.short_description = "Productos"
+    elaboraciones_adapt.short_description = "Elaboraciones"
+
+
 @admin.register(Inventario_Area_Cafeteria)
 class InventarioAreaCafeteriaAdmin(admin.ModelAdmin):
     list_display = [
