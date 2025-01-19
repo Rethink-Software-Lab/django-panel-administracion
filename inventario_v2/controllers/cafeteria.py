@@ -19,6 +19,7 @@ from inventario.models import (
     Productos_Cafeteria,
     Inventario_Almacen_Cafeteria,
     Ventas_Cafeteria,
+    MermaCafeteria,
 )
 from inventario_v2.utils import (
     calcular_dias_laborables,
@@ -345,6 +346,21 @@ class CafeteriaController:
 
         total_costo_producto = costo_producto + costo_ingredientes_elaboraciones
 
+        total_merma = 0
+        mermas = MermaCafeteria.objects.filter(
+            created_at__date__range=(parse_desde, parse_hasta),
+        )
+
+        for merma in mermas:
+            for producto in merma.productos.all():
+                total_merma += producto.producto.precio_costo * producto.cantidad
+
+            for elaboracion in merma.elaboraciones.all():
+                for ingrediente in elaboracion.producto.ingredientes_cantidad.all():
+                    total_merma += (
+                        ingrediente.ingrediente.precio_costo * ingrediente.cantidad
+                    )
+
         subtotal_productos = (
             productos.aggregate(subtotal=Sum(F("importe")))["subtotal"] or 0
         )
@@ -366,6 +382,7 @@ class CafeteriaController:
             - mano_obra
             - total_gastos_fijos
             - gastos_variables
+            - total_merma
         )
 
         return {
@@ -376,6 +393,7 @@ class CafeteriaController:
             "subtotal": subtotal,
             "efectivo": efectivo,
             "transferencia": transferencia,
+            "merma": total_merma,
             "mano_obra": mano_obra,
             "gastos_variables": gastos_variables,
             "gastos_fijos": total_gastos_fijos,

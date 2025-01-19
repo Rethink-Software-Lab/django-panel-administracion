@@ -273,7 +273,7 @@ class ReportesController:
             elif area == "cafeteria":
                 area_venta = "Cafetería"
                 productos = Productos_Cafeteria.objects.filter(
-                    inventario__cantidad__gt=0
+                    inventario_area__cantidad__gt=0
                 )
                 producto_info = []
                 for producto in productos:
@@ -282,7 +282,23 @@ class ReportesController:
                             "id": producto.pk,
                             "descripcion": producto.nombre,
                             "codigo": None,
-                            "cantidad": producto.inventario.cantidad,
+                            "cantidad": producto.inventario_area.cantidad,
+                        }
+                    )
+
+            elif area == "almacen-cafeteria":
+                area_venta = "Almacén Cafetería"
+                productos = Productos_Cafeteria.objects.filter(
+                    inventario_almacen__cantidad__gt=0
+                )
+                producto_info = []
+                for producto in productos:
+                    producto_info.append(
+                        {
+                            "id": producto.pk,
+                            "descripcion": producto.nombre,
+                            "codigo": None,
+                            "cantidad": producto.inventario_almacen.cantidad,
                         }
                     )
 
