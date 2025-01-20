@@ -154,15 +154,8 @@ class ProductoController:
             producto.codigo = dataDict["codigo"]
 
         producto.descripcion = dataDict["descripcion"]
-        if producto.categoria != categoria_query:
-            if Producto.objects.filter(info__categoria=categoria_query).exists():
-                raise HttpError(
-                    403,
-                    "No es posible editar la categoría de un producto que tiene un producto asociado.",
-                )
-            producto.categoria = categoria_query
-
-        producto.pago_trabajador = dataDict.get("pago_trabajador")
+        producto.categoria = categoria_query
+        producto.pago_trabajador = dataDict["pago_trabajador"]
         producto.precio_costo = dataDict["precio_costo"]
         producto.precio_venta = dataDict["precio_venta"]
 
