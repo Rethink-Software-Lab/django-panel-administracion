@@ -30,6 +30,7 @@ from .controllers.tarjetas import TarjetasController
 from .controllers.cafeteria import CafeteriaController
 from .controllers.almacen_cafeteria import AlmacenCafeteriaController
 from .controllers.merma import MermaController
+from .controllers.cuenta_casa import CuentaCasaController
 
 
 class AuthBearer(HttpBearer):
@@ -190,4 +191,5 @@ app.register_controllers(
     CafeteriaController,
     AlmacenCafeteriaController,
     MermaController,
+    CuentaCasaController,
 )

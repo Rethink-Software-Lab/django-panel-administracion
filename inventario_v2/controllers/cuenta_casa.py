@@ -2,17 +2,17 @@ from decimal import Decimal
 from ninja.errors import HttpError
 from inventario.models import (
     User,
-    MermaCafeteria,
     Productos_Cafeteria,
     Elaboraciones,
     Inventario_Area_Cafeteria,
     Inventario_Almacen_Cafeteria,
-    Elaboraciones_Cantidad_Merma,
-    Productos_Cantidad_Merma,
+    CuentaCasa,
+    Elaboraciones_Cantidad_Cuenta_Casa,
+    Productos_Cantidad_Cuenta_Casa,
 )
 from ..schema import (
     AddMerma,
-    EndpointMerma,
+    EndpointCuentaCasa,
 )
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
@@ -20,12 +20,12 @@ from django.db import transaction
 from django.db.models import Count
 
 
-@api_controller("merma/", tags=["Merma"], permissions=[])
-class MermaController:
-    @route.get("", response=EndpointMerma)
+@api_controller("cuenta-casa/", tags=["Cuenta Casa"], permissions=[])
+class CuentaCasaController:
+    @route.get("", response=EndpointCuentaCasa)
     def get_merma(self):
-        merma = (
-            MermaCafeteria.objects.all()
+        cuenta_casa = (
+            CuentaCasa.objects.all()
             .order_by("-created_at")
             .annotate(
                 cantidad_productos=Count("productos"),
@@ -50,17 +50,17 @@ class MermaController:
             )
 
         return {
-            "merma": merma,
+            "cuenta_casa": cuenta_casa,
             "productos_elaboraciones": productos_elaboraciones,
         }
 
     @route.post("")
-    def add_merma(self, request, body: AddMerma):
+    def add_cuenta_casa(self, request, body: AddMerma):
         usuario = get_object_or_404(User, pk=request.auth["id"])
 
         try:
             with transaction.atomic():
-                merma = MermaCafeteria.objects.create(
+                cuenta_casa = CuentaCasa.objects.create(
                     is_almacen=(
                         True if body.localizacion == "almacen-cafeteria" else False
                     ),
@@ -95,11 +95,13 @@ class MermaController:
                                 producto.cantidad
                             )
                             inventario.save()
-                        new_elaboracion = Elaboraciones_Cantidad_Merma.objects.create(
-                            producto=elaboracion,
-                            cantidad=producto.cantidad,
+                        new_elaboracion = (
+                            Elaboraciones_Cantidad_Cuenta_Casa.objects.create(
+                                producto=elaboracion,
+                                cantidad=producto.cantidad,
+                            )
                         )
-                        merma.elaboraciones.add(new_elaboracion)
+                        cuenta_casa.elaboraciones.add(new_elaboracion)
                     else:
                         product = get_object_or_404(
                             Productos_Cafeteria, pk=producto.producto
@@ -122,11 +124,11 @@ class MermaController:
 
                         inventario.cantidad -= Decimal(producto.cantidad)
                         inventario.save()
-                        new_producto = Productos_Cantidad_Merma.objects.create(
+                        new_producto = Productos_Cantidad_Cuenta_Casa.objects.create(
                             producto=product,
                             cantidad=producto.cantidad,
                         )
-                        merma.productos.add(new_producto)
+                        cuenta_casa.productos.add(new_producto)
 
             return
         except Exception as e:
@@ -135,13 +137,13 @@ class MermaController:
             raise HttpError(500, f"Error inesperado: {str(e)}")
 
     @route.delete("{id}/")
-    def deleteMerma(self, id: int):
-        merma = get_object_or_404(MermaCafeteria, pk=id)
+    def delete_cuenta_casa(self, id: int):
+        cuenta_casa = get_object_or_404(CuentaCasa, pk=id)
 
         try:
             with transaction.atomic():
-                for producto in merma.productos.all():
-                    if merma.is_almacen:
+                for producto in cuenta_casa.productos.all():
+                    if cuenta_casa.is_almacen:
                         inventario = get_object_or_404(
                             Inventario_Almacen_Cafeteria,
                             producto=producto.producto,
@@ -155,9 +157,9 @@ class MermaController:
                     inventario.cantidad += producto.cantidad
                     inventario.save()
 
-                for elaboracion in merma.elaboraciones.all():
+                for elaboracion in cuenta_casa.elaboraciones.all():
                     for ingrediente in elaboracion.producto.ingredientes_cantidad.all():
-                        if merma.is_almacen:
+                        if cuenta_casa.is_almacen:
                             inventario = get_object_or_404(
                                 Inventario_Almacen_Cafeteria,
                                 producto=ingrediente.ingrediente,
@@ -173,7 +175,7 @@ class MermaController:
                         )
                         inventario.save()
 
-                merma.delete()
+                cuenta_casa.delete()
             return
         except Exception as e:
             raise HttpError(500, f"Error inesperado: {str(e)}")
