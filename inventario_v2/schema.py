@@ -758,6 +758,7 @@ class CafeteriaReporteSchema(Schema):
     efectivo: Decimal
     transferencia: Decimal
     merma: Decimal
+    cuenta_casa: Decimal
     mano_obra: Decimal
     gastos_variables: Decimal
     gastos_fijos: Decimal
@@ -812,3 +813,20 @@ class EndpointMerma(Schema):
 class AddMerma(Schema):
     localizacion: Literal["almacen-cafeteria", "cafeteria"]
     productos: List[Prod_Add_Venta]
+
+
+class CuentaCasaSchema(ModelSchema):
+    usuario: Optional[UsuariosSchema] = None
+    productos: List[Producto_Salida_Schema]
+    elaboraciones: List[Elaboraciones_Salida_Schema]
+    cantidad_productos: int
+    cantidad_elaboraciones: int
+
+    class Meta:
+        model = CuentaCasa
+        fields = "__all__"
+
+
+class EndpointCuentaCasa(Schema):
+    productos_elaboraciones: List[Productos_Elaboraciones_Schema]
+    cuenta_casa: List[CuentaCasaSchema]
