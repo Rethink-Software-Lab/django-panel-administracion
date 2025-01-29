@@ -73,43 +73,7 @@ class CafeteriaController:
         )
         productos = Productos_Cafeteria.objects.all()
         elaboraciones = Elaboraciones.objects.all()
-        tarjetas = Tarjetas.objects.annotate(
-            total_transferencias_egreso_mes=Round(
-                Coalesce(
-                    Sum(
-                        "transferenciastarjetas__cantidad",
-                        filter=Q(
-                            transferenciastarjetas__created_at__month=datetime.now().month,
-                            transferenciastarjetas__tipo=TipoTranferenciaChoices.EGRESO,
-                        ),
-                    ),
-                    Value(Decimal(0)),
-                ),
-                2,
-            ),
-            total_transferencias_egreso_dia=Round(
-                Coalesce(
-                    Sum(
-                        "transferenciastarjetas__cantidad",
-                        filter=Q(
-                            transferenciastarjetas__created_at=datetime.now(),
-                            transferenciastarjetas__tipo=TipoTranferenciaChoices.EGRESO,
-                        ),
-                    ),
-                    Value(Decimal(0)),
-                ),
-                2,
-            ),
-            isAvailable=Case(
-                When(
-                    Q(total_transferencias_egreso_mes__gte=120000)
-                    | Q(total_transferencias_egreso_dia__gte=80000),
-                    then=Value(False),
-                ),
-                default=Value(True),
-                output_field=BooleanField(),
-            ),
-        ).all()
+        tarjetas = Tarjetas.objects.all()
 
         productos_elaboraciones = []
         for elaboracion in elaboraciones:

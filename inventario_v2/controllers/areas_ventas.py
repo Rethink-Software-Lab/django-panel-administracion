@@ -91,39 +91,7 @@ class AreasVentasController:
             .order_by("-created_at")
         )
 
-        tarjetas = (
-            Tarjetas.objects.select_related("balance")
-            .annotate(
-                total_transferencias_mes=Round(
-                    Coalesce(
-                        Sum(
-                            "transferenciastarjetas__cantidad",
-                            filter=Q(
-                                transferenciastarjetas__created_at__month=datetime.now().month,
-                                transferenciastarjetas__tipo=TipoTranferenciaChoices.EGRESO,
-                            ),
-                        ),
-                        Value(Decimal(0)),
-                    ),
-                    2,
-                ),
-                total_transferencias_dia=Round(
-                    Coalesce(
-                        Sum(
-                            "transferenciastarjetas__cantidad",
-                            filter=Q(
-                                transferenciastarjetas__created_at=datetime.now(),
-                                transferenciastarjetas__tipo=TipoTranferenciaChoices.EGRESO,
-                            ),
-                        ),
-                        Value(Decimal(0)),
-                    ),
-                    2,
-                ),
-            )
-            .all()
-            .order_by("-id")
-        )
+        tarjetas = Tarjetas.objects.select_related("balance").all().order_by("-id")
         return {
             "inventario": {
                 "productos": producto_info,

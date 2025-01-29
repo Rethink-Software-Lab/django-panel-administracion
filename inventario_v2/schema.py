@@ -495,16 +495,12 @@ class BalanceTarjetasSchema(ModelSchema):
 class TarjetasWithTotalMESyDIASchema(Schema):
     id: int
     balance: BalanceTarjetasSchema
-    total_transferencias_mes: Decimal
-    total_transferencias_dia: Decimal
     nombre: str
     banco: str
 
 
 class TarjetasForVentas(Schema):
     id: int
-    total_transferencias_mes: Decimal
-    total_transferencias_dia: Decimal
     nombre: str
     banco: str
 
@@ -615,7 +611,6 @@ class TarjetasVentasCafeteriaSchema(Schema):
     id: int
     nombre: str
     banco: str
-    isAvailable: bool
 
 
 class Productos_Elaboraciones_Schema(Schema):
