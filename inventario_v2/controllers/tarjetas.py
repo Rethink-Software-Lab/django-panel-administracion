@@ -1,5 +1,3 @@
-from datetime import datetime
-from django.http import Http404
 from ninja.errors import HttpError
 from inventario.models import (
     User,
@@ -8,7 +6,6 @@ from inventario.models import (
     TransferenciasTarjetas,
     TipoTranferenciaChoices,
 )
-from inventario_v2.utils import validate_transferencia
 from ..schema import (
     TarjetasModifySchema,
     TarjetasEndpoint,
@@ -19,47 +16,13 @@ from django.shortcuts import get_object_or_404
 from ..custom_permissions import isAdmin, isSupervisor
 from django.db import transaction
 from decimal import Decimal
-from django.db.models import Q, Sum, Value
-from django.db.models.functions import Coalesce, Round
 
 
 @api_controller("tarjetas/", tags=["Tarjetas"], permissions=[isAdmin | isSupervisor])
 class TarjetasController:
     @route.get("", response=TarjetasEndpoint)
     def get_all_tarjetas(self):
-        tarjetas = (
-            Tarjetas.objects.select_related("balance")
-            .annotate(
-                total_transferencias_mes=Round(
-                    Coalesce(
-                        Sum(
-                            "transferenciastarjetas__cantidad",
-                            filter=Q(
-                                transferenciastarjetas__created_at__month=datetime.now().month,
-                                transferenciastarjetas__tipo=TipoTranferenciaChoices.EGRESO,
-                            ),
-                        ),
-                        Value(Decimal(0)),
-                    ),
-                    2,
-                ),
-                total_transferencias_dia=Round(
-                    Coalesce(
-                        Sum(
-                            "transferenciastarjetas__cantidad",
-                            filter=Q(
-                                transferenciastarjetas__created_at=datetime.now(),
-                                transferenciastarjetas__tipo=TipoTranferenciaChoices.EGRESO,
-                            ),
-                        ),
-                        Value(Decimal(0)),
-                    ),
-                    2,
-                ),
-            )
-            .all()
-            .order_by("-id")
-        )
+        tarjetas = Tarjetas.objects.select_related("balance").all().order_by("-id")
 
         transferencias = TransferenciasTarjetas.objects.all().order_by("-id")
         return {"tarjetas": tarjetas, "transferencias": transferencias}
@@ -105,15 +68,15 @@ class TarjetasController:
         except:
             raise HttpError(400, "La cantidad debe ser un número decimal valido")
 
-        if body_dict["tipo"] == TipoTranferenciaChoices.EGRESO:
-            try:
-                tarjeta = validate_transferencia(id_tarjeta=body_dict["tarjeta"])
-            except Http404:
-                raise HttpError(404, "Tarjeta no encontrada")
-            except Exception as e:
-                raise HttpError(400, f"{e}")
-        else:
-            tarjeta = get_object_or_404(Tarjetas, pk=body_dict["tarjeta"])
+        # if body_dict["tipo"] == TipoTranferenciaChoices.EGRESO:
+        #     try:
+        #         tarjeta = validate_transferencia(id_tarjeta=body_dict["tarjeta"])
+        #     except Http404:
+        #         raise HttpError(404, "Tarjeta no encontrada")
+        #     except Exception as e:
+        #         raise HttpError(400, f"{e}")
+        # else:
+        tarjeta = get_object_or_404(Tarjetas, pk=body_dict["tarjeta"])
 
         usuario = get_object_or_404(User, pk=request.auth["id"])
 
