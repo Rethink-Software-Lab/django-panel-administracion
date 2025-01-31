@@ -29,7 +29,26 @@ class VentasController:
     @route.get("{id}/", response=list[VentasSchema])
     def getVenta(self, request, id: int):
         user = User.objects.get(pk=request.auth["id"])
-        if (user.area_venta is None or id != user.area_venta.pk) and not user.is_staff:
+
+        is_authorized = False
+
+        if user.is_staff:
+            is_authorized = True
+
+        elif user.area_venta is not None:
+            if id == 28:
+                if (
+                    user.area_venta.pk == 4
+                    or user.area_venta.pk == 6
+                    or user.area_venta.pk == id
+                ):
+                    is_authorized = True
+
+            else:
+                if id == user.area_venta.pk:
+                    is_authorized = True
+
+        if not is_authorized:
             raise HttpError(401, "Unauthorized")
         ventas = (
             Ventas.objects.filter(area_venta=id)
@@ -59,7 +78,23 @@ class VentasController:
 
         user = User.objects.get(pk=request.auth["id"])
 
-        if user.area_venta != area_venta and not user.is_staff:
+        is_authorized = False
+
+        if user.is_staff:
+            is_authorized = True
+        elif user.area_venta is not None:
+            if area_venta.pk == 28:
+                if (
+                    user.area_venta.pk == 4
+                    or user.area_venta.pk == 6
+                    or user.area_venta.pk == area_venta.pk
+                ):
+                    is_authorized = True
+            else:
+                if area_venta.pk == user.area_venta.pk:
+                    is_authorized = True
+
+        if not is_authorized:
             raise HttpError(401, "Unauthorized")
 
         producto_info = get_object_or_404(
@@ -211,7 +246,24 @@ class VentasController:
     def deleteVenta(self, request, id: int):
         venta = get_object_or_404(Ventas, pk=id)
         user = User.objects.get(pk=request.auth["id"])
-        if venta.area_venta != user.area_venta and not user.is_staff:
+
+        is_authorized = False
+
+        if user.is_staff:
+            is_authorized = True
+        elif user.area_venta is not None:
+            if venta.area_venta.pk == 28:
+                if (
+                    user.area_venta.pk == 4
+                    or user.area_venta.pk == 6
+                    or user.area_venta.pk == venta.area_venta.pk
+                ):
+                    is_authorized = True
+            else:
+                if venta.area_venta.pk == user.area_venta.pk:
+                    is_authorized = True
+
+        if not is_authorized:
             raise HttpError(401, "Unauthorized")
         try:
             with transaction.atomic():
