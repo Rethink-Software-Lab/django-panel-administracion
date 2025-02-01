@@ -40,6 +40,7 @@ class VentasController:
                 if (
                     user.area_venta.pk == 4
                     or user.area_venta.pk == 6
+                    or user.area_venta.pk == 25
                     or user.area_venta.pk == id
                 ):
                     is_authorized = True
@@ -87,6 +88,7 @@ class VentasController:
                 if (
                     user.area_venta.pk == 4
                     or user.area_venta.pk == 6
+                    or user.area_venta.pk == 25
                     or user.area_venta.pk == area_venta.pk
                 ):
                     is_authorized = True
@@ -256,6 +258,7 @@ class VentasController:
                 if (
                     user.area_venta.pk == 4
                     or user.area_venta.pk == 6
+                    or user.area_venta.pk == 25
                     or user.area_venta.pk == venta.area_venta.pk
                 ):
                     is_authorized = True
