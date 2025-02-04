@@ -497,6 +497,8 @@ class TarjetasWithTotalMESyDIASchema(Schema):
     balance: BalanceTarjetasSchema
     nombre: str
     banco: str
+    total_transferencias_mes: Decimal
+    total_transferencias_dia: Decimal
 
 
 class TarjetasForVentas(Schema):
@@ -538,6 +540,7 @@ class TransferenciasTarjetasModify(Schema):
 class TarjetasEndpoint(Schema):
     tarjetas: List[TarjetasWithTotalMESyDIASchema]
     transferencias: List[TransferenciasTarjetasSchema]
+    total_balance: Decimal
 
 
 class OneAreaVentaSchema(Schema):
