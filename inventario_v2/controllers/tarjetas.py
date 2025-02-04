@@ -15,6 +15,9 @@ from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
 from ..custom_permissions import isAdmin, isSupervisor
 from django.db import transaction
+from django.db.models import Sum, Q, Value
+from django.db.models.functions import Round, Coalesce
+from datetime import datetime
 from decimal import Decimal
 
 
@@ -22,10 +25,50 @@ from decimal import Decimal
 class TarjetasController:
     @route.get("", response=TarjetasEndpoint)
     def get_all_tarjetas(self):
-        tarjetas = Tarjetas.objects.select_related("balance").all().order_by("-id")
+        tarjetas = (
+            Tarjetas.objects.select_related("balance")
+            .annotate(
+                total_transferencias_mes=Round(
+                    Coalesce(
+                        Sum(
+                            "transferenciastarjetas__cantidad",
+                            filter=Q(
+                                transferenciastarjetas__created_at__month=datetime.now().month,
+                                transferenciastarjetas__tipo=TipoTranferenciaChoices.EGRESO,
+                            ),
+                        ),
+                        Value(Decimal(0)),
+                    ),
+                    2,
+                ),
+                total_transferencias_dia=Round(
+                    Coalesce(
+                        Sum(
+                            "transferenciastarjetas__cantidad",
+                            filter=Q(
+                                transferenciastarjetas__created_at=datetime.now(),
+                                transferenciastarjetas__tipo=TipoTranferenciaChoices.EGRESO,
+                            ),
+                        ),
+                        Value(Decimal(0)),
+                    ),
+                    2,
+                ),
+            )
+            .all()
+            .order_by("-id")
+        )
+
+        total_balance = BalanceTarjetas.objects.all().aggregate(balance=Sum("valor"))[
+            "balance"
+        ]
 
         transferencias = TransferenciasTarjetas.objects.all().order_by("-id")
-        return {"tarjetas": tarjetas, "transferencias": transferencias}
+        return {
+            "tarjetas": tarjetas,
+            "transferencias": transferencias,
+            "total_balance": total_balance,
+        }
 
     @route.post("")
     def add_tarjeta(self, body: TarjetasModifySchema):
