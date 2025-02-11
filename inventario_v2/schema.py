@@ -614,6 +614,7 @@ class TarjetasVentasCafeteriaSchema(Schema):
     id: int
     nombre: str
     banco: str
+    disponible: bool
 
 
 class Productos_Elaboraciones_Schema(Schema):
