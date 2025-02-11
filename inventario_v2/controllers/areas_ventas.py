@@ -1,3 +1,4 @@
+from decimal import Decimal
 from ninja.errors import HttpError
 from inventario.models import (
     ProductoInfo,
@@ -100,7 +101,7 @@ class AreasVentasController:
                     ),
                 ),
                 disponible=Case(
-                    When(Q(total_ingresos__gt=120000), then=Value(False)),
+                    When(Q(total_ingresos__gte=Decimal(120000)), then=Value(False)),
                     default=Value(True),
                     output_field=BooleanField(),
                 ),
