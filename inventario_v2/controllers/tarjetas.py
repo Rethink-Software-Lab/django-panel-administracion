@@ -34,34 +34,22 @@ class TarjetasController:
                             "transferenciastarjetas__cantidad",
                             filter=Q(
                                 transferenciastarjetas__created_at__month=datetime.now().month,
-                                transferenciastarjetas__tipo=TipoTranferenciaChoices.EGRESO,
+                                transferenciastarjetas__tipo=TipoTranferenciaChoices.INGRESO,
                             ),
                         ),
                         Value(Decimal(0)),
                     ),
                     2,
-                ),
-                total_transferencias_dia=Round(
-                    Coalesce(
-                        Sum(
-                            "transferenciastarjetas__cantidad",
-                            filter=Q(
-                                transferenciastarjetas__created_at=datetime.now(),
-                                transferenciastarjetas__tipo=TipoTranferenciaChoices.EGRESO,
-                            ),
-                        ),
-                        Value(Decimal(0)),
-                    ),
-                    2,
-                ),
+                )
             )
             .all()
             .order_by("-id")
         )
 
-        total_balance = BalanceTarjetas.objects.all().aggregate(balance=Sum("valor"))[
-            "balance"
-        ]
+        total_balance = (
+            BalanceTarjetas.objects.all().aggregate(balance=Sum("valor"))["balance"]
+            or 0
+        )
 
         transferencias = TransferenciasTarjetas.objects.all().order_by("-id")
         return {

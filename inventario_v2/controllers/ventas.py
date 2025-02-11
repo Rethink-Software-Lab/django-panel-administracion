@@ -41,10 +41,14 @@ class VentasController:
                     user.area_venta.pk == 4
                     or user.area_venta.pk == 6
                     or user.area_venta.pk == 25
+                    or user.area_venta.pk == 17
                     or user.area_venta.pk == id
                 ):
                     is_authorized = True
 
+            elif id == 27:
+                if user.area_venta.pk == 17 or user.area_venta.pk == id:
+                    is_authorized = True
             else:
                 if id == user.area_venta.pk:
                     is_authorized = True
@@ -89,8 +93,12 @@ class VentasController:
                     user.area_venta.pk == 4
                     or user.area_venta.pk == 6
                     or user.area_venta.pk == 25
+                    or user.area_venta.pk == 17
                     or user.area_venta.pk == area_venta.pk
                 ):
+                    is_authorized = True
+            elif area_venta.pk == 27:
+                if user.area_venta.pk == 17 or user.area_venta.pk == area_venta.pk:
                     is_authorized = True
             else:
                 if area_venta.pk == user.area_venta.pk:
@@ -259,6 +267,13 @@ class VentasController:
                     user.area_venta.pk == 4
                     or user.area_venta.pk == 6
                     or user.area_venta.pk == 25
+                    or user.area_venta.pk == 17
+                    or user.area_venta.pk == venta.area_venta.pk
+                ):
+                    is_authorized = True
+            elif venta.area_venta.pk == 27:
+                if (
+                    user.area_venta.pk == 17
                     or user.area_venta.pk == venta.area_venta.pk
                 ):
                     is_authorized = True

@@ -498,13 +498,13 @@ class TarjetasWithTotalMESyDIASchema(Schema):
     nombre: str
     banco: str
     total_transferencias_mes: Decimal
-    total_transferencias_dia: Decimal
 
 
 class TarjetasForVentas(Schema):
     id: int
     nombre: str
     banco: str
+    disponible: bool
 
 
 class TarjetasSchema(ModelSchema):
