@@ -1,3 +1,4 @@
+from decimal import Decimal
 from ninja.errors import HttpError
 from inventario.models import (
     ProductoInfo,
@@ -12,10 +13,8 @@ from ..schema import AreaVentaSchema, OneAreaVentaSchema, AreaVentaModifySchema
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
 from typing import List
-from django.db.models import Count, Q, F, Sum, Value
-from django.db.models.functions import Coalesce, Round
+from django.db.models import Count, Q, F, Sum, Case, When, Value, BooleanField
 from datetime import datetime
-from decimal import Decimal
 
 
 @api_controller("areas-ventas/", tags=["Áreas de ventas"], permissions=[])
@@ -91,7 +90,24 @@ class AreasVentasController:
             .order_by("-created_at")
         )
 
-        tarjetas = Tarjetas.objects.select_related("balance").all().order_by("-id")
+        tarjetas = (
+            Tarjetas.objects.select_related("balance")
+            .annotate(
+                total_ingresos=Sum(
+                    "transferenciastarjetas__cantidad",
+                    filter=Q(
+                        transferenciastarjetas__created_at__month=datetime.now().month,
+                        transferenciastarjetas__tipo=TipoTranferenciaChoices.INGRESO,
+                    ),
+                ),
+                disponible=Case(
+                    When(Q(total_ingresos__gte=Decimal(120000)), then=Value(False)),
+                    default=Value(True),
+                    output_field=BooleanField(),
+                ),
+            )
+            .order_by("-id")
+        )
         return {
             "inventario": {
                 "productos": producto_info,
