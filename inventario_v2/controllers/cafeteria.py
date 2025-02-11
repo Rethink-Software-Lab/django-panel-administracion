@@ -73,7 +73,20 @@ class CafeteriaController:
         )
         productos = Productos_Cafeteria.objects.all()
         elaboraciones = Elaboraciones.objects.all()
-        tarjetas = Tarjetas.objects.all()
+        tarjetas = Tarjetas.objects.annotate(
+            total_ingresos=Sum(
+                "transferenciastarjetas__cantidad",
+                filter=Q(
+                    transferenciastarjetas__created_at__month=datetime.now().month,
+                    transferenciastarjetas__tipo=TipoTranferenciaChoices.INGRESO,
+                ),
+            ),
+            disponible=Case(
+                When(Q(total_ingresos__gte=Decimal(120000)), then=Value(False)),
+                default=Value(True),
+                output_field=BooleanField(),
+            ),
+        )
 
         productos_elaboraciones = []
         for elaboracion in elaboraciones:
