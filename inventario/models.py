@@ -4,6 +4,7 @@ from django.contrib.auth.models import (
     BaseUserManager,
     PermissionsMixin,
 )
+from nanoid import generate
 
 
 class AreaVenta(models.Model):
@@ -521,3 +522,12 @@ class CuentaCasa(models.Model):
 
     def __str__(self):
         return self.created_at.strftime("%d/%m/%Y - %H:%M")
+
+class VendedorExterno(models.Model):
+    nombre = models.CharField(max_length=50, blank=False, null=False)
+    telefono = models.CharField(max_length=50, blank=False, null=False)
+    codigo_referido = models.CharField(unique=True, default=generate(size=8), max_length=8)
+
+    def __str__(self):
+        return self.nombre
+    
