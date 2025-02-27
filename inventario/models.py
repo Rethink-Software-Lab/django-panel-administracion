@@ -526,7 +526,7 @@ class CuentaCasa(models.Model):
 class VendedorExterno(models.Model):
     nombre = models.CharField(max_length=50, blank=False, null=False)
     telefono = models.CharField(max_length=50, blank=False, null=False)
-    codigo_referido = models.CharField(unique=True, default=generate(size=8), max_length=8)
+    codigo_referido = models.CharField(unique=True, max_length=8)
 
     def __str__(self):
         return self.nombre
