@@ -543,12 +543,12 @@ class TarjetasEndpoint(Schema):
     total_balance: Decimal
 
 
-class OneAreaVentaSchema(Schema):
-    inventario: InventarioAreaVentaSchema
-    ventas: List[VentasSchema]
-    area_venta: str
-    all_productos: List[ProductoInfoSchema]
-    tarjetas: List[TarjetasForVentas]
+# class OneAreaVentaSchema(Schema):
+#     inventario: InventarioAreaVentaSchema
+#     ventas: List[VentasSchema]
+#     area_venta: str
+#     all_productos: List[ProductoInfoSchema]
+#     tarjetas: List[TarjetasForVentas]
 
 
 class Inventario_Almacen_Cafeteria_Schema(ModelSchema):
