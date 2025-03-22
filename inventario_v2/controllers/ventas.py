@@ -55,6 +55,9 @@ class VentasController:
             elif id == 33:
                 if user.pk == 38 or user.area_venta.pk == id:
                     is_authorized = True
+            elif id == 29:
+                if user.pk == 50 or user.area_venta.pk == id:
+                    is_authorized = True
             else:
                 if id == user.area_venta.pk:
                     is_authorized = True
@@ -111,6 +114,9 @@ class VentasController:
                     is_authorized = True
             elif area_venta.pk == 33:
                 if user.pk == 38 or user.area_venta.pk == area_venta.pk:
+                    is_authorized = True
+            elif area_venta.pk == 29:
+                if user.pk == 50 or user.area_venta.pk == area_venta.pk:
                     is_authorized = True
             else:
                 if area_venta.pk == user.area_venta.pk:
@@ -294,6 +300,9 @@ class VentasController:
                     is_authorized = True
             elif venta.area_venta.pk == 33:
                 if user.pk == 38 or user.area_venta.pk == venta.area_venta.pk:
+                    is_authorized = True
+            elif venta.area_venta.pk == 29:
+                if user.pk == 50 or user.area_venta.pk == venta.area_venta.pk:
                     is_authorized = True
             else:
                 if venta.area_venta.pk == user.area_venta.pk:
