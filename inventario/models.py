@@ -5,7 +5,6 @@ from django.contrib.auth.models import (
     BaseUserManager,
     PermissionsMixin,
 )
-from nanoid import generate
 
 
 class AreaVenta(models.Model):
@@ -265,7 +264,7 @@ class Cuentas(models.Model):
 
 
 class BalanceTarjetas(models.Model):
-    tarjeta = models.OneToOneField(
+    cuenta = models.OneToOneField(
         Cuentas,
         on_delete=models.CASCADE,
         null=False,
@@ -446,8 +445,11 @@ class TransferenciasTarjetas(models.Model):
         max_digits=12, decimal_places=2, blank=False, null=False
     )
     descripcion = models.CharField(max_length=50, blank=False, null=False)
-    tarjeta = models.ForeignKey(
-        Cuentas, on_delete=models.CASCADE, null=False, blank=False
+    cuenta = models.ForeignKey(
+        Cuentas,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
     )
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     tipo = models.CharField(
