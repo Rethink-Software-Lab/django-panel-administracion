@@ -87,10 +87,10 @@ WSGI_APPLICATION = "project_inventario.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": "panel-administracion-valero",
-        "USER": "proveedores_db_owner",
-        "PASSWORD": "MSua9rJkq8vI",
-        "HOST": "ep-ancient-moon-a4emqkcq.us-east-1.aws.neon.tech",
+        "NAME": getenv("PGDATABASE"),
+        "USER": getenv("PGUSER"),
+        "PASSWORD": getenv("PGPASSWORD"),
+        "HOST": getenv("PGHOST"),
         "PORT": getenv("PGPORT", 5432),
         "OPTIONS": {
             "sslmode": "require",

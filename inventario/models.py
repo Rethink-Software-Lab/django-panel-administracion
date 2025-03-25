@@ -270,7 +270,7 @@ class BalanceTarjetas(models.Model):
         on_delete=models.CASCADE,
         null=False,
         blank=False,
-        related_name="cuenta",
+        related_name="balance",
     )
     valor = models.DecimalField(
         max_digits=12, decimal_places=2, blank=False, null=False
