@@ -137,7 +137,7 @@ class TarjetasController:
 
         if transferencia.tipo == TipoTranferenciaChoices.INGRESO:
             with transaction.atomic():
-                balance = BalanceTarjetas.objects.get(tarjeta=transferencia.tarjeta)
+                balance = BalanceTarjetas.objects.get(tarjeta=transferencia.cuenta)
                 if (balance.valor - transferencia.cantidad) >= 0:
                     balance.valor = balance.valor - transferencia.cantidad
                     balance.save()
@@ -148,7 +148,7 @@ class TarjetasController:
 
         elif transferencia.tipo == TipoTranferenciaChoices.EGRESO:
             with transaction.atomic():
-                balance = BalanceTarjetas.objects.get(tarjeta=transferencia.tarjeta)
+                balance = BalanceTarjetas.objects.get(tarjeta=transferencia.cuenta)
                 balance.valor = balance.valor + transferencia.cantidad
                 balance.save()
 
