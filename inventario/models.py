@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.db import models
 from django.contrib.auth.models import (
     AbstractBaseUser,
@@ -241,8 +242,23 @@ class BancoChoices(models.TextChoices):
     BANDEC = "BANDEC", "Bandec"
 
 
-class Tarjetas(models.Model):
+class CuentasChoices(models.TextChoices):
+    EFECTIVO = "EFECTIVO", "Efectivo"
+    BANCARIA = "BANCARIA", "Bancaria"
+
+
+class Cuentas(models.Model):
     nombre = models.CharField(max_length=50, blank=False, null=False)
+    tipo = models.CharField(
+        max_length=30, choices=CuentasChoices.choices, blank=False, null=False
+    )
+    saldo = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        blank=False,
+        null=False,
+    )
     banco = models.CharField(
         max_length=50, choices=BancoChoices.choices, blank=False, null=False
     )
@@ -250,11 +266,11 @@ class Tarjetas(models.Model):
 
 class BalanceTarjetas(models.Model):
     tarjeta = models.OneToOneField(
-        Tarjetas,
+        Cuentas,
         on_delete=models.CASCADE,
         null=False,
         blank=False,
-        related_name="balance",
+        related_name="cuenta",
     )
     valor = models.DecimalField(
         max_digits=12, decimal_places=2, blank=False, null=False
@@ -431,7 +447,7 @@ class TransferenciasTarjetas(models.Model):
     )
     descripcion = models.CharField(max_length=50, blank=False, null=False)
     tarjeta = models.ForeignKey(
-        Tarjetas, on_delete=models.CASCADE, null=False, blank=False
+        Cuentas, on_delete=models.CASCADE, null=False, blank=False
     )
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     tipo = models.CharField(
@@ -523,6 +539,7 @@ class CuentaCasa(models.Model):
     def __str__(self):
         return self.created_at.strftime("%d/%m/%Y - %H:%M")
 
+
 class VendedorExterno(models.Model):
     nombre = models.CharField(max_length=50, blank=False, null=False)
     telefono = models.CharField(max_length=50, blank=False, null=False)
@@ -530,4 +547,3 @@ class VendedorExterno(models.Model):
 
     def __str__(self):
         return self.nombre
-    

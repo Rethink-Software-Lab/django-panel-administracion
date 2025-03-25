@@ -8,7 +8,7 @@ from inventario.models import (
     TransferenciasTarjetas,
     TipoTranferenciaChoices,
     METODO_PAGO,
-    Tarjetas,
+    Cuentas,
     BalanceTarjetas,
 )
 from ..schema import (
@@ -135,7 +135,7 @@ class VentasController:
         transferencia = dataDict["transferencia"] if metodo_pago == "MIXTO" else None
 
         if metodo_pago == METODO_PAGO.MIXTO or metodo_pago == METODO_PAGO.TRANSFERENCIA:
-            tarjeta = get_object_or_404(Tarjetas, pk=dataDict["tarjeta"])
+            tarjeta = get_object_or_404(Cuentas, pk=dataDict["tarjeta"])
 
         if (
             efectivo

@@ -1,7 +1,7 @@
 from ninja.errors import HttpError
 from inventario.models import (
     User,
-    Tarjetas,
+    Cuentas,
     BalanceTarjetas,
     TransferenciasTarjetas,
     TipoTranferenciaChoices,
@@ -26,7 +26,7 @@ class TarjetasController:
     @route.get("", response=TarjetasEndpoint)
     def get_all_tarjetas(self):
         tarjetas = (
-            Tarjetas.objects.select_related("balance")
+            Cuentas.objects.select_related("balance")
             .annotate(
                 total_transferencias_mes=Round(
                     Coalesce(
@@ -62,7 +62,7 @@ class TarjetasController:
     def add_tarjeta(self, body: TarjetasModifySchema):
         body_dict = body.model_dump()
 
-        tarjeta = Tarjetas.objects.create(
+        tarjeta = Cuentas.objects.create(
             nombre=body_dict["nombre"],
             banco=body_dict["banco"],
         )
@@ -83,7 +83,7 @@ class TarjetasController:
 
     @route.delete("{id}/")
     def delete_tarjeta(self, id: int):
-        tarjeta = get_object_or_404(Tarjetas, pk=id)
+        tarjeta = get_object_or_404(Cuentas, pk=id)
         try:
             tarjeta.delete()
             return
@@ -107,7 +107,7 @@ class TarjetasController:
         #     except Exception as e:
         #         raise HttpError(400, f"{e}")
         # else:
-        tarjeta = get_object_or_404(Tarjetas, pk=body_dict["tarjeta"])
+        tarjeta = get_object_or_404(Cuentas, pk=body_dict["tarjeta"])
 
         usuario = get_object_or_404(User, pk=request.auth["id"])
 

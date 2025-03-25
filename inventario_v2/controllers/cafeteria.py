@@ -10,7 +10,7 @@ from inventario.models import (
     Inventario_Area_Cafeteria,
     Productos_Ventas_Cafeteria,
     User,
-    Tarjetas,
+    Cuentas,
     BalanceTarjetas,
     TransferenciasTarjetas,
     TipoTranferenciaChoices,
@@ -73,7 +73,7 @@ class CafeteriaController:
         )
         productos = Productos_Cafeteria.objects.all()
         elaboraciones = Elaboraciones.objects.all()
-        tarjetas = Tarjetas.objects.annotate(
+        tarjetas = Cuentas.objects.annotate(
             total_ingresos=Sum(
                 "transferenciastarjetas__cantidad",
                 filter=Q(
@@ -512,7 +512,7 @@ class CafeteriaController:
                 )
 
             if body.metodo_pago in [METODO_PAGO.MIXTO, METODO_PAGO.TRANSFERENCIA]:
-                tarjeta = get_object_or_404(Tarjetas, id=body.tarjeta)
+                tarjeta = get_object_or_404(Cuentas, id=body.tarjeta)
                 if body.metodo_pago == METODO_PAGO.MIXTO:
                     descripcion = (
                         f"[MIXTO] {total_cantidad_productos}x Prod"
