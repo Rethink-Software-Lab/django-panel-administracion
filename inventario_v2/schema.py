@@ -511,7 +511,7 @@ class TarjetasSchema(ModelSchema):
     balance: BalanceTarjetasSchema
 
     class Meta:
-        model = Tarjetas
+        model = Cuentas
         fields = "__all__"
 
 

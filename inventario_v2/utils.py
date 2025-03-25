@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Counter
 
-from inventario.models import Tarjetas, TipoTranferenciaChoices
+from inventario.models import Cuentas, TipoTranferenciaChoices
 from django.db.models import Sum, Value, Q
 from django.db.models.functions import Coalesce, Round
 from django.http import Http404
