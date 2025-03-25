@@ -522,7 +522,7 @@ class TarjetasModifySchema(Schema):
 
 
 class TransferenciasTarjetasSchema(ModelSchema):
-    tarjeta: TarjetasSchema
+    cuenta: TarjetasSchema
     usuario: Optional[UsuariosSchema] = None
 
     class Meta:
