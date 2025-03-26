@@ -203,14 +203,14 @@ class VentasController:
                             sumar_al_balance = ids_count * producto_info.precio_venta
 
                         TransferenciasTarjetas.objects.create(
-                            tarjeta=tarjeta,
+                            cuenta=tarjeta,
                             cantidad=cantidad,
                             descripcion=decripcion,
                             tipo=TipoTranferenciaChoices.INGRESO,
                             usuario=usuario_search,
                             venta=venta,
                         )
-                        balance = BalanceTarjetas.objects.get(tarjeta=tarjeta)
+                        balance = BalanceTarjetas.objects.get(cuenta=tarjeta)
                         balance.valor = balance.valor + sumar_al_balance
                         balance.save()
 
@@ -235,14 +235,14 @@ class VentasController:
                     or metodo_pago == METODO_PAGO.TRANSFERENCIA
                 ):
                     TransferenciasTarjetas.objects.create(
-                        tarjeta=tarjeta,
+                        cuenta=tarjeta,
                         cantidad=dataDict["cantidad"] * producto_info.precio_venta,
                         descripcion=f"{dataDict["cantidad"]}x {dataDict["producto_info"]} - {area_venta.nombre}",
                         tipo=TipoTranferenciaChoices.INGRESO,
                         usuario=usuario_search,
                         venta=venta,
                     )
-                    balance = BalanceTarjetas.objects.get(tarjeta=tarjeta)
+                    balance = BalanceTarjetas.objects.get(cuenta=tarjeta)
                     balance.valor = balance.valor + (
                         dataDict["cantidad"] * producto_info.precio_venta
                     )
@@ -316,7 +316,7 @@ class VentasController:
                     transferencia = get_object_or_404(
                         TransferenciasTarjetas, venta=venta
                     )
-                    balance = BalanceTarjetas.objects.get(tarjeta=transferencia.tarjeta)
+                    balance = BalanceTarjetas.objects.get(cuenta=transferencia.tarjeta)
 
                     balance.valor = balance.valor - transferencia.cantidad
                     balance.save()

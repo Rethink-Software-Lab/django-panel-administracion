@@ -68,7 +68,7 @@ class CafeteriaController:
                     ),
                     Value(Decimal(0)),
                 ),
-                tarjeta=F("transferenciastarjetas__tarjeta__nombre"),
+                tarjeta=F("transferenciastarjetas__cuenta__nombre"),
             )
         )
         productos = Productos_Cafeteria.objects.all()
@@ -531,14 +531,14 @@ class CafeteriaController:
                     else total_venta
                 )
                 TransferenciasTarjetas.objects.create(
-                    tarjeta=tarjeta,
+                    cuenta=tarjeta,
                     cantidad=total_venta,
                     descripcion=descripcion,
                     tipo=TipoTranferenciaChoices.INGRESO,
                     usuario=usuario,
                     venta_cafeteria=venta,
                 )
-                balance = BalanceTarjetas.objects.get(tarjeta=tarjeta)
+                balance = BalanceTarjetas.objects.get(cuenta=tarjeta)
                 balance.valor += suma_balance
                 balance.save()
 
@@ -661,7 +661,7 @@ class CafeteriaController:
             if venta.metodo_pago in [METODO_PAGO.MIXTO, METODO_PAGO.TRANSFERENCIA]:
                 balance = get_object_or_404(
                     BalanceTarjetas,
-                    tarjeta__transferenciastarjetas__venta_cafeteria=venta,
+                    cuenta__transferenciastarjetas__venta_cafeteria=venta,
                 )
                 balance.valor += total_venta
                 balance.save()

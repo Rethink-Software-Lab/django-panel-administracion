@@ -603,7 +603,7 @@ class Ventas_Cafeteria_Schema(ModelSchema):
     productos: List[Productos_Ventas_Cafeteria]
     elaboraciones: List[Elaboraciones_Ventas_Cafeteria]
     importe: Decimal
-    tarjeta: Optional[str] = None
+    cuenta: Optional[str] = None
 
     class Meta:
         model = Ventas_Cafeteria
