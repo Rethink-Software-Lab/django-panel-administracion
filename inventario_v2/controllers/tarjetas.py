@@ -87,7 +87,7 @@ class TarjetasController:
         except:
             raise HttpError(400, "La cantidad debe ser un número decimal valido")
 
-        tarjeta = get_object_or_404(Cuentas, pk=body_dict["tarjeta"])
+        tarjeta = get_object_or_404(Cuentas, pk=body_dict["cuenta"])
 
         usuario = get_object_or_404(User, pk=request.auth["id"])
 
@@ -103,7 +103,7 @@ class TarjetasController:
                 tarjeta.save()
 
             TransferenciasTarjetas.objects.create(
-                tarjeta=tarjeta,
+                cuenta=tarjeta,
                 cantidad=cantidad,
                 descripcion=body_dict["descripcion"],
                 tipo=body_dict["tipo"],

@@ -518,7 +518,7 @@ class TransferenciasTarjetasSchema(ModelSchema):
 
 
 class TransferenciasTarjetasModify(Schema):
-    tarjeta: int
+    cuenta: int
     cantidad: str
     descripcion: str
     tipo: str
