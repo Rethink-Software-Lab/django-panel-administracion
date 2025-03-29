@@ -25,8 +25,7 @@ class TarjetasController:
     @route.get("", response=TarjetasEndpoint)
     def get_all_tarjetas(self):
         tarjetas = (
-            Cuentas.objects.select_related("balance")
-            .annotate(
+            Cuentas.objects.annotate(
                 total_transferencias_mes=Round(
                     Coalesce(
                         Sum(
