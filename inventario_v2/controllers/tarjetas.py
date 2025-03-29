@@ -2,8 +2,9 @@ from ninja.errors import HttpError
 from inventario.models import (
     User,
     Cuentas,
-    TransferenciasTarjetas,
+    Transacciones,
     TipoTranferenciaChoices,
+    CuentasChoices,
 )
 from ..schema import (
     TarjetasModifySchema,
@@ -25,14 +26,15 @@ class TarjetasController:
     @route.get("", response=TarjetasEndpoint)
     def get_all_tarjetas(self):
         tarjetas = (
-            Cuentas.objects.annotate(
+            Cuentas.objects.filter(tipo=CuentasChoices.BANCARIA)
+            .annotate(
                 total_transferencias_mes=Round(
                     Coalesce(
                         Sum(
-                            "transferenciastarjetas__cantidad",
+                            "transacciones__cantidad",
                             filter=Q(
-                                transferenciastarjetas__created_at__month=datetime.now().month,
-                                transferenciastarjetas__tipo=TipoTranferenciaChoices.INGRESO,
+                                transacciones__created_at__month=datetime.now().month,
+                                transacciones__tipo=TipoTranferenciaChoices.INGRESO,
                             ),
                         ),
                         Value(Decimal(0)),
@@ -46,7 +48,9 @@ class TarjetasController:
 
         total_balance = tarjetas.aggregate(balance=Sum("saldo"))["balance"] or 0
 
-        transferencias = TransferenciasTarjetas.objects.all().order_by("-id")
+        transferencias = Transacciones.objects.filter(
+            cuenta__tipo=CuentasChoices.BANCARIA
+        ).order_by("-id")
         return {
             "tarjetas": tarjetas,
             "transferencias": transferencias,
@@ -102,7 +106,7 @@ class TarjetasController:
                 tarjeta.saldo -= cantidad
                 tarjeta.save()
 
-            TransferenciasTarjetas.objects.create(
+            Transacciones.objects.create(
                 cuenta=tarjeta,
                 cantidad=cantidad,
                 descripcion=body_dict["descripcion"],
@@ -112,7 +116,7 @@ class TarjetasController:
 
     @route.delete("transferencia/{id}/")
     def delete_transferencia(self, id: int):
-        transferencia = get_object_or_404(TransferenciasTarjetas, pk=id)
+        transferencia = get_object_or_404(Transacciones, pk=id)
         tarjeta = get_object_or_404(Cuentas, pk=transferencia.cuenta.pk)
 
         if transferencia.tipo == TipoTranferenciaChoices.INGRESO:

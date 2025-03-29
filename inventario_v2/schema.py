@@ -513,7 +513,7 @@ class TransferenciasTarjetasSchema(ModelSchema):
     usuario: Optional[UsuariosSchema] = None
 
     class Meta:
-        model = TransferenciasTarjetas
+        model = Transacciones
         fields = "__all__"
 
 
