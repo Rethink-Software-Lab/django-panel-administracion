@@ -11,7 +11,7 @@ from inventario.models import (
     Productos_Ventas_Cafeteria,
     User,
     Cuentas,
-    TransferenciasTarjetas,
+    Transacciones,
     TipoTranferenciaChoices,
     Elaboraciones,
     Ingrediente_Cantidad,
@@ -67,17 +67,17 @@ class CafeteriaController:
                     ),
                     Value(Decimal(0)),
                 ),
-                tarjeta=F("transferenciastarjetas__cuenta__nombre"),
+                tarjeta=F("transacciones__cuenta__nombre"),
             )
         )
         productos = Productos_Cafeteria.objects.all()
         elaboraciones = Elaboraciones.objects.all()
         tarjetas = Cuentas.objects.annotate(
             total_ingresos=Sum(
-                "transferenciastarjetas__cantidad",
+                "transacciones__cantidad",
                 filter=Q(
-                    transferenciastarjetas__created_at__month=datetime.now().month,
-                    transferenciastarjetas__tipo=TipoTranferenciaChoices.INGRESO,
+                    transacciones__created_at__month=datetime.now().month,
+                    transacciones__tipo=TipoTranferenciaChoices.INGRESO,
                 ),
             ),
             disponible=Case(
@@ -529,7 +529,7 @@ class CafeteriaController:
                     if body.metodo_pago == METODO_PAGO.MIXTO
                     else total_venta
                 )
-                TransferenciasTarjetas.objects.create(
+                Transacciones.objects.create(
                     cuenta=tarjeta,
                     cantidad=total_venta,
                     descripcion=descripcion,
@@ -659,11 +659,11 @@ class CafeteriaController:
             if venta.metodo_pago in [METODO_PAGO.MIXTO, METODO_PAGO.TRANSFERENCIA]:
                 tarjeta = get_object_or_404(
                     Cuentas,
-                    transferenciastarjetas__venta_cafeteria=venta,
+                    transacciones__venta_cafeteria=venta,
                 )
                 tarjeta.saldo += total_venta
                 tarjeta.save()
 
-                TransferenciasTarjetas.objects.get(venta_cafeteria=venta).delete()
+                Transacciones.objects.get(venta_cafeteria=venta).delete()
 
             venta.delete()

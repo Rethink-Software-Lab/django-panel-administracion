@@ -8,7 +8,7 @@ admin.site.register(SalidaAlmacen)
 admin.site.register(Ventas)
 admin.site.register(Categorias)
 admin.site.register(Cuentas)
-admin.site.register(TransferenciasTarjetas)
+admin.site.register(Transacciones)
 admin.site.register(Productos_Cafeteria)
 
 

@@ -5,7 +5,7 @@ from inventario.models import (
     User,
     AreaVenta,
     Producto,
-    TransferenciasTarjetas,
+    Transacciones,
     TipoTranferenciaChoices,
     METODO_PAGO,
     Cuentas,
@@ -201,7 +201,7 @@ class VentasController:
                             decripcion = f"{ids_count}x {dataDict['producto_info']} - {area_venta.nombre}"
                             sumar_al_balance = ids_count * producto_info.precio_venta
 
-                        TransferenciasTarjetas.objects.create(
+                        Transacciones.objects.create(
                             cuenta=tarjeta,
                             cantidad=cantidad,
                             descripcion=decripcion,
@@ -232,7 +232,7 @@ class VentasController:
                     metodo_pago == METODO_PAGO.MIXTO
                     or metodo_pago == METODO_PAGO.TRANSFERENCIA
                 ):
-                    TransferenciasTarjetas.objects.create(
+                    Transacciones.objects.create(
                         cuenta=tarjeta,
                         cantidad=dataDict["cantidad"] * producto_info.precio_venta,
                         descripcion=f"{dataDict["cantidad"]}x {dataDict["producto_info"]} - {area_venta.nombre}",
@@ -308,9 +308,7 @@ class VentasController:
         try:
             with transaction.atomic():
                 if venta.metodo_pago != METODO_PAGO.EFECTIVO:
-                    transferencia = get_object_or_404(
-                        TransferenciasTarjetas, venta=venta
-                    )
+                    transferencia = get_object_or_404(Transacciones, venta=venta)
                     tarjeta = Cuentas.objects.get(pk=transferencia.cuenta.pk)
 
                     tarjeta.saldo -= transferencia.cantidad
