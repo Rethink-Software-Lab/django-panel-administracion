@@ -263,19 +263,6 @@ class Cuentas(models.Model):
     )
 
 
-class BalanceTarjetas(models.Model):
-    cuenta = models.OneToOneField(
-        Cuentas,
-        on_delete=models.CASCADE,
-        null=False,
-        blank=False,
-        related_name="balance",
-    )
-    valor = models.DecimalField(
-        max_digits=12, decimal_places=2, blank=False, null=False
-    )
-
-
 # CAFERTERIA
 class Productos_Cafeteria(models.Model):
     nombre = models.CharField(max_length=50, blank=False, null=False)

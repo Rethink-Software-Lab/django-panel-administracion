@@ -375,11 +375,6 @@ class SearchProductSchema(Schema):
     inventario: List[Otros] | List[ZapatosForSearch]
 
 
-# class VentasPorAreaSchema(Schema):
-#     dia: str
-#     str Dict[str, Dict[str, Any]]
-
-
 class VentasAnualesSchema(Schema):
     mes: str
     ventas: Decimal
@@ -486,15 +481,9 @@ class GastosModifySchema(Schema):
     dia_mes: Optional[Annotated[int, Field(strict=True, ge=1, le=31)]] = None
 
 
-class BalanceTarjetasSchema(ModelSchema):
-    class Meta:
-        model = BalanceTarjetas
-        fields = "__all__"
-
-
 class TarjetasWithTotalMESyDIASchema(Schema):
     id: int
-    balance: BalanceTarjetasSchema
+    saldo: Decimal
     nombre: str
     banco: str
     total_transferencias_mes: Decimal
@@ -508,8 +497,6 @@ class TarjetasForVentas(Schema):
 
 
 class TarjetasSchema(ModelSchema):
-    balance: BalanceTarjetasSchema
-
     class Meta:
         model = Cuentas
         fields = "__all__"
@@ -541,14 +528,6 @@ class TarjetasEndpoint(Schema):
     tarjetas: List[TarjetasWithTotalMESyDIASchema]
     transferencias: List[TransferenciasTarjetasSchema]
     total_balance: Decimal
-
-
-# class OneAreaVentaSchema(Schema):
-#     inventario: InventarioAreaVentaSchema
-#     ventas: List[VentasSchema]
-#     area_venta: str
-#     all_productos: List[ProductoInfoSchema]
-#     tarjetas: List[TarjetasForVentas]
 
 
 class Inventario_Almacen_Cafeteria_Schema(ModelSchema):

@@ -2,7 +2,6 @@ from ninja.errors import HttpError
 from inventario.models import (
     User,
     Cuentas,
-    BalanceTarjetas,
     TransferenciasTarjetas,
     TipoTranferenciaChoices,
 )
@@ -46,10 +45,7 @@ class TarjetasController:
             .order_by("-id")
         )
 
-        total_balance = (
-            BalanceTarjetas.objects.all().aggregate(balance=Sum("valor"))["balance"]
-            or 0
-        )
+        total_balance = tarjetas.aggregate(balance=Sum("saldo"))["balance"] or 0
 
         transferencias = TransferenciasTarjetas.objects.all().order_by("-id")
         return {
@@ -72,13 +68,6 @@ class TarjetasController:
         except:
             raise HttpError(400, "El saldo debe ser un número decimal valido")
 
-        if saldo > 0:
-            BalanceTarjetas.objects.create(
-                tarjeta=tarjeta, valor=body_dict["saldo_inicial"]
-            )
-        else:
-            BalanceTarjetas.objects.create(tarjeta=tarjeta, valor=Decimal(0))
-
         return
 
     @route.delete("{id}/")
@@ -99,29 +88,20 @@ class TarjetasController:
         except:
             raise HttpError(400, "La cantidad debe ser un número decimal valido")
 
-        # if body_dict["tipo"] == TipoTranferenciaChoices.EGRESO:
-        #     try:
-        #         tarjeta = validate_transferencia(id_tarjeta=body_dict["tarjeta"])
-        #     except Http404:
-        #         raise HttpError(404, "Tarjeta no encontrada")
-        #     except Exception as e:
-        #         raise HttpError(400, f"{e}")
-        # else:
         tarjeta = get_object_or_404(Cuentas, pk=body_dict["tarjeta"])
 
         usuario = get_object_or_404(User, pk=request.auth["id"])
 
         with transaction.atomic():
-            balance = BalanceTarjetas.objects.get(tarjeta=tarjeta)
             if body_dict["tipo"] == TipoTranferenciaChoices.INGRESO:
-                balance.valor = balance.valor + cantidad
-                balance.save()
+                tarjeta.saldo += cantidad
+                tarjeta.save()
             elif body_dict["tipo"] == TipoTranferenciaChoices.EGRESO:
-                if (balance.valor - cantidad) <= 0:
+                if (tarjeta.saldo - cantidad) <= 0:
                     raise HttpError(400, "No hay saldo sufiente para esta accion")
 
-                balance.valor = balance.valor - cantidad
-                balance.save()
+                tarjeta.saldo -= cantidad
+                tarjeta.save()
 
             TransferenciasTarjetas.objects.create(
                 tarjeta=tarjeta,
@@ -134,13 +114,13 @@ class TarjetasController:
     @route.delete("transferencia/{id}/")
     def delete_transferencia(self, id: int):
         transferencia = get_object_or_404(TransferenciasTarjetas, pk=id)
+        tarjeta = get_object_or_404(Cuentas, pk=transferencia.cuenta.pk)
 
         if transferencia.tipo == TipoTranferenciaChoices.INGRESO:
             with transaction.atomic():
-                balance = BalanceTarjetas.objects.get(tarjeta=transferencia.cuenta)
-                if (balance.valor - transferencia.cantidad) >= 0:
-                    balance.valor = balance.valor - transferencia.cantidad
-                    balance.save()
+                if (tarjeta.saldo - transferencia.cantidad) >= 0:
+                    tarjeta.saldo -= transferencia.cantidad
+                    tarjeta.save()
                 else:
                     raise HttpError(400, "No hay saldo sufiente para esta acción")
 
@@ -148,9 +128,8 @@ class TarjetasController:
 
         elif transferencia.tipo == TipoTranferenciaChoices.EGRESO:
             with transaction.atomic():
-                balance = BalanceTarjetas.objects.get(tarjeta=transferencia.cuenta)
-                balance.valor = balance.valor + transferencia.cantidad
-                balance.save()
+                tarjeta.saldo += transferencia.cantidad
+                tarjeta.save()
 
                 transferencia.delete()
 
