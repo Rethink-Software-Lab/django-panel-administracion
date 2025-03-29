@@ -9,7 +9,6 @@ from inventario.models import (
     TipoTranferenciaChoices,
     METODO_PAGO,
     Cuentas,
-    BalanceTarjetas,
 )
 from ..schema import (
     AddVentaSchema,
@@ -210,9 +209,8 @@ class VentasController:
                             usuario=usuario_search,
                             venta=venta,
                         )
-                        balance = BalanceTarjetas.objects.get(cuenta=tarjeta)
-                        balance.valor = balance.valor + sumar_al_balance
-                        balance.save()
+                        tarjeta.saldo += sumar_al_balance
+                        tarjeta.save()
 
                     return {"success": True}
             except Exception as e:
@@ -242,11 +240,8 @@ class VentasController:
                         usuario=usuario_search,
                         venta=venta,
                     )
-                    balance = BalanceTarjetas.objects.get(cuenta=tarjeta)
-                    balance.valor = balance.valor + (
-                        dataDict["cantidad"] * producto_info.precio_venta
-                    )
-                    balance.save()
+                    tarjeta.saldo += dataDict["cantidad"] * producto_info.precio_venta
+                    tarjeta.save()
 
                 productos = Producto.objects.filter(
                     area_venta=area_venta,
@@ -316,10 +311,10 @@ class VentasController:
                     transferencia = get_object_or_404(
                         TransferenciasTarjetas, venta=venta
                     )
-                    balance = BalanceTarjetas.objects.get(cuenta=transferencia.tarjeta)
+                    tarjeta = Cuentas.objects.get(pk=transferencia.cuenta.pk)
 
-                    balance.valor = balance.valor - transferencia.cantidad
-                    balance.save()
+                    tarjeta.saldo -= transferencia.cantidad
+                    tarjeta.save()
 
                 venta.delete()
             return {"success": True}

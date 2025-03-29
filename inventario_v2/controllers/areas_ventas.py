@@ -1,20 +1,11 @@
-from decimal import Decimal
 from ninja.errors import HttpError
 from inventario.models import (
-    # ProductoInfo,
-    # Producto,
-    # Ventas,
     AreaVenta,
-    # Categorias,
-    # Tarjetas,
-    # TipoTranferenciaChoices,
 )
 from ..schema import AreaVentaSchema, AreaVentaModifySchema
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
 from typing import List
-# from django.db.models import Count, Q, F, Sum, Case, When, Value, BooleanField
-# from datetime import datetime
 
 
 @api_controller("areas-ventas/", tags=["Áreas de ventas"], permissions=[])
@@ -24,101 +15,6 @@ class AreasVentasController:
     def getAreas(self):
         areas = AreaVenta.objects.all().order_by("-id")
         return areas
-
-    # @route.get("{id}/", response=OneAreaVentaSchema)
-    # def get_one_area_de_venta(self, id: int):
-    #     area_venta = get_object_or_404(AreaVenta, id=id)
-
-    #     producto_info = (
-    #         ProductoInfo.objects.filter(
-    #             producto__venta__isnull=True,
-    #             producto__area_venta=area_venta,
-    #             producto__ajusteinventario__isnull=True,
-    #         )
-    #         .annotate(cantidad=Count(F("producto")))
-    #         .exclude(Q(cantidad__lt=1) | Q(categoria__nombre="Zapatos"))
-    #         .values(
-    #             "id",
-    #             "descripcion",
-    #             "codigo",
-    #             "precio_venta",
-    #             "cantidad",
-    #             "categoria__nombre",
-    #         )
-    #     )
-    #     zapatos = Producto.objects.filter(
-    #         venta__isnull=True,
-    #         area_venta=area_venta,
-    #         info__categoria__nombre="Zapatos",
-    #         ajusteinventario__isnull=True,
-    #     ).values(
-    #         "id",
-    #         "info__codigo",
-    #         "info__descripcion",
-    #         "color",
-    #         "numero",
-    #     )
-
-    #     all_productos = (
-    #         ProductoInfo.objects.filter(
-    #             producto__venta__isnull=True,
-    #             producto__area_venta=area_venta,
-    #             producto__ajusteinventario__isnull=True,
-    #         )
-    #         .only("codigo", "categoria")
-    #         .distinct()
-    #     )
-
-    #     categorias = Categorias.objects.all()
-
-    #     ventas = (
-    #         Ventas.objects.filter(area_venta=id)
-    #         .annotate(
-    #             importe=Sum("producto__info__precio_venta")
-    #             - Sum("producto__info__pago_trabajador"),
-    #             cantidad=Count("producto"),
-    #         )
-    #         .values(
-    #             "importe",
-    #             "created_at",
-    #             "metodo_pago",
-    #             "usuario__username",
-    #             "producto__info__descripcion",
-    #             "cantidad",
-    #             "id",
-    #         )
-    #         .order_by("-created_at")
-    #     )
-
-    #     tarjetas = (
-    #         Tarjetas.objects.select_related("balance")
-    #         .annotate(
-    #             total_ingresos=Sum(
-    #                 "transferenciastarjetas__cantidad",
-    #                 filter=Q(
-    #                     transferenciastarjetas__created_at__month=datetime.now().month,
-    #                     transferenciastarjetas__tipo=TipoTranferenciaChoices.INGRESO,
-    #                 ),
-    #             ),
-    #             disponible=Case(
-    #                 When(Q(total_ingresos__gte=Decimal(120000)), then=Value(False)),
-    #                 default=Value(True),
-    #                 output_field=BooleanField(),
-    #             ),
-    #         )
-    #         .order_by("-id")
-    #     )
-    #     return {
-    #         "inventario": {
-    #             "productos": producto_info,
-    #             "zapatos": zapatos,
-    #             "categorias": categorias,
-    #         },
-    #         "ventas": ventas,
-    #         "area_venta": area_venta.nombre,
-    #         "all_productos": all_productos,
-    #         "tarjetas": tarjetas,
-    #     }
 
     @route.post("", response=None)
     def addArea(self, area: AreaVentaModifySchema):

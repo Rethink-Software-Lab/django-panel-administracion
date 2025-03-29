@@ -11,7 +11,6 @@ from inventario.models import (
     Productos_Ventas_Cafeteria,
     User,
     Cuentas,
-    BalanceTarjetas,
     TransferenciasTarjetas,
     TipoTranferenciaChoices,
     Elaboraciones,
@@ -41,7 +40,7 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 from decimal import Decimal
 from django.db.models import Q, Sum, Value, F, Case, When, BooleanField, IntegerField
-from django.db.models.functions import Coalesce, Round
+from django.db.models.functions import Coalesce
 
 
 @api_controller("cafeteria/", tags=["Cafetería"], permissions=[])
@@ -538,9 +537,8 @@ class CafeteriaController:
                     usuario=usuario,
                     venta_cafeteria=venta,
                 )
-                balance = BalanceTarjetas.objects.get(cuenta=tarjeta)
-                balance.valor += suma_balance
-                balance.save()
+                tarjeta.saldo += suma_balance
+                tarjeta.save()
 
         return
 
@@ -659,12 +657,12 @@ class CafeteriaController:
                         )
 
             if venta.metodo_pago in [METODO_PAGO.MIXTO, METODO_PAGO.TRANSFERENCIA]:
-                balance = get_object_or_404(
-                    BalanceTarjetas,
-                    cuenta__transferenciastarjetas__venta_cafeteria=venta,
+                tarjeta = get_object_or_404(
+                    Cuentas,
+                    transferenciastarjetas__venta_cafeteria=venta,
                 )
-                balance.valor += total_venta
-                balance.save()
+                tarjeta.saldo += total_venta
+                tarjeta.save()
 
                 TransferenciasTarjetas.objects.get(venta_cafeteria=venta).delete()
 
