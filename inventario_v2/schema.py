@@ -504,6 +504,7 @@ class TarjetasSchema(ModelSchema):
 
 class TarjetasModifySchema(Schema):
     nombre: str
+    tipo: CuentasChoices
     banco: BancoChoices
     saldo_inicial: str
 

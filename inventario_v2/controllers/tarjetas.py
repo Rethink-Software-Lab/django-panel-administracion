@@ -61,15 +61,15 @@ class TarjetasController:
     def add_tarjeta(self, body: TarjetasModifySchema):
         body_dict = body.model_dump()
 
-        tarjeta = Cuentas.objects.create(
-            nombre=body_dict["nombre"],
-            banco=body_dict["banco"],
-        )
-
         try:
-            saldo = Decimal(body_dict["saldo_inicial"])
+            Cuentas.objects.create(
+                nombre=body_dict["nombre"],
+                banco=body_dict["banco"],
+                tipo=body_dict["tipo"],
+                saldo=Decimal(body_dict["saldo_inicial"]),
+            )
         except:
-            raise HttpError(400, "El saldo debe ser un número decimal valido")
+            raise HttpError(400, "Error al crear la tarjeta")
 
         return
 
