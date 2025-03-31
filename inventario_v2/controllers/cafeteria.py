@@ -526,8 +526,8 @@ class CafeteriaController:
                     " - Cafetería"
                 )
 
-            transferencia = body_dict["transferencia"]
-            efectivo = body_dict["efectivo"]
+            transferencia = Decimal(body_dict["transferencia"])
+            efectivo = Decimal(body_dict["efectivo"])
 
             if body.metodo_pago == METODO_PAGO.MIXTO:
                 Transacciones.objects.create(
@@ -656,7 +656,6 @@ class CafeteriaController:
         with transaction.atomic():
             venta = get_object_or_404(Ventas_Cafeteria, id=id)
 
-            total_venta = 0
             for producto_venta_cafeteria in venta.productos.all():
                 inventario = get_object_or_404(
                     Inventario_Area_Cafeteria,
@@ -664,11 +663,6 @@ class CafeteriaController:
                 )
                 inventario.cantidad += producto_venta_cafeteria.cantidad
                 inventario.save()
-
-                total_venta += (
-                    producto_venta_cafeteria.cantidad
-                    * producto_venta_cafeteria.producto.precio_venta
-                )
 
             for elaboracion_venta_cafeteria in venta.elaboraciones.all():
                 for (
@@ -683,16 +677,12 @@ class CafeteriaController:
                     )
                     inventario.save()
 
-                    total_venta += (
-                        ingrediente_cantidad.cantidad
-                        * ingrediente_cantidad.ingrediente.precio_venta
-                    )
-
-            cuentas = Cuentas.objects.filter(transacciones__venta_cafeteria=venta)
-            for cuenta in cuentas:
-                cuenta.saldo -= total_venta
+            transacciones = Transacciones.objects.filter(venta_cafeteria=venta)
+            for transaccion in transacciones:
+                cuenta = Cuentas.objects.get(pk=transaccion.cuenta.pk)
+                cuenta.saldo -= transaccion.cantidad
                 cuenta.save()
 
-            Transacciones.objects.filter(venta_cafeteria=venta).delete()
+            transaccion.delete()
 
             venta.delete()
