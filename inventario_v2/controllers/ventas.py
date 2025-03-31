@@ -1,3 +1,5 @@
+from decimal import Decimal
+from typing import Optional
 from ninja.errors import HttpError
 from inventario.models import (
     ProductoInfo,
@@ -130,11 +132,12 @@ class VentasController:
         usuario_search = get_object_or_404(User, pk=request.auth["id"])
         metodo_pago = dataDict["metodoPago"]
 
-        efectivo = dataDict["efectivo"] if metodo_pago == "MIXTO" else None
-        transferencia = dataDict["transferencia"] if metodo_pago == "MIXTO" else None
+        efectivo: Optional[Decimal] = dataDict["efectivo"]
+        transferencia: Optional[Decimal] = dataDict["transferencia"]
 
-        if metodo_pago == METODO_PAGO.MIXTO or metodo_pago == METODO_PAGO.TRANSFERENCIA:
-            tarjeta = get_object_or_404(Cuentas, pk=dataDict["tarjeta"])
+        cuenta_efectivo = get_object_or_404(Cuentas, pk=25)
+        if dataDict["metodoPago"] != METODO_PAGO.EFECTIVO:
+            cuenta_transferencia = get_object_or_404(Cuentas, pk=dataDict["tarjeta"])
 
         if (
             efectivo
@@ -183,34 +186,57 @@ class VentasController:
                     )
                     productos.update(venta=venta)
 
+                    total_venta = ids_count * producto_info.precio_venta
+
                     if (
-                        metodo_pago == METODO_PAGO.MIXTO
-                        or metodo_pago == METODO_PAGO.TRANSFERENCIA
+                        dataDict["metodoPago"] == METODO_PAGO.MIXTO
+                        and transferencia
+                        and efectivo
                     ):
-                        if metodo_pago == METODO_PAGO.MIXTO:
-                            if transferencia is None:
-                                raise HttpError(400, "transferencia es requerida")
-                            cantidad = (
-                                ids_count * transferencia if transferencia else None
-                            )
-                            decripcion = f"[MIXTO] {ids_count}x {dataDict['producto_info']} - {area_venta.nombre}"
-                            sumar_al_balance = transferencia
-
-                        elif metodo_pago == METODO_PAGO.TRANSFERENCIA:
-                            cantidad = ids_count * producto_info.precio_venta
-                            decripcion = f"{ids_count}x {dataDict['producto_info']} - {area_venta.nombre}"
-                            sumar_al_balance = ids_count * producto_info.precio_venta
-
                         Transacciones.objects.create(
-                            cuenta=tarjeta,
-                            cantidad=cantidad,
-                            descripcion=decripcion,
+                            cuenta=cuenta_transferencia,
+                            cantidad=transferencia,
+                            descripcion=f"[MIXTO] {ids_count}x {dataDict['producto_info']} - {area_venta.nombre}",
                             tipo=TipoTranferenciaChoices.INGRESO,
                             usuario=usuario_search,
                             venta=venta,
                         )
-                        tarjeta.saldo += sumar_al_balance
-                        tarjeta.save()
+                        cuenta_transferencia.saldo += transferencia
+                        cuenta_transferencia.save()
+                        Transacciones.objects.create(
+                            cuenta=cuenta_efectivo,
+                            cantidad=efectivo,
+                            descripcion=f"[MIXTO] {ids_count}x {dataDict['producto_info']} - {area_venta.nombre}",
+                            tipo=TipoTranferenciaChoices.INGRESO,
+                            usuario=usuario_search,
+                            venta=venta,
+                        )
+                        cuenta_efectivo.saldo += efectivo
+                        cuenta_efectivo.save()
+
+                    elif dataDict["metodoPago"] == METODO_PAGO.TRANSFERENCIA:
+                        Transacciones.objects.create(
+                            cuenta=cuenta_transferencia,
+                            cantidad=total_venta,
+                            descripcion=f"{ids_count}x {dataDict['producto_info']} - {area_venta.nombre}",
+                            tipo=TipoTranferenciaChoices.INGRESO,
+                            usuario=usuario_search,
+                            venta=venta,
+                        )
+                        cuenta_transferencia.saldo += total_venta
+                        cuenta_transferencia.save()
+
+                    else:
+                        Transacciones.objects.create(
+                            cuenta=cuenta_efectivo,
+                            cantidad=total_venta,
+                            descripcion=f"{ids_count}x {dataDict['producto_info']} - {area_venta.nombre}",
+                            tipo=TipoTranferenciaChoices.INGRESO,
+                            usuario=usuario_search,
+                            venta=venta,
+                        )
+                        cuenta_efectivo.saldo += total_venta
+                        cuenta_efectivo.save()
 
                     return {"success": True}
             except Exception as e:
@@ -228,20 +254,57 @@ class VentasController:
                     transferencia=transferencia,
                 )
 
+                total_venta = cantidad * producto_info.precio_venta
+
                 if (
-                    metodo_pago == METODO_PAGO.MIXTO
-                    or metodo_pago == METODO_PAGO.TRANSFERENCIA
+                    dataDict["metodoPago"] == METODO_PAGO.MIXTO
+                    and transferencia
+                    and efectivo
                 ):
                     Transacciones.objects.create(
-                        cuenta=tarjeta,
-                        cantidad=dataDict["cantidad"] * producto_info.precio_venta,
-                        descripcion=f"{dataDict["cantidad"]}x {dataDict["producto_info"]} - {area_venta.nombre}",
+                        cuenta=cuenta_transferencia,
+                        cantidad=transferencia,
+                        descripcion=f"[MIXTO] {cantidad}x {dataDict['producto_info']} - {area_venta.nombre}",
                         tipo=TipoTranferenciaChoices.INGRESO,
                         usuario=usuario_search,
                         venta=venta,
                     )
-                    tarjeta.saldo += dataDict["cantidad"] * producto_info.precio_venta
-                    tarjeta.save()
+                    cuenta_transferencia.saldo += transferencia
+                    cuenta_transferencia.save()
+                    Transacciones.objects.create(
+                        cuenta=cuenta_efectivo,
+                        cantidad=efectivo,
+                        descripcion=f"[MIXTO] {cantidad}x {dataDict['producto_info']} - {area_venta.nombre}",
+                        tipo=TipoTranferenciaChoices.INGRESO,
+                        usuario=usuario_search,
+                        venta=venta,
+                    )
+                    cuenta_efectivo.saldo += efectivo
+                    cuenta_efectivo.save()
+
+                elif dataDict["metodoPago"] == METODO_PAGO.TRANSFERENCIA:
+                    Transacciones.objects.create(
+                        cuenta=cuenta_transferencia,
+                        cantidad=total_venta,
+                        descripcion=f"{cantidad}x {dataDict['producto_info']} - {area_venta.nombre}",
+                        tipo=TipoTranferenciaChoices.INGRESO,
+                        usuario=usuario_search,
+                        venta=venta,
+                    )
+                    cuenta_transferencia.saldo += total_venta
+                    cuenta_transferencia.save()
+
+                else:
+                    Transacciones.objects.create(
+                        cuenta=cuenta_efectivo,
+                        cantidad=total_venta,
+                        descripcion=f"{cantidad}x {dataDict['producto_info']} - {area_venta.nombre}",
+                        tipo=TipoTranferenciaChoices.INGRESO,
+                        usuario=usuario_search,
+                        venta=venta,
+                    )
+                    cuenta_efectivo.saldo += total_venta
+                    cuenta_efectivo.save()
 
                 productos = Producto.objects.filter(
                     area_venta=area_venta,
@@ -307,13 +370,13 @@ class VentasController:
             raise HttpError(401, "Unauthorized")
         try:
             with transaction.atomic():
-                if venta.metodo_pago != METODO_PAGO.EFECTIVO:
-                    transferencia = get_object_or_404(Transacciones, venta=venta)
-                    tarjeta = Cuentas.objects.get(pk=transferencia.cuenta.pk)
+                transacciones = Transacciones.objects.filter(venta=venta)
+                for transaccion in transacciones:
+                    cuenta = Cuentas.objects.get(pk=transaccion.cuenta.pk)
+                    cuenta.saldo -= transaccion.cantidad
+                    cuenta.save()
 
-                    tarjeta.saldo -= transferencia.cantidad
-                    tarjeta.save()
-
+                transacciones.delete()
                 venta.delete()
             return {"success": True}
         except:
