@@ -691,7 +691,7 @@ class CafeteriaController:
             cuentas = Cuentas.objects.filter(transacciones__venta_cafeteria=venta)
             for cuenta in cuentas:
                 cuenta.saldo -= total_venta
-            cuenta.save()
+                cuenta.save()
 
             Transacciones.objects.filter(venta_cafeteria=venta).delete()
 
