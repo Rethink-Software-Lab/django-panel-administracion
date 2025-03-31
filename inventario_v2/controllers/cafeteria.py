@@ -551,7 +551,7 @@ class CafeteriaController:
                 cuenta_efectivo.saldo += transferencia
                 cuenta_efectivo.save()
 
-            else:
+            elif body.metodo_pago == METODO_PAGO.TRANSFERENCIA:
                 Transacciones.objects.create(
                     cuenta=cuenta_transaferencia,
                     cantidad=total_venta,
@@ -562,6 +562,18 @@ class CafeteriaController:
                 )
                 cuenta_transaferencia.saldo += total_venta
                 cuenta_transaferencia.save()
+
+            else:
+                Transacciones.objects.create(
+                    cuenta=cuenta_efectivo,
+                    cantidad=total_venta,
+                    descripcion=descripcion,
+                    tipo=TipoTranferenciaChoices.INGRESO,
+                    usuario=usuario,
+                    venta_cafeteria=venta,
+                )
+                cuenta_efectivo.saldo += total_venta
+                cuenta_efectivo.save()
 
         return
 
