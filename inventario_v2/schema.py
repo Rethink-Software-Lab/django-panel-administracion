@@ -704,8 +704,8 @@ class Prod_Add_Venta(Schema):
 
 class Add_Venta_Cafeteria(Schema):
     metodo_pago: METODO_PAGO
-    transferencia: Optional[str] = None
-    efectivo: Optional[str] = None
+    transferencia: Optional[condecimal(gt=0)] = None
+    efectivo: Optional[condecimal(gt=0)] = None
     tarjeta: Optional[int] = None
     productos: List[Prod_Add_Venta]
 
