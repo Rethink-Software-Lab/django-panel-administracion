@@ -20,6 +20,7 @@ from inventario.models import (
     Ventas_Cafeteria,
     MermaCafeteria,
     CuentaCasa,
+    CuentasChoices,
 )
 from inventario_v2.utils import (
     calcular_dias_laborables,
@@ -72,7 +73,7 @@ class CafeteriaController:
         )
         productos = Productos_Cafeteria.objects.all()
         elaboraciones = Elaboraciones.objects.all()
-        tarjetas = Cuentas.objects.annotate(
+        tarjetas = Cuentas.objects.filter(tipo=CuentasChoices.BANCARIA).annotate(
             total_ingresos=Sum(
                 "transacciones__cantidad",
                 filter=Q(
