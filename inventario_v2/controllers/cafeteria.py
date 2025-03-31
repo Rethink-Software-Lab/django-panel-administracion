@@ -527,8 +527,9 @@ class CafeteriaController:
                     " - Cafetería"
                 )
 
-            transferencia = Decimal(body_dict["transferencia"])
-            efectivo = Decimal(body_dict["efectivo"])
+            if body.metodo_pago == METODO_PAGO.MIXTO:
+                transferencia = Decimal(body_dict["transferencia"])
+                efectivo = Decimal(body_dict["efectivo"])
 
             if body.metodo_pago == METODO_PAGO.MIXTO:
                 Transacciones.objects.create(
