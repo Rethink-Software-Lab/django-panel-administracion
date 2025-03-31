@@ -53,6 +53,7 @@ class CafeteriaController:
         ventas = (
             Ventas_Cafeteria.objects.all()
             .order_by("-id")
+            .distinct("id")
             .annotate(
                 importe=Coalesce(
                     Sum(
@@ -70,7 +71,6 @@ class CafeteriaController:
                 ),
                 tarjeta=F("transacciones__cuenta__nombre"),
             )
-            .distinct("id")
         )
         productos = Productos_Cafeteria.objects.all()
         elaboraciones = Elaboraciones.objects.all()
