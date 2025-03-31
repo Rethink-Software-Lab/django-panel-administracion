@@ -443,8 +443,6 @@ class CafeteriaController:
             total_cantidad_elaboraciones = 0
             total_venta = Decimal(0)
 
-            print(body.productos)
-
             for prod_elb in body.productos:
                 if prod_elb.isElaboracion:
                     elaboracion = get_object_or_404(Elaboraciones, id=prod_elb.producto)
@@ -510,35 +508,59 @@ class CafeteriaController:
                     "El importe no coincide con la suma de efectivo y transferencia",
                 )
 
-            if body.metodo_pago in [METODO_PAGO.MIXTO, METODO_PAGO.TRANSFERENCIA]:
-                tarjeta = get_object_or_404(Cuentas, id=body.tarjeta)
-                if body.metodo_pago == METODO_PAGO.MIXTO:
-                    descripcion = (
-                        f"[MIXTO] {total_cantidad_productos}x Prod"
-                        f", {total_cantidad_elaboraciones}x Elab"
-                        " - Cafetería"
-                    )
-                else:
-                    descripcion = (
-                        f"{total_cantidad_productos}x Prod"
-                        f", {total_cantidad_elaboraciones}x Elab"
-                        " - Cafetería"
-                    )
-                suma_balance = (
-                    Decimal(body_dict["transferencia"])
-                    if body.metodo_pago == METODO_PAGO.MIXTO
-                    else total_venta
+            if body.metodo_pago != METODO_PAGO.EFECTIVO:
+                cuenta_transaferencia = get_object_or_404(Cuentas, id=body.tarjeta)
+            cuenta_efectivo = get_object_or_404(Cuentas, id=25)
+
+            if body.metodo_pago == METODO_PAGO.MIXTO:
+                descripcion = (
+                    f"[MIXTO] {total_cantidad_productos}x Prod"
+                    f", {total_cantidad_elaboraciones}x Elab"
+                    " - Cafetería"
                 )
+            else:
+                descripcion = (
+                    f"{total_cantidad_productos}x Prod"
+                    f", {total_cantidad_elaboraciones}x Elab"
+                    " - Cafetería"
+                )
+
+            transferencia = body_dict["transferencia"]
+            efectivo = body_dict["efectivo"]
+
+            if body.metodo_pago == METODO_PAGO.MIXTO:
                 Transacciones.objects.create(
-                    cuenta=tarjeta,
+                    cuenta=cuenta_transaferencia,
+                    cantidad=transferencia,
+                    descripcion=descripcion,
+                    tipo=TipoTranferenciaChoices.INGRESO,
+                    usuario=usuario,
+                    venta_cafeteria=venta,
+                )
+                cuenta_transaferencia.saldo += transferencia
+                cuenta_transaferencia.save()
+                Transacciones.objects.create(
+                    cuenta=cuenta_efectivo,
+                    cantidad=efectivo,
+                    descripcion=descripcion,
+                    tipo=TipoTranferenciaChoices.INGRESO,
+                    usuario=usuario,
+                    venta_cafeteria=venta,
+                )
+                cuenta_efectivo.saldo += transferencia
+                cuenta_efectivo.save()
+
+            else:
+                Transacciones.objects.create(
+                    cuenta=cuenta_transaferencia,
                     cantidad=total_venta,
                     descripcion=descripcion,
                     tipo=TipoTranferenciaChoices.INGRESO,
                     usuario=usuario,
                     venta_cafeteria=venta,
                 )
-                tarjeta.saldo += suma_balance
-                tarjeta.save()
+                cuenta_transaferencia.saldo += total_venta
+                cuenta_transaferencia.save()
 
         return
 
@@ -629,11 +651,11 @@ class CafeteriaController:
                 )
                 inventario.cantidad += producto_venta_cafeteria.cantidad
                 inventario.save()
-                if venta.metodo_pago in [METODO_PAGO.MIXTO, METODO_PAGO.TRANSFERENCIA]:
-                    total_venta += (
-                        producto_venta_cafeteria.cantidad
-                        * producto_venta_cafeteria.producto.precio_venta
-                    )
+
+                total_venta += (
+                    producto_venta_cafeteria.cantidad
+                    * producto_venta_cafeteria.producto.precio_venta
+                )
 
             for elaboracion_venta_cafeteria in venta.elaboraciones.all():
                 for (
@@ -647,23 +669,17 @@ class CafeteriaController:
                         elaboracion_venta_cafeteria.cantidad
                     )
                     inventario.save()
-                    if venta.metodo_pago in [
-                        METODO_PAGO.MIXTO,
-                        METODO_PAGO.TRANSFERENCIA,
-                    ]:
-                        total_venta += (
-                            ingrediente_cantidad.cantidad
-                            * ingrediente_cantidad.ingrediente.precio_venta
-                        )
 
-            if venta.metodo_pago in [METODO_PAGO.MIXTO, METODO_PAGO.TRANSFERENCIA]:
-                tarjeta = get_object_or_404(
-                    Cuentas,
-                    transacciones__venta_cafeteria=venta,
-                )
-                tarjeta.saldo += total_venta
-                tarjeta.save()
+                    total_venta += (
+                        ingrediente_cantidad.cantidad
+                        * ingrediente_cantidad.ingrediente.precio_venta
+                    )
 
-                Transacciones.objects.get(venta_cafeteria=venta).delete()
+            cuentas = Cuentas.objects.filter(transacciones__venta_cafeteria=venta)
+            for cuenta in cuentas:
+                cuenta.saldo += total_venta
+            cuenta.save()
+
+            Transacciones.objects.filter(venta_cafeteria=venta).delete()
 
             venta.delete()

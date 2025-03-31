@@ -259,7 +259,7 @@ class Cuentas(models.Model):
         null=False,
     )
     banco = models.CharField(
-        max_length=50, choices=BancoChoices.choices, blank=False, null=False
+        max_length=50, choices=BancoChoices.choices, blank=True, null=True
     )
 
 
@@ -445,10 +445,8 @@ class Transacciones(models.Model):
         blank=False,
         null=False,
     )
-    venta = models.OneToOneField(
-        Ventas, on_delete=models.CASCADE, null=True, blank=True
-    )
-    venta_cafeteria = models.OneToOneField(
+    venta = models.ForeignKey(Ventas, on_delete=models.CASCADE, null=True, blank=True)
+    venta_cafeteria = models.ForeignKey(
         Ventas_Cafeteria, on_delete=models.CASCADE, null=True, blank=True
     )
 
