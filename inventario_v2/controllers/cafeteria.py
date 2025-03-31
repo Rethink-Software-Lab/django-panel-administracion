@@ -70,7 +70,7 @@ class CafeteriaController:
                 ),
                 tarjeta=F("transacciones__cuenta__nombre"),
             )
-            .distinct()
+            .distinct("id")
         )
         productos = Productos_Cafeteria.objects.all()
         elaboraciones = Elaboraciones.objects.all()
