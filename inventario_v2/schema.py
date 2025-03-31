@@ -212,8 +212,8 @@ class AddVentaSchema(Schema):
     producto_info: str
     cantidad: Optional[int] = None
     zapatos_id: Optional[List[int]] = None
-    efectivo: Optional[Annotated[Decimal, Field(strict=True, gt=0)]] = None
-    transferencia: Optional[Annotated[Decimal, Field(strict=True, gt=0)]] = None
+    efectivo: Optional[condecimal(gt=0)] = None
+    transferencia: Optional[condecimal(gt=0)] = None
     tarjeta: Optional[int] = None
 
     @validator("efectivo", "transferencia", pre=True, always=True)
