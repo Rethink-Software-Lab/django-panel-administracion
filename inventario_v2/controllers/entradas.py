@@ -9,6 +9,9 @@ from inventario.models import (
     User,
     Ventas,
     Categorias,
+    Transacciones,
+    TipoTranferenciaChoices,
+    Cuentas,
 )
 from ..schema import (
     AddEntradaSchema,
@@ -64,6 +67,8 @@ class EntradasController:
 
         producto_info = get_object_or_404(ProductoInfo, codigo=dataDict["productInfo"])
         user = get_object_or_404(User, pk=request.auth["id"])
+        cuenta = get_object_or_404(Cuentas, pk=dataDict["cuenta"])
+
         with transaction.atomic():
             entrada = EntradaAlmacen(
                 metodo_pago=dataDict["metodoPago"],
@@ -76,6 +81,8 @@ class EntradasController:
             response = []
 
             if dataDict["variantes"] and not dataDict["cantidad"]:
+
+                total_zapatos = 0
 
                 for variante in dataDict["variantes"]:
                     color = variante.get("color")
@@ -99,14 +106,28 @@ class EntradasController:
                             for _ in range(cantidad)
                         ]
 
+                        total_zapatos += cantidad
+
                         ids = Producto.objects.bulk_create(productos)
 
                         formated_ids = (
-                            f"{ids[0].id}-{ids[-1].id}" if len(ids) > 1 else ids[0].id
+                            f"{ids[0].pk}-{ids[-1].pk}" if len(ids) > 1 else ids[0].pk
                         )
                         productos_pa.append({"numero": numero, "ids": formated_ids})
 
                     response.append({"color": color, "numeros": productos_pa})
+
+                cuenta.saldo -= total_zapatos * producto_info.precio_costo
+                cuenta.save()
+                Transacciones.objects.create(
+                    entrada=entrada,
+                    usuario=user,
+                    tipo=TipoTranferenciaChoices.EGRESO,
+                    cuenta=cuenta,
+                    cantidad=total_zapatos * producto_info.precio_costo,
+                    descripcion=f"[ENT] {total_zapatos}x {producto_info.descripcion}",
+                )
+
                 return response
 
             elif dataDict["cantidad"] and not dataDict["variantes"]:
@@ -121,6 +142,17 @@ class EntradasController:
 
                 Producto.objects.bulk_create(productos)
 
+                cuenta.saldo -= dataDict["cantidad"] * producto_info.precio_costo
+                cuenta.save()
+                Transacciones.objects.create(
+                    entrada=entrada,
+                    usuario=user,
+                    tipo=TipoTranferenciaChoices.EGRESO,
+                    cuenta=cuenta,
+                    cantidad=dataDict["cantidad"] * producto_info.precio_costo,
+                    descripcion=f"[ENT] {dataDict['cantidad']}x {producto_info.descripcion}",
+                )
+
                 return
 
             else:
@@ -132,9 +164,10 @@ class EntradasController:
 
         producto_info = get_object_or_404(ProductoInfo, pk=dataDict["producto"])
         user = get_object_or_404(User, pk=request.auth["id"])
+        cuenta = get_object_or_404(Cuentas, pk=dataDict["cuenta"])
         try:
             with transaction.atomic():
-                Entradas_Cafeteria.objects.create(
+                entrada = Entradas_Cafeteria.objects.create(
                     metodo_pago=dataDict["metodoPago"],
                     proveedor=dataDict["proveedor"],
                     usuario=user,
@@ -153,15 +186,34 @@ class EntradasController:
 
                 Producto.objects.bulk_create(productos)
 
+                cuenta.saldo -= dataDict["cantidad"] * producto_info.precio_costo
+                cuenta.save()
+                Transacciones.objects.create(
+                    entrada_cafeteria=entrada,
+                    usuario=user,
+                    tipo=TipoTranferenciaChoices.EGRESO,
+                    cuenta=cuenta,
+                    cantidad=dataDict["cantidad"] * producto_info.precio_costo,
+                    descripcion=f"[ENT] {dataDict['cantidad']}x {producto_info.descripcion}",
+                )
+
                 return
         except Exception as e:
             return {"error": f"Error al crear la entrada: {str(e)}"}, 400
 
     @route.delete("{id}/")
-    def deleteEntrada(self, request, id):
+    def deleteEntrada(self, request, id: int):
         try:
             with transaction.atomic():
                 entrada = get_object_or_404(EntradaAlmacen, pk=id)
+
+                transaccion = get_object_or_404(Transacciones, entrada=entrada)
+                cuenta = get_object_or_404(Cuentas, pk=transaccion.cuenta.pk)
+
+                cuenta.saldo += transaccion.cantidad
+                cuenta.save()
+
+                transaccion.delete()
 
                 productos = Producto.objects.filter(entrada=entrada)
 
@@ -190,6 +242,16 @@ class EntradasController:
             with transaction.atomic():
                 entrada = get_object_or_404(Entradas_Cafeteria, pk=id)
 
+                transaccion = get_object_or_404(
+                    Transacciones, entrada_cafeteria=entrada
+                )
+                cuenta = get_object_or_404(Cuentas, pk=transaccion.cuenta.pk)
+
+                cuenta.saldo += transaccion.cantidad
+                cuenta.save()
+
+                transaccion.delete()
+
                 productos = Producto.objects.filter(
                     almacen_cafeteria=True,
                     almacen_revoltosa=False,
@@ -200,10 +262,13 @@ class EntradasController:
                     salida_revoltosa__isnull=True,
                 )
 
-                if productos.count() < entrada.cantidad:
+                if (
+                    productos.count() * productos[0].info.precio_costo
+                ) < transaccion.cantidad:
                     raise HttpError(400, "Algunos productos ya no están en el almacén")
 
-                productos_to_delete = list(productos[: entrada.cantidad])
+                cant_prod = transaccion.cantidad / productos[0].info.precio_costo
+                productos_to_delete = list(productos[:cant_prod])
                 for producto in productos_to_delete:
                     producto.delete()
                 entrada.delete()

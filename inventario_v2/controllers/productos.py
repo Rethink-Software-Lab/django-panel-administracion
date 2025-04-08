@@ -13,9 +13,10 @@ from inventario.models import (
     SalidaAlmacen,
     SalidaAlmacenRevoltosa,
     EntradaAlmacen,
+    Cuentas,
 )
 from ..schema import (
-    ProductoInfoSchema,
+    ResponseEntradasPrinciapl,
     AddProductoSchema,
     UpdateProductoSchema,
     ProductoWithCategotiaSchema,
@@ -35,38 +36,13 @@ from ..custom_permissions import isAuthenticated
 @api_controller("productos", tags=["Productos"], permissions=[isAuthenticated])
 class ProductoController:
 
-    @route.get("", response=List[ProductoInfoSchema])
-    def getProductos(
-        self, a: int = 0, is_revoltosa: bool = False, is_almacen: bool = False
-    ):
-        if a or is_revoltosa or is_almacen:
-            if is_revoltosa:
-                producto_info = (
-                    ProductoInfo.objects.filter(
-                        producto__almacen_revoltosa=is_revoltosa,
-                    )
-                    .order_by("-id")
-                    .distinct()
-                )
-            if is_almacen:
-                producto_info = (
-                    ProductoInfo.objects.filter(
-                        producto__area_venta__isnull=is_almacen,
-                        producto__almacen_revoltosa=False,
-                    )
-                    .order_by("-id")
-                    .distinct()
-                )
-            if a:
-                producto_info = (
-                    ProductoInfo.objects.filter(producto__area_venta=a)
-                    .order_by("-id")
-                    .distinct()
-                )
-        else:
-            producto_info = ProductoInfo.objects.all().order_by("-id")
+    @route.get("", response=ResponseEntradasPrinciapl)
+    def getProductos(self):
 
-        return producto_info
+        producto_info = ProductoInfo.objects.all().order_by("-id")
+        cuentas = Cuentas.objects.all()
+
+        return {"productos": producto_info, "cuentas": cuentas}
 
     @route.get("/with-categorias/", response=ProductoWithCategotiaSchema)
     def get_productos_with_categoria(self):
