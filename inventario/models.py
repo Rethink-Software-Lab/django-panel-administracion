@@ -449,6 +449,12 @@ class Transacciones(models.Model):
     venta_cafeteria = models.ForeignKey(
         Ventas_Cafeteria, on_delete=models.CASCADE, null=True, blank=True
     )
+    entrada = models.ForeignKey(
+        EntradaAlmacen, on_delete=models.CASCADE, null=True, blank=True
+    )
+    entrada_cafeteria = models.ForeignKey(
+        Entradas_Cafeteria, on_delete=models.CASCADE, null=True, blank=True
+    )
 
 
 class Productos_Cantidad_Merma(models.Model):

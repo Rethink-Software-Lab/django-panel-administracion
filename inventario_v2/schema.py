@@ -59,6 +59,17 @@ class ProductoInfoSchema(ModelSchema):
         fields = "__all__"
 
 
+class TarjetasSchema(ModelSchema):
+    class Meta:
+        model = Cuentas
+        fields = "__all__"
+
+
+class ResponseEntradasPrinciapl(Schema):
+    productos: List[ProductoInfoSchema]
+    cuentas: List[TarjetasSchema]
+
+
 class ProductoWithCategotiaSchema(Schema):
     productos: List[ProductoInfoSchema]
     categorias: List[CategoriasSchema]
@@ -130,6 +141,7 @@ class AddEntradaSchema(Schema):
     cantidad: Optional[int] = None
     productInfo: str
     comprador: str
+    cuenta: str
 
 
 class AddEntradaCafeteria(Schema):
@@ -138,6 +150,7 @@ class AddEntradaCafeteria(Schema):
     cantidad: Annotated[int, Field(strict=True, gt=0)]
     producto: str
     comprador: str
+    cuenta: str
 
 
 class AreaVentaModifySchema(ModelSchema):
@@ -494,12 +507,6 @@ class TarjetasForVentas(Schema):
     nombre: str
     banco: str
     disponible: bool
-
-
-class TarjetasSchema(ModelSchema):
-    class Meta:
-        model = Cuentas
-        fields = "__all__"
 
 
 class TarjetasModifySchema(Schema):

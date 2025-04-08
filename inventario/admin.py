@@ -7,7 +7,6 @@ admin.site.register(EntradaAlmacen)
 admin.site.register(SalidaAlmacen)
 admin.site.register(Ventas)
 admin.site.register(Categorias)
-admin.site.register(Cuentas)
 admin.site.register(Transacciones)
 admin.site.register(Productos_Cafeteria)
 
@@ -123,6 +122,16 @@ class InventarioAlmacenCafeteriaAdmin(admin.ModelAdmin):
         return obj.producto.nombre
 
     producto_nombre.short_description = "Producto"
+
+
+@admin.register(Cuentas)
+class CuentasAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "nombre",
+        "saldo",
+    ]
+    list_editable = ["saldo"]
 
 
 admin.site.register(Entradas_Cafeteria)
