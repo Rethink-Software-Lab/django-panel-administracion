@@ -2,6 +2,7 @@ from typing import List
 from ninja.errors import HttpError
 from inventario.models import (
     Inventario_Area_Cafeteria,
+    TipoTranferenciaChoices,
     User,
     Elaboraciones,
     Productos_Cafeteria,
@@ -11,6 +12,8 @@ from inventario.models import (
     Salidas_Cafeteria,
     Productos_Salidas_Cafeteria,
     Elaboraciones_Salidas_Almacen_Cafeteria,
+    Cuentas,
+    Transacciones,
 )
 
 from ..schema import (
@@ -44,8 +47,9 @@ class AlmacenCafeteriaController:
             "-created_at"
         )
         productos = Productos_Cafeteria.objects.all()
+        cuentas = Cuentas.objects.all()
 
-        return {"entradas": entradas, "productos": productos}
+        return {"entradas": entradas, "productos": productos, "cuentas": cuentas}
 
     @route.get("salidas/", response=EndPointSalidasAlmacenCafeteria)
     def get_salidas_almacen_cafeteria(self):
@@ -79,6 +83,7 @@ class AlmacenCafeteriaController:
         body_dict = body.model_dump()
 
         usuario = get_object_or_404(User, pk=request.auth["id"])
+        cuenta = get_object_or_404(Cuentas, pk=body_dict["cuenta"])
 
         with transaction.atomic():
 
@@ -88,9 +93,14 @@ class AlmacenCafeteriaController:
                 usuario=usuario,
                 comprador=body_dict["comprador"],
             )
+
+            total_cantidad = 0
             for producto in body_dict["productos"]:
                 producto_cafeteria = get_object_or_404(
                     Productos_Cafeteria, pk=producto.get("producto")
+                )
+                total_cantidad += (
+                    Decimal(producto.get("cantidad")) * producto_cafeteria.precio_costo
                 )
                 producto_cafeteria.inventario_almacen.cantidad += Decimal(
                     producto.get("cantidad")
@@ -101,6 +111,17 @@ class AlmacenCafeteriaController:
                     cantidad=producto.get("cantidad"),
                 )
                 entrada.productos.add(producto_entrada)
+
+            cuenta.saldo -= total_cantidad
+            cuenta.save()
+            Transacciones.objects.create(
+                entrada_cafeteria=entrada,
+                usuario=usuario,
+                tipo=TipoTranferenciaChoices.EGRESO,
+                cuenta=cuenta,
+                cantidad=total_cantidad,
+                descripcion=f"[ENT CAF] {total_cantidad}x producto{"s" if len(body_dict['productos']) > 1 else ""}",
+            )
 
         return
 
@@ -184,7 +205,15 @@ class AlmacenCafeteriaController:
     @route.delete("entradas/{id}/")
     def delete_entrada_cafeteria(self, id: int):
         entrada = get_object_or_404(Entradas_Cafeteria, id=id)
+        transaccion = get_object_or_404(Transacciones, entrada_cafeteria=entrada)
+        cuenta = get_object_or_404(Cuentas, pk=transaccion.cuenta.pk)
         with transaction.atomic():
+
+            cuenta.saldo += transaccion.cantidad
+            cuenta.save()
+
+            transaccion.delete()
+
             for producto in entrada.productos.all():
                 inventario = get_object_or_404(
                     Inventario_Almacen_Cafeteria, producto=producto.producto
