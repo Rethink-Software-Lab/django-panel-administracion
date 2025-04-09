@@ -123,11 +123,6 @@ class EntradaAlmacenCafeteriaSchema(ModelSchema):
         fields = "__all__"
 
 
-class EntradaAlmacenCafeteriaEndpoint(Schema):
-    entradas: List[EntradaAlmacenCafeteriaSchema]
-    productos: List[ProductoParaEntradaAlmacenCafeteriaSchema]
-
-
 class ProductoCodigoSchema(Schema):
     id: int
     codigo: str
@@ -140,15 +135,6 @@ class AddEntradaSchema(Schema):
     variantes: Optional[List[VariantesSchema]] = None
     cantidad: Optional[int] = None
     productInfo: str
-    comprador: str
-    cuenta: str
-
-
-class AddEntradaCafeteria(Schema):
-    metodoPago: METODO_PAGO
-    proveedor: str
-    cantidad: Annotated[int, Field(strict=True, gt=0)]
-    producto: str
     comprador: str
     cuenta: str
 
@@ -640,6 +626,7 @@ class Entradas_CafeteriaSchema(ModelSchema):
 class Entradas_Almacen_Cafeteria_Schema(Schema):
     entradas: List[Entradas_CafeteriaSchema]
     productos: List[Productos_Entrada_Cafeteria]
+    cuentas: List[TarjetasSchema]
 
 
 class Add_Entrada_Cafeteria_Productos(Schema):
@@ -652,6 +639,7 @@ class Add_Entrada_Cafeteria(Schema):
     comprador: str
     metodo_pago: METODO_PAGO
     productos: List[Add_Entrada_Cafeteria_Productos]
+    cuenta: str
 
 
 class Producto_Cafeteria_Endpoint_Schema(Schema):
