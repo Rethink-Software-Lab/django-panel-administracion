@@ -242,7 +242,7 @@ class CafeteriaController:
             gastos_variables.aggregate(total=Sum("cantidad"))["total"] or 0
         )
 
-        gastos_fijos = Gastos.objects.filter(
+        gastos_fijos_result = Gastos.objects.filter(
             tipo=GastosChoices.FIJO,
             created_at__date__lte=parse_hasta,
             area_venta=None,
@@ -255,38 +255,37 @@ class CafeteriaController:
             )
         )
 
-        gastos_fijos_mensuales = (
-            gastos_fijos.filter(
-                frecuencia=FrecuenciaChoices.MENSUAL,
-                dia_mes_ajustado__range=(parse_desde.day, parse_hasta.day + 1),
-            ).aggregate(total=Sum("cantidad"))["total"]
-            or 0
-        )
+        gastos_fijos = []
 
-        gastos_fijos_semanales = gastos_fijos.filter(
-            frecuencia=FrecuenciaChoices.SEMANAL,
-            dia_semana__in=dias_semana,
-        )
+        for gasto in gastos_fijos_result:
+            if (
+                gasto.frecuencia == FrecuenciaChoices.MENSUAL
+                and gasto.dia_mes_ajustado
+                in range(parse_desde.day, parse_hasta.day + 1)
+            ):
+                gastos_fijos.append(
+                    {"descripcion": gasto.descripcion, "cantidad": gasto.cantidad}
+                )
+            elif (
+                gasto.frecuencia == FrecuenciaChoices.SEMANAL
+                and gasto.dia_semana in dias_semana
+            ):
+                gastos_fijos.append(
+                    {
+                        "descripcion": gasto.descripcion,
+                        "cantidad": gasto.cantidad
+                        * dias_semana.get(gasto.dia_semana, 0),
+                    }
+                )
+            elif gasto.frecuencia == FrecuenciaChoices.LUNES_SABADO:
+                gastos_fijos.append(
+                    {
+                        "descripcion": gasto.descripcion,
+                        "cantidad": gasto.cantidad * dias_laborables,
+                    }
+                )
 
-        total_gastos_fijos_semanales = sum(
-            gasto.cantidad * dias_semana.get(gasto.dia_semana, 0)
-            for gasto in gastos_fijos_semanales
-        )
-
-        gastos_lunes_sabado = (
-            gastos_fijos.filter(frecuencia=FrecuenciaChoices.LUNES_SABADO).aggregate(
-                total=Sum("cantidad")
-            )["total"]
-            or 0
-        )
-
-        total_gastos_lunes_sabado = gastos_lunes_sabado * dias_laborables
-
-        total_gastos_fijos = (
-            gastos_fijos_mensuales
-            + total_gastos_fijos_semanales
-            + total_gastos_lunes_sabado
-        )
+        total_gastos_fijos = sum(gasto.get("cantidad", 0) for gasto in gastos_fijos)
 
         # Recorrer productos y elaboraciones para evitar repeticiones
         productos_sin_repeticion = []
@@ -399,7 +398,7 @@ class CafeteriaController:
             "cuenta_casa": total_cuenta_casa,
             "mano_obra": mano_obra,
             "gastos_variables": gastos_variables,
-            "gastos_fijos": total_gastos_fijos,
+            "gastos_fijos": gastos_fijos,
         }
 
     @route.post("productos/")
