@@ -723,14 +723,23 @@ class Elaboraciones_Reportes_Cafeteria(ModelSchema):
         fields = "__all__"
 
 
+class SubtotalReporteCafeteria(Schema):
+    general: Decimal
+    efectivo: Decimal
+    transferencia: Decimal
+
+
+class TotalReporteCafeteria(Schema):
+    general: Decimal
+    efectivo: Decimal
+    transferencia: Decimal
+
+
 class CafeteriaReporteSchema(Schema):
     productos: List[Productos_Reportes_Cafeteria]
     elaboraciones: List[Elaboraciones_Reportes_Cafeteria]
-    total: Decimal
-    costo_producto: Decimal
-    subtotal: Decimal
-    efectivo: Decimal
-    transferencia: Decimal
+    total: TotalReporteCafeteria
+    subtotal: SubtotalReporteCafeteria
     merma: Decimal
     cuenta_casa: Decimal
     mano_obra: Decimal

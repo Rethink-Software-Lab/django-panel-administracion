@@ -364,31 +364,36 @@ class CafeteriaController:
         )
         subtotal = subtotal_productos + subtotal_elaboraciones
 
-        total_productos = (
-            productos.aggregate(total=Sum(F("importe")) - costo_producto)["total"] or 0
-        )
+        total_productos = productos.aggregate(total=Sum(F("importe")))["total"] or 0
         total_elaboraciones = (
             elaboraciones.aggregate(total=Sum(F("importe")))["total"] or 0
         )
         total = (
             total_productos
             + total_elaboraciones
-            - costo_ingredientes_elaboraciones
             - mano_obra
             - total_gastos_fijos
             - gastos_variables
-            - total_merma
-            - total_cuenta_casa
+            # - total_merma
+            # - total_cuenta_casa
         )
 
         return {
             "productos": productos_sin_repeticion,
             "elaboraciones": elaboraciones_sin_repeticion,
-            "total": total,
-            "costo_producto": total_costo_producto,
-            "subtotal": subtotal,
-            "efectivo": efectivo,
-            "transferencia": transferencia,
+            "total": {
+                "general": total,
+                "efectivo": efectivo
+                - mano_obra
+                - total_gastos_fijos
+                - gastos_variables,
+                "transferencia": transferencia,
+            },
+            "subtotal": {
+                "general": subtotal,
+                "efectivo": efectivo,
+                "transferencia": transferencia,
+            },
             "merma": total_merma,
             "cuenta_casa": total_cuenta_casa,
             "mano_obra": mano_obra,
