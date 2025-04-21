@@ -740,6 +740,11 @@ class GastosVariablesReporteCafeteria(Schema):
     cantidad: int
 
 
+class GastosFijosReporteCafeteria(Schema):
+    descripcion: str
+    cantidad: int
+
+
 class CafeteriaReporteSchema(Schema):
     productos: List[Productos_Reportes_Cafeteria]
     elaboraciones: List[Elaboraciones_Reportes_Cafeteria]
@@ -749,7 +754,7 @@ class CafeteriaReporteSchema(Schema):
     cuenta_casa: Decimal
     mano_obra: Decimal
     gastos_variables: List[GastosVariablesReporteCafeteria]
-    gastos_fijos: Decimal
+    gastos_fijos: List[GastosFijosReporteCafeteria]
 
 
 class Producto_Salida_Schema(Schema):
