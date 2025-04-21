@@ -231,14 +231,15 @@ class CafeteriaController:
             or 0
         )
 
-        gastos_variables = (
-            Gastos.objects.filter(
-                tipo=GastosChoices.VARIABLE,
-                created_at__date__range=(parse_desde, parse_hasta),
-                area_venta=None,
-                is_cafeteria=True,
-            ).aggregate(total=Sum("cantidad"))["total"]
-            or 0
+        gastos_variables = Gastos.objects.filter(
+            tipo=GastosChoices.VARIABLE,
+            created_at__date__range=(parse_desde, parse_hasta),
+            area_venta=None,
+            is_cafeteria=True,
+        )
+
+        monto_gastos_variables = (
+            gastos_variables.aggregate(total=Sum("cantidad"))["total"] or 0
         )
 
         gastos_fijos = Gastos.objects.filter(
@@ -373,7 +374,7 @@ class CafeteriaController:
             + total_elaboraciones
             - mano_obra
             - total_gastos_fijos
-            - gastos_variables
+            - monto_gastos_variables
             # - total_merma
             # - total_cuenta_casa
         )
@@ -386,7 +387,7 @@ class CafeteriaController:
                 "efectivo": efectivo
                 - mano_obra
                 - total_gastos_fijos
-                - gastos_variables,
+                - monto_gastos_variables,
                 "transferencia": transferencia,
             },
             "subtotal": {
