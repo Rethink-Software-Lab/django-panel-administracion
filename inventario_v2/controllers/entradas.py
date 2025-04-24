@@ -3,6 +3,7 @@ from inventario.models import (
     ProductoInfo,
     EntradaAlmacen,
     Producto,
+    Proveedor,
     SalidaAlmacen,
     SalidaAlmacenRevoltosa,
     User,
@@ -19,7 +20,7 @@ from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
 from typing import List
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, F
 
 from ..custom_permissions import isStaff
 
@@ -29,20 +30,31 @@ class EntradasController:
 
     @route.get("principal/", response=List[EntradaAlmacenSchema])
     def get_entradas(self):
+        from django.utils import timezone
+        from datetime import timedelta
+
         entradas = (
-            EntradaAlmacen.objects.all()
-            .annotate(cantidad=Count("producto"))
+            EntradaAlmacen.objects.filter(
+                created_at__gte=timezone.now() - timedelta(days=7)
+            )
+            .annotate(
+                cantidad=Count("producto"),
+                username=F("usuario__username"),
+                descripcion_producto=F("producto__info__descripcion"),
+                fecha=F("created_at"),
+                nombre_proveedor=F("proveedor__nombre"),
+            )
             .values(
                 "id",
                 "metodo_pago",
-                "proveedor",
+                "nombre_proveedor",
                 "comprador",
-                "usuario__username",
-                "producto__info__descripcion",
-                "created_at",
+                "username",
+                "descripcion_producto",
+                "fecha",
                 "cantidad",
             )
-            .order_by("-created_at")
+            .order_by("-fecha")
         )
         return entradas
 
@@ -53,12 +65,13 @@ class EntradasController:
         producto_info = get_object_or_404(ProductoInfo, codigo=dataDict["productInfo"])
         user = get_object_or_404(User, pk=request.auth["id"])
         cuenta = get_object_or_404(Cuentas, pk=dataDict["cuenta"])
+        proveedor = get_object_or_404(Proveedor, pk=dataDict["proveedor"])
 
         try:
             with transaction.atomic():
                 entrada = EntradaAlmacen(
                     metodo_pago=dataDict["metodoPago"],
-                    proveedor=dataDict["proveedor"],
+                    proveedor=proveedor,
                     usuario=user,
                     comprador=dataDict["comprador"],
                 )
