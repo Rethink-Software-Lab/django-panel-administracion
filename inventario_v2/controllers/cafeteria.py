@@ -341,6 +341,7 @@ class CafeteriaController:
                     )
 
         total_cuenta_casa = 0
+        mano_obra_cuenta_casa = 0
         cuentas_casa = CuentaCasa.objects.filter(
             created_at__date__range=(parse_desde, parse_hasta),
         )
@@ -355,6 +356,7 @@ class CafeteriaController:
                         ingrediente.ingrediente.precio_costo * ingrediente.cantidad
                     )
                 total_cuenta_casa += elaboracion.producto.mano_obra
+                mano_obra_cuenta_casa += elaboracion.producto.mano_obra
 
         subtotal_productos = (
             productos.aggregate(subtotal=Sum(F("importe")))["subtotal"] or 0
@@ -396,7 +398,7 @@ class CafeteriaController:
             },
             "merma": total_merma,
             "cuenta_casa": total_cuenta_casa,
-            "mano_obra": mano_obra,
+            "mano_obra": mano_obra + mano_obra_cuenta_casa,
             "gastos_variables": gastos_variables,
             "gastos_fijos": gastos_fijos,
         }

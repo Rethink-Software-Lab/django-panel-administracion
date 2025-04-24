@@ -107,6 +107,15 @@ class ProductoInfo(models.Model):
         return self.descripcion
 
 
+class Proveedor(models.Model):
+    nombre = models.CharField(max_length=100, blank=False, null=False)
+    direccion = models.CharField(max_length=100, blank=False, null=False)
+    nit = models.CharField(max_length=30, blank=False, null=False)
+    no_cuenta_cup = models.CharField(max_length=30, blank=False, null=False)
+    no_cuenta_mayorista = models.CharField(max_length=30, blank=False, null=False)
+    telefono = models.CharField(max_length=10, blank=False, null=False)
+
+
 class METODO_PAGO(models.TextChoices):
     EFECTIVO = (
         "EFECTIVO",
@@ -126,7 +135,7 @@ class EntradaAlmacen(models.Model):
     metodo_pago = models.CharField(
         max_length=30, choices=METODO_PAGO.choices, blank=False, null=False
     )
-    proveedor = models.CharField(max_length=30, blank=False, null=False)
+    proveedor = models.ForeignKey(Proveedor, on_delete=models.SET_NULL, null=True)
     comprador = models.CharField(max_length=30, blank=False, null=False)
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
