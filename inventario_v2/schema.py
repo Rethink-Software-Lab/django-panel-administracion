@@ -86,7 +86,7 @@ class ProductoSchema(ModelSchema):
 class EntradaAlmacenSchema(Schema):
     id: int
     metodo_pago: str
-    nombre_proveedor: str
+    nombre_proveedor: Optional[str] = None
     comprador: str
     username: Optional[str] = None
     descripcion_producto: Optional[str] = None
