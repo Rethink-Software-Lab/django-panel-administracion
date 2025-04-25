@@ -266,17 +266,32 @@ class ProductoInfoParaReporte(Schema):
     importe: Optional[condecimal(gt=0)] = None
 
 
+class SubtotalReporteVentas(Schema):
+    general: Decimal
+    efectivo: Decimal
+    transferencia: Decimal
+
+
+class GastosReporte(Schema):
+    descripcion: str
+    cantidad: int
+
+
+class TotalReporte(Schema):
+    general: Decimal
+    efectivo: Decimal
+    transferencia: Decimal
+
+
 class ReportesSchema(Schema):
     productos: List[ProductoInfoParaReporte]
     area: str
-    total: Optional[condecimal()] = None
+    total: Optional[TotalReporte] = None
     pago_trabajador: Optional[conint(ge=0)] = None
-    gastos_variables: Optional[Annotated[int, Field(ge=0)]] = None
-    gastos_fijos: Optional[Annotated[int, Field(ge=0)]] = None
+    gastos_variables: Optional[List[GastosReporte]] = None
+    gastos_fijos: Optional[List[GastosReporte]] = None
     costo_producto: Optional[condecimal()] = None
-    subtotal: Optional[condecimal(ge=0)] = None
-    efectivo: Optional[condecimal(ge=0)] = None
-    transferencia: Optional[condecimal(ge=0)] = None
+    subtotal: Optional[SubtotalReporteVentas] = None
 
 
 class Zapatos(Schema):

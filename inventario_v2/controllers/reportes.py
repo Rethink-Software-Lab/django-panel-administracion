@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 from typing import Literal
 
 from django.shortcuts import get_object_or_404
@@ -13,12 +14,13 @@ from inventario.models import (
 )
 from ..schema import ReportesSchema
 from ninja_extra import api_controller, route
-from django.db.models import F, Count, Q, Sum, When, Case, IntegerField
+from django.db.models import F, Count, Q, Sum, When, Case, IntegerField, QuerySet
 from ..utils import (
     calcular_dias_laborables,
     obtener_dias_semana_rango,
     obtener_ultimo_dia_mes,
 )
+from django.db.models.functions import Coalesce
 
 
 @api_controller("reportes/", tags=["Categorías"], permissions=[])
@@ -39,192 +41,148 @@ class ReportesController:
         ultimo_dia_hasta = obtener_ultimo_dia_mes(parse_hasta)
         dias_semana = obtener_dias_semana_rango(parse_desde, parse_hasta)
 
-        total_gastos = 0
-        total_gastos_variables = 0
-        total_gastos_fijos = 0
-
-        gastos_variables = Gastos.objects.filter(
-            tipo=GastosChoices.VARIABLE,
-            created_at__date__range=(parse_desde, parse_hasta),
-        )
-
-        gastos_fijos = Gastos.objects.filter(
-            tipo=GastosChoices.FIJO,
-            created_at__date__lte=parse_hasta,
-        ).annotate(
-            dia_mes_ajustado=Case(
-                When(dia_mes__gt=ultimo_dia_hasta, then=ultimo_dia_hasta),
-                default=F("dia_mes"),
-                output_field=IntegerField(),
-            )
-        )
-
         if type == "ventas":
-            if area == "general":
-                area_venta = "General"
-                producto_info = (
-                    ProductoInfo.objects.filter(
-                        producto__venta__created_at__date__range=(
-                            parse_desde,
-                            parse_hasta,
-                        ),
-                        producto__ajusteinventario__isnull=True,
-                    )
-                    .annotate(
-                        cantidad=Count("producto"),
-                        importe=F("cantidad") * F("precio_venta"),
-                    )
-                    .order_by("importe")
-                    .values(
-                        "id",
-                        "descripcion",
-                        "cantidad",
-                        "precio_venta",
-                        "precio_costo",
-                        "importe",
-                    )
-                )
+            filtros_gastos_variables = {
+                "tipo": GastosChoices.VARIABLE,
+                "created_at__date__range": (parse_desde, parse_hasta),
+            }
 
-                ventas_hoy = Ventas.objects.filter(
-                    created_at__date__range=(parse_desde, parse_hasta),
-                )
+            if area != "general":
+                filtros_gastos_variables["area_venta"] = area
 
-                total_gastos_variables = (
-                    gastos_variables.aggregate(total=Sum("cantidad"))["total"] or 0
-                )
-
-                gastos_fijos_mensuales = (
-                    gastos_fijos.filter(
-                        frecuencia=FrecuenciaChoices.MENSUAL,
-                        dia_mes_ajustado__range=(parse_desde.day, parse_hasta.day + 1),
-                    ).aggregate(total=Sum("cantidad"))["total"]
-                    or 0
-                )
-
-                gastos_fijos_semanales = gastos_fijos.filter(
-                    frecuencia=FrecuenciaChoices.SEMANAL,
-                    dia_semana__in=dias_semana,
-                )
-
-                total_gastos_fijos_semanales = sum(
-                    gasto.cantidad * dias_semana.get(gasto.dia_semana, 0)
-                    for gasto in gastos_fijos_semanales
-                )
-
-                gastos_lunes_sabado = (
-                    gastos_fijos.filter(
-                        frecuencia=FrecuenciaChoices.LUNES_SABADO
-                    ).aggregate(total=Sum("cantidad"))["total"]
-                    or 0
-                )
-
-                total_gastos_lunes_sabado = gastos_lunes_sabado * dias_laborables
-
-                total_gastos_fijos = (
-                    gastos_fijos_mensuales
-                    + total_gastos_fijos_semanales
-                    + total_gastos_lunes_sabado
-                )
-
-                total_gastos = total_gastos_variables + total_gastos_fijos
-
-            else:
-                area_venta = get_object_or_404(AreaVenta, pk=area).nombre
-
-                producto_info = (
-                    ProductoInfo.objects.filter(
-                        producto__venta__created_at__date__range=(
-                            parse_desde,
-                            parse_hasta,
-                        ),
-                        producto__area_venta=area,
-                        producto__ajusteinventario__isnull=True,
-                    )
-                    .annotate(
-                        cantidad=Count("producto"),
-                        importe=F("cantidad") * F("precio_venta"),
-                    )
-                    .order_by("importe")
-                    .values(
-                        "id",
-                        "descripcion",
-                        "producto__area_venta__nombre",
-                        "cantidad",
-                        "precio_venta",
-                        "precio_costo",
-                        "importe",
-                    )
-                )
-
-                ventas_hoy = Ventas.objects.filter(
-                    created_at__date__range=(parse_desde, parse_hasta),
-                    area_venta=area,
-                )
-
-                total_gastos_variables = (
-                    gastos_variables.filter(
-                        area_venta=area,
-                    ).aggregate(
-                        total=Sum("cantidad")
-                    )["total"]
-                    or 0
-                )
-
-                gastos_fijos_mensuales = (
-                    gastos_fijos.filter(
-                        area_venta=area,
-                        frecuencia=FrecuenciaChoices.MENSUAL,
-                        dia_mes_ajustado__range=(parse_desde.day, parse_hasta.day + 1),
-                    ).aggregate(total=Sum("cantidad"))["total"]
-                    or 0
-                )
-
-                gastos_fijos_semanales = gastos_fijos.filter(
-                    area_venta=area,
-                    frecuencia=FrecuenciaChoices.SEMANAL,
-                    dia_semana__in=dias_semana,
-                )
-
-                total_gastos_fijos_semanales = sum(
-                    gasto.cantidad * dias_semana.get(gasto.dia_semana, 0)
-                    for gasto in gastos_fijos_semanales
-                )
-
-                gastos_lunes_sabado = (
-                    gastos_fijos.filter(
-                        area_venta=area, frecuencia=FrecuenciaChoices.LUNES_SABADO
-                    ).aggregate(total=Sum("cantidad"))["total"]
-                    or 0
-                )
-                total_gastos_lunes_sabado = gastos_lunes_sabado * dias_laborables
-
-                total_gastos_fijos = (
-                    gastos_fijos_mensuales
-                    + total_gastos_fijos_semanales
-                    + total_gastos_lunes_sabado
-                )
-
-                total_gastos = total_gastos_variables + total_gastos_fijos
-
-            pagos = ventas_hoy.aggregate(
-                efectivo_venta=Sum(
-                    "producto__info__precio_venta", filter=Q(metodo_pago="EFECTIVO")
-                ),
-                transferencia_venta=Sum(
-                    "producto__info__precio_venta",
-                    filter=Q(metodo_pago="TRANSFERENCIA"),
-                ),
-                efectivo_mixto=Sum("efectivo", filter=Q(metodo_pago="MIXTO")),
-                transferencia_mixto=Sum("transferencia", filter=Q(metodo_pago="MIXTO")),
+            gastos_variables = Gastos.objects.filter(**filtros_gastos_variables).only(
+                "descripcion", "cantidad"
             )
+
+            filtros_gastos_fijos = {
+                "tipo": GastosChoices.FIJO,
+                "created_at__date__lte": parse_hasta,
+            }
+
+            if area != "general":
+                filtros_gastos_fijos["area_venta"] = area
+                filtros_gastos_fijos["is_cafeteria"] = False
+
+            gastos_fijos_result = Gastos.objects.filter(
+                **filtros_gastos_fijos
+            ).annotate(
+                dia_mes_ajustado=Case(
+                    When(dia_mes__gt=ultimo_dia_hasta, then=ultimo_dia_hasta),
+                    default=F("dia_mes"),
+                    output_field=IntegerField(),
+                )
+            )
+
+            gastos_fijos = []
+
+            for gasto in gastos_fijos_result:
+                if (
+                    gasto.frecuencia == FrecuenciaChoices.MENSUAL
+                    and gasto.dia_mes_ajustado
+                    in range(parse_desde.day, parse_hasta.day + 1)
+                ):
+                    gastos_fijos.append(
+                        {
+                            "descripcion": gasto.descripcion,
+                            "cantidad": gasto.cantidad,
+                        }
+                    )
+                elif (
+                    gasto.frecuencia == FrecuenciaChoices.SEMANAL
+                    and gasto.dia_semana in dias_semana
+                ):
+                    gastos_fijos.append(
+                        {
+                            "descripcion": gasto.descripcion,
+                            "cantidad": gasto.cantidad
+                            * dias_semana.get(gasto.dia_semana, 0),
+                        }
+                    )
+                elif gasto.frecuencia == FrecuenciaChoices.LUNES_SABADO:
+                    gastos_fijos.append(
+                        {
+                            "descripcion": gasto.descripcion,
+                            "cantidad": gasto.cantidad * dias_laborables,
+                        }
+                    )
+
+            filtros_productos = {
+                "producto__venta__created_at__date__range": (
+                    parse_desde,
+                    parse_hasta,
+                ),
+                "producto__ajusteinventario__isnull": True,
+            }
+
+            if area != "general":
+                filtros_productos["producto__area_venta"] = area
+
+            producto_info = (
+                ProductoInfo.objects.filter(**filtros_productos)
+                .annotate(
+                    cantidad=Count("producto"),
+                    importe=F("cantidad") * F("precio_venta"),
+                )
+                .order_by("importe")
+                .values(
+                    "id",
+                    "descripcion",
+                    "cantidad",
+                    "precio_venta",
+                    "precio_costo",
+                    "importe",
+                )
+            )
+
+            filtros_ventas: dict[str, str | tuple[date, date]] = {
+                "created_at__date__range": (parse_desde, parse_hasta)
+            }
+
+            if area != "general":
+                filtros_ventas["area_venta__id"] = area
+
+            ventas = Ventas.objects.filter(**filtros_ventas)
+
+            if area != "general":
+                area_venta = get_object_or_404(AreaVenta, pk=area)
+
+            total_gastos_fijos = sum(gasto.get("cantidad", 0) for gasto in gastos_fijos)
+
+            pagos = ventas.aggregate(
+                efectivo=Coalesce(
+                    Sum(
+                        "producto__info__precio_venta",
+                        filter=Q(metodo_pago="EFECTIVO"),
+                    ),
+                    Decimal(0),
+                )
+                + Coalesce(
+                    Sum(
+                        "efectivo",
+                        filter=Q(metodo_pago="MIXTO"),
+                    ),
+                    Decimal(0),
+                ),
+                transferencia=Coalesce(
+                    Sum(
+                        "producto__info__precio_venta",
+                        filter=Q(metodo_pago="TRANSFERENCIA"),
+                    ),
+                    Decimal(0),
+                )
+                + Coalesce(
+                    Sum(
+                        "transferencia",
+                        filter=Q(metodo_pago="MIXTO"),
+                    ),
+                    Decimal(0),
+                ),
+            )
+
+            efectivo = pagos.get("efectivo", Decimal(0))
+            transferencia = pagos.get("transferencia", Decimal(0))
 
             subtotal = producto_info.aggregate(subtotal=Sum("importe"))["subtotal"] or 0
-            costo_producto = (
-                producto_info.aggregate(
-                    costo_producto=Sum(F("precio_costo") * F("cantidad"))
-                )["costo_producto"]
-                or 0
-            )
 
             pago_trabajador = (
                 producto_info.aggregate(
@@ -233,21 +191,32 @@ class ReportesController:
                 or 0
             )
 
-            total_costos = pago_trabajador + costo_producto + total_gastos or 0
+            monto_gastos_variables = (
+                gastos_variables.aggregate(total=Sum("cantidad"))["total"] or 0
+            ) + pago_trabajador
+
+            total_costos = (
+                pago_trabajador + total_gastos_fijos + monto_gastos_variables or 0
+            )
+
+            total = subtotal - total_costos
 
             return {
                 "productos": list(producto_info),
-                "subtotal": subtotal,
-                "costo_producto": round(costo_producto, 2),
-                "gastos_variables": total_gastos_variables,
-                "gastos_fijos": total_gastos_fijos,
+                "subtotal": {
+                    "general": subtotal,
+                    "efectivo": efectivo,
+                    "transferencia": transferencia,
+                },
+                "gastos_fijos": gastos_fijos,
+                "gastos_variables": gastos_variables,
                 "pago_trabajador": round(pago_trabajador, 2),
-                "efectivo": (pagos["efectivo_venta"] or 0)
-                + (pagos["efectivo_mixto"] or 0),
-                "transferencia": (pagos["transferencia_venta"] or 0)
-                + (pagos["transferencia_mixto"] or 0),
-                "total": round(subtotal - total_costos, 2),
-                "area": area_venta,
+                "total": {
+                    "general": total,
+                    "efectivo": efectivo - total_gastos_fijos - monto_gastos_variables,
+                    "transferencia": transferencia,
+                },
+                "area": area_venta.nombre if area != "general" else "general",
             }
 
         elif type == "inventario":
