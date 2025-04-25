@@ -213,7 +213,7 @@ class ReportesController:
                 "pago_trabajador": round(pago_trabajador, 2),
                 "total": {
                     "general": total,
-                    "efectivo": efectivo - total_gastos_fijos - monto_gastos_variables,
+                    "efectivo": efectivo - total_costos,
                     "transferencia": transferencia,
                 },
                 "area": area_venta.nombre if area != "general" else "general",
