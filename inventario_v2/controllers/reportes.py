@@ -195,9 +195,7 @@ class ReportesController:
                 gastos_variables.aggregate(total=Sum("cantidad"))["total"] or 0
             ) + pago_trabajador
 
-            total_costos = (
-                pago_trabajador + total_gastos_fijos + monto_gastos_variables or 0
-            )
+            total_costos = total_gastos_fijos + monto_gastos_variables or 0
 
             total = subtotal - total_costos
 
