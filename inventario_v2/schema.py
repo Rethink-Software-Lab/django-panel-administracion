@@ -2,7 +2,7 @@ import datetime
 from ninja import ModelSchema, Schema
 from inventario.models import *
 from typing import List, Optional, Literal, Any
-from pydantic import condecimal, conint, validator, Field
+from pydantic import condecimal, conint, validator, Field, model_validator
 from decimal import Decimal
 from typing_extensions import Annotated
 
@@ -621,6 +621,7 @@ class EndPointCafeteria(Schema):
 class Producto_Entrada(Schema):
     id: int
     nombre: str
+    precio_costo: Decimal
 
 
 class Productos_Inside_Entradas(Schema):
@@ -629,19 +630,33 @@ class Productos_Inside_Entradas(Schema):
     cantidad: Decimal
 
 
+class ProveedorSchema(ModelSchema):
+    class Meta:
+        model = Proveedor
+        fields = "__all__"
+
+
 class Entradas_CafeteriaSchema(ModelSchema):
     usuario: Optional[User_Only_Username] = None
     productos: List[Productos_Inside_Entradas]
+    proveedor: Optional[ProveedorSchema] = None
 
     class Meta:
         model = Entradas_Cafeteria
         fields = "__all__"
 
 
+class ProveedorEntradasCafeteria(ModelSchema):
+    class Meta:
+        model = Proveedor
+        fields = ["id", "nombre"]
+
+
 class Entradas_Almacen_Cafeteria_Schema(Schema):
     entradas: List[Entradas_CafeteriaSchema]
     productos: List[Productos_Entrada_Cafeteria]
     cuentas: List[TarjetasSchema]
+    proveedores: List[ProveedorEntradasCafeteria]
 
 
 class Add_Entrada_Cafeteria_Productos(Schema):
@@ -650,11 +665,17 @@ class Add_Entrada_Cafeteria_Productos(Schema):
 
 
 class Add_Entrada_Cafeteria(Schema):
-    proveedor: str
     comprador: str
     metodo_pago: METODO_PAGO
     productos: List[Add_Entrada_Cafeteria_Productos]
     cuenta: str
+    proveedor: Optional[str] = None
+    proveedor_nombre: Optional[str] = None
+    proveedor_nit: Optional[str] = None
+    proveedor_telefono: Optional[str] = None
+    proveedor_direccion: Optional[str] = None
+    proveedor_no_cuenta_cup: Optional[str] = None
+    proveedor_no_cuenta_mayorista: Optional[str] = None
 
 
 class Producto_Cafeteria_Endpoint_Schema(Schema):
