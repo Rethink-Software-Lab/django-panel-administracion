@@ -14,6 +14,7 @@ from inventario.models import (
     Elaboraciones_Salidas_Almacen_Cafeteria,
     Cuentas,
     Transacciones,
+    Proveedor,
 )
 
 from ..schema import (
@@ -48,8 +49,14 @@ class AlmacenCafeteriaController:
         )
         productos = Productos_Cafeteria.objects.all()
         cuentas = Cuentas.objects.all()
+        proveedores = Proveedor.objects.all().only("nombre")
 
-        return {"entradas": entradas, "productos": productos, "cuentas": cuentas}
+        return {
+            "entradas": entradas,
+            "productos": productos,
+            "cuentas": cuentas,
+            "proveedores": proveedores,
+        }
 
     @route.get("salidas/", response=EndPointSalidasAlmacenCafeteria)
     def get_salidas_almacen_cafeteria(self):
@@ -84,14 +91,21 @@ class AlmacenCafeteriaController:
 
         usuario = get_object_or_404(User, pk=request.auth["id"])
         cuenta = get_object_or_404(Cuentas, pk=body_dict["cuenta"])
+        proveedor = Proveedor.objects.get(pk=body.proveedor) if body.proveedor else None
 
         with transaction.atomic():
 
             entrada = Entradas_Cafeteria.objects.create(
-                metodo_pago=body_dict["metodo_pago"],
-                proveedor=body_dict["proveedor"],
+                metodo_pago=body.metodo_pago,
+                comprador=body.comprador,
                 usuario=usuario,
-                comprador=body_dict["comprador"],
+                proveedor=proveedor,
+                proveedor_nombre=body.proveedor_nombre,
+                proveedor_nit=body.proveedor_nit,
+                proveedor_telefono=body.proveedor_telefono,
+                proveedor_direccion=body.proveedor_direccion,
+                proveedor_no_cuenta_cup=body.proveedor_no_cuenta_cup,
+                proveedor_no_cuenta_mayorista=body.proveedor_no_cuenta_mayorista,
             )
 
             total_cantidad = 0

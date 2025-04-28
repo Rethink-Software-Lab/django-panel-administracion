@@ -111,8 +111,8 @@ class Proveedor(models.Model):
     nombre = models.CharField(max_length=100, blank=False, null=False)
     direccion = models.CharField(max_length=100, blank=False, null=False)
     nit = models.CharField(max_length=30, blank=False, null=False)
-    no_cuenta_cup = models.CharField(max_length=30, blank=False, null=False)
-    no_cuenta_mayorista = models.CharField(max_length=30, blank=False, null=False)
+    no_cuenta_cup = models.CharField(max_length=30, blank=True, null=True)
+    no_cuenta_mayorista = models.CharField(max_length=30, blank=True, null=True)
     telefono = models.CharField(max_length=10, blank=False, null=False)
 
 
@@ -359,7 +359,15 @@ class Entradas_Cafeteria(models.Model):
     metodo_pago = models.CharField(
         max_length=30, choices=METODO_PAGO.choices, blank=False, null=False
     )
-    proveedor = models.CharField(max_length=30, blank=False, null=False)
+    proveedor = models.ForeignKey(Proveedor, on_delete=models.SET_NULL, null=True)
+    proveedor_nombre = models.CharField(max_length=100, blank=True, null=True)
+    proveedor_nit = models.CharField(max_length=30, blank=True, null=True)
+    proveedor_telefono = models.CharField(max_length=10, blank=True, null=True)
+    proveedor_direccion = models.CharField(max_length=100, blank=True, null=True)
+    proveedor_no_cuenta_cup = models.CharField(max_length=30, blank=True, null=True)
+    proveedor_no_cuenta_mayorista = models.CharField(
+        max_length=30, blank=True, null=True
+    )
     comprador = models.CharField(max_length=30, blank=False, null=False)
 
 
