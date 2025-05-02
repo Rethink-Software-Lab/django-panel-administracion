@@ -38,9 +38,7 @@ class EntradasController:
                 created_at__gte=timezone.now() - timedelta(days=7)
             )
             .annotate(
-                cantidad=Count("producto"),
                 username=F("usuario__username"),
-                descripcion_producto=F("producto__info__descripcion"),
                 fecha=F("created_at"),
                 nombre_proveedor=F("proveedor__nombre"),
             )
@@ -50,9 +48,7 @@ class EntradasController:
                 "nombre_proveedor",
                 "comprador",
                 "username",
-                "descripcion_producto",
                 "fecha",
-                "cantidad",
             )
             .order_by("-fecha")
         )
@@ -60,112 +56,118 @@ class EntradasController:
 
     @route.post("")
     def addEntrada(self, request, data: AddEntradaSchema):
-        dataDict = data.model_dump()
 
-        producto_info = get_object_or_404(ProductoInfo, codigo=dataDict["productInfo"])
         user = get_object_or_404(User, pk=request.auth["id"])
-        cuenta = get_object_or_404(Cuentas, pk=dataDict["cuenta"])
-        proveedor = get_object_or_404(Proveedor, pk=dataDict["proveedor"])
+        cuenta = get_object_or_404(Cuentas, pk=data.cuenta)
+        proveedor = get_object_or_404(Proveedor, pk=data.proveedor)
 
         try:
             with transaction.atomic():
                 entrada = EntradaAlmacen(
-                    metodo_pago=dataDict["metodoPago"],
+                    metodo_pago=data.metodoPago,
                     proveedor=proveedor,
                     usuario=user,
-                    comprador=dataDict["comprador"],
+                    comprador=data.comprador,
                 )
                 entrada.save()
 
                 response = []
 
-                if dataDict["variantes"] and not dataDict["cantidad"]:
+                for producto in data.productos:
+                    producto_info = get_object_or_404(
+                        ProductoInfo, codigo=producto.producto
+                    )
 
-                    total_zapatos = 0
+                    variantesResponse = []
 
-                    for variante in dataDict["variantes"]:
-                        color = variante.get("color")
-                        numeros = variante.get("numeros", [])
+                    if producto.isZapato and producto.variantes:
+                        total_zapatos = 0
 
-                        productos_pa = []
+                        for variante in producto.variantes:
+                            productos_pa = []
 
-                        for num in numeros:
-                            numero = num.get("numero")
-                            cantidad = num.get("cantidad", 0)
+                            for num in variante.numeros:
 
-                            ids = []
+                                ids = []
 
-                            productos = [
-                                Producto(
-                                    info=producto_info,
-                                    color=color,
-                                    numero=numero,
-                                    entrada=entrada,
+                                productos = [
+                                    Producto(
+                                        info=producto_info,
+                                        color=variante.color,
+                                        numero=num.numero,
+                                        entrada=entrada,
+                                    )
+                                    for _ in range(num.cantidad)
+                                ]
+
+                                total_zapatos += num.cantidad
+
+                                ids = Producto.objects.bulk_create(productos)
+
+                                formated_ids = (
+                                    f"{ids[0].pk}-{ids[-1].pk}"
+                                    if len(ids) > 1
+                                    else ids[0].pk
                                 )
-                                for _ in range(cantidad)
-                            ]
+                                productos_pa.append(
+                                    {"numero": num.numero, "ids": formated_ids}
+                                )
 
-                            total_zapatos += cantidad
-
-                            ids = Producto.objects.bulk_create(productos)
-
-                            formated_ids = (
-                                f"{ids[0].pk}-{ids[-1].pk}"
-                                if len(ids) > 1
-                                else ids[0].pk
+                            variantesResponse.append(
+                                {"color": variante.color, "numeros": productos_pa}
                             )
-                            productos_pa.append({"numero": numero, "ids": formated_ids})
-
-                        response.append({"color": color, "numeros": productos_pa})
-
-                    cuenta.saldo -= total_zapatos * producto_info.precio_costo
-                    cuenta.save()
-                    Transacciones.objects.create(
-                        entrada=entrada,
-                        usuario=user,
-                        tipo=TipoTranferenciaChoices.EGRESO,
-                        cuenta=cuenta,
-                        cantidad=total_zapatos * producto_info.precio_costo,
-                        descripcion=(
-                            f"[ENT] {total_zapatos}x {producto_info.descripcion[:38]}..."
-                            if len(producto_info.descripcion) > 38
-                            else f"[ENT] {total_zapatos}x {producto_info.descripcion}"
-                        ),
-                    )
-
-                    return response
-
-                elif dataDict["cantidad"] and not dataDict["variantes"]:
-
-                    productos = [
-                        Producto(
-                            info=producto_info,
-                            entrada=entrada,
+                        response.append(
+                            {
+                                "zapato": producto.producto,
+                                "variantes": variantesResponse,
+                            }
                         )
-                        for _ in range(dataDict["cantidad"])
-                    ]
 
-                    Producto.objects.bulk_create(productos)
+                        cuenta.saldo -= total_zapatos * producto_info.precio_costo
+                        cuenta.save()
+                        Transacciones.objects.create(
+                            entrada=entrada,
+                            usuario=user,
+                            tipo=TipoTranferenciaChoices.EGRESO,
+                            cuenta=cuenta,
+                            cantidad=total_zapatos * producto_info.precio_costo,
+                            descripcion=(
+                                f"[ENT] {total_zapatos}x {producto_info.descripcion[:38]}..."
+                                if len(producto_info.descripcion) > 38
+                                else f"[ENT] {total_zapatos}x {producto_info.descripcion}"
+                            ),
+                        )
 
-                    cuenta.saldo -= dataDict["cantidad"] * producto_info.precio_costo
-                    cuenta.save()
-                    Transacciones.objects.create(
-                        entrada=entrada,
-                        usuario=user,
-                        tipo=TipoTranferenciaChoices.EGRESO,
-                        cuenta=cuenta,
-                        cantidad=dataDict["cantidad"] * producto_info.precio_costo,
-                        descripcion=(
-                            f"[ENT] {dataDict['cantidad']}x {producto_info.descripcion[:38]}..."
-                            if len(producto_info.descripcion) > 38
-                            else f"[ENT] {dataDict['cantidad']}x {producto_info.descripcion}"
-                        ),
-                    )
+                    elif producto.isZapato == False and producto.cantidad:
+                        productos = [
+                            Producto(
+                                info=producto_info,
+                                entrada=entrada,
+                            )
+                            for _ in range(producto.cantidad)
+                        ]
 
-                    return
+                        Producto.objects.bulk_create(productos)
 
-                else:
-                    raise HttpError(400, "Bad Request")
+                        cuenta.saldo -= producto.cantidad * producto_info.precio_costo
+                        cuenta.save()
+                        Transacciones.objects.create(
+                            entrada=entrada,
+                            usuario=user,
+                            tipo=TipoTranferenciaChoices.EGRESO,
+                            cuenta=cuenta,
+                            cantidad=producto.cantidad * producto_info.precio_costo,
+                            descripcion=(
+                                f"[ENT] {producto.cantidad}x {producto_info.descripcion[:38]}..."
+                                if len(producto_info.descripcion) > 38
+                                else f"[ENT] {producto.cantidad}x {producto_info.descripcion}"
+                            ),
+                        )
+
+                    else:
+                        raise HttpError(400, "Bad Request")
+
+                return response
 
         except Exception as e:
             print(f"Error en la transacción: {str(e)}")
