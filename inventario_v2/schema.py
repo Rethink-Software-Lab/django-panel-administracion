@@ -89,9 +89,7 @@ class EntradaAlmacenSchema(Schema):
     nombre_proveedor: Optional[str] = None
     comprador: str
     username: Optional[str] = None
-    descripcion_producto: Optional[str] = None
     fecha: datetime.datetime
-    cantidad: int
 
 
 class ProductoParaEntradaAlmacenCafeteriaSchema(Schema):
@@ -129,12 +127,17 @@ class ProductoCodigoSchema(Schema):
     categoria: CategoriasSchema
 
 
+class ProductosEntradaAlmacenPrincipal(Schema):
+    producto: str
+    cantidad: Optional[int] = None
+    isZapato: bool
+    variantes: Optional[List[VariantesSchema]] = None
+
+
 class AddEntradaSchema(Schema):
     metodoPago: str
     proveedor: str
-    variantes: Optional[List[VariantesSchema]] = None
-    cantidad: Optional[int] = None
-    productInfo: str
+    productos: List[ProductosEntradaAlmacenPrincipal]
     comprador: str
     cuenta: str
 
