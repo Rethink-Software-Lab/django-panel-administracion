@@ -14,11 +14,9 @@ from inventario.models import (
 )
 from ..schema import (
     AddVentaSchema,
-    VentasSchema,
 )
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
-from django.db.models import Sum, Count
 from django.db import transaction
 
 from ..custom_permissions import isAuthenticated
@@ -27,104 +25,11 @@ from ..custom_permissions import isAuthenticated
 @api_controller("ventas/", tags=["Ventas"], permissions=[isAuthenticated])
 class VentasController:
 
-    @route.get("{id}/", response=list[VentasSchema])
-    def getVenta(self, request, id: int):
-        user = User.objects.get(pk=request.auth["id"])
-
-        is_authorized = False
-
-        if user.is_staff:
-            is_authorized = True
-
-        elif user.area_venta is not None:
-            if id == 28:
-                if (
-                    user.area_venta.pk == 4
-                    or user.area_venta.pk == 6
-                    or user.area_venta.pk == 25
-                    or user.area_venta.pk == 17
-                    or user.area_venta.pk == id
-                ):
-                    is_authorized = True
-
-            elif id == 27:
-                if user.area_venta.pk == 17 or user.area_venta.pk == id:
-                    is_authorized = True
-            elif id == 30:
-                if user.pk == 38 or user.area_venta.pk == id:
-                    is_authorized = True
-            elif id == 33:
-                if user.pk == 38 or user.area_venta.pk == id:
-                    is_authorized = True
-            elif id == 29:
-                if user.pk == 50 or user.area_venta.pk == id:
-                    is_authorized = True
-            else:
-                if id == user.area_venta.pk:
-                    is_authorized = True
-
-        if not is_authorized:
-            raise HttpError(401, "Unauthorized")
-        ventas = (
-            Ventas.objects.filter(area_venta=id)
-            .annotate(
-                importe=Sum("producto__info__precio_venta")
-                - Sum("producto__info__pago_trabajador"),
-                cantidad=Count("producto"),
-            )
-            .values(
-                "importe",
-                "created_at",
-                "metodo_pago",
-                "usuario__username",
-                "producto__info__descripcion",
-                "cantidad",
-                "id",
-            )
-            .order_by("-created_at")
-        )
-        return ventas
-
     @route.post("")
     def addVenta(self, request, data: AddVentaSchema):
         dataDict = data.model_dump()
 
         area_venta = get_object_or_404(AreaVenta, pk=dataDict["areaVenta"])
-
-        user = User.objects.get(pk=request.auth["id"])
-
-        is_authorized = False
-
-        if user.is_staff:
-            is_authorized = True
-        elif user.area_venta is not None:
-            if area_venta.pk == 28:
-                if (
-                    user.area_venta.pk == 4
-                    or user.area_venta.pk == 6
-                    or user.area_venta.pk == 25
-                    or user.area_venta.pk == 17
-                    or user.area_venta.pk == area_venta.pk
-                ):
-                    is_authorized = True
-            elif area_venta.pk == 27:
-                if user.area_venta.pk == 17 or user.area_venta.pk == area_venta.pk:
-                    is_authorized = True
-            elif area_venta.pk == 30:
-                if user.pk == 38 or user.area_venta.pk == area_venta.pk:
-                    is_authorized = True
-            elif area_venta.pk == 33:
-                if user.pk == 38 or user.area_venta.pk == area_venta.pk:
-                    is_authorized = True
-            elif area_venta.pk == 29:
-                if user.pk == 50 or user.area_venta.pk == area_venta.pk:
-                    is_authorized = True
-            else:
-                if area_venta.pk == user.area_venta.pk:
-                    is_authorized = True
-
-        if not is_authorized:
-            raise HttpError(401, "Unauthorized")
 
         producto_info = get_object_or_404(
             ProductoInfo, codigo=dataDict["producto_info"]
@@ -331,43 +236,11 @@ class VentasController:
     @route.delete("{id}/")
     def deleteVenta(self, request, id: int):
         venta = get_object_or_404(Ventas, pk=id)
-        user = User.objects.get(pk=request.auth["id"])
+        user = get_object_or_404(User, pk=request.auth["id"])
 
-        is_authorized = False
+        if venta.usuario != user.pk and not user.is_staff:
+            raise HttpError(401, "No autorizado.")
 
-        if user.is_staff:
-            is_authorized = True
-        elif user.area_venta is not None:
-            if venta.area_venta.pk == 28:
-                if (
-                    user.area_venta.pk == 4
-                    or user.area_venta.pk == 6
-                    or user.area_venta.pk == 25
-                    or user.area_venta.pk == 17
-                    or user.area_venta.pk == venta.area_venta.pk
-                ):
-                    is_authorized = True
-            elif venta.area_venta.pk == 27:
-                if (
-                    user.area_venta.pk == 17
-                    or user.area_venta.pk == venta.area_venta.pk
-                ):
-                    is_authorized = True
-            elif venta.area_venta.pk == 30:
-                if user.pk == 38 or user.area_venta.pk == venta.area_venta.pk:
-                    is_authorized = True
-            elif venta.area_venta.pk == 33:
-                if user.pk == 38 or user.area_venta.pk == venta.area_venta.pk:
-                    is_authorized = True
-            elif venta.area_venta.pk == 29:
-                if user.pk == 50 or user.area_venta.pk == venta.area_venta.pk:
-                    is_authorized = True
-            else:
-                if venta.area_venta.pk == user.area_venta.pk:
-                    is_authorized = True
-
-        if not is_authorized:
-            raise HttpError(401, "Unauthorized")
         try:
             with transaction.atomic():
                 transacciones = Transacciones.objects.filter(venta=venta)
