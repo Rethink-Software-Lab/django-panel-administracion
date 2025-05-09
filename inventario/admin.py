@@ -25,11 +25,11 @@ class ProductoAdmin(admin.ModelAdmin):
         "venta_adapt",
         "almacen_revoltosa",
     ]
-    search_fields = ["info__descripcion", "info__codigo"]
+    search_fields = ["info__descripcion"]
     list_filter = ["area_venta"]
 
     def info_producto(self, obj):
-        return f"{obj.info.descripcion} - {obj.info.codigo}"
+        return obj.info.descripcion
 
     def entrada_adapt(self, obj):
         return (
@@ -146,7 +146,6 @@ admin.site.register(Salidas_Cafeteria)
 class ProductInfoAdmin(admin.ModelAdmin):
     list_display = [
         "id",
-        "codigo",
         "descripcion",
         "imagen",
         "categoria",

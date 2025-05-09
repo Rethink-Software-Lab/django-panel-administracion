@@ -31,9 +31,7 @@ class VentasController:
 
         area_venta = get_object_or_404(AreaVenta, pk=dataDict["areaVenta"])
 
-        producto_info = get_object_or_404(
-            ProductoInfo, codigo=dataDict["producto_info"]
-        )
+        producto_info = get_object_or_404(ProductoInfo, pk=dataDict["producto_info"])
         usuario_search = get_object_or_404(User, pk=request.auth["id"])
         metodo_pago = dataDict["metodoPago"]
 
