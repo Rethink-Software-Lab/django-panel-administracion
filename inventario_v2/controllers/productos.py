@@ -22,7 +22,7 @@ from ..schema import (
     ProductoWithCategotiaSchema,
 )
 from ninja_extra import api_controller, route
-from typing import List, Optional
+from typing import Optional
 import cloudinary.uploader
 from django.db import transaction
 from ..custom_permissions import isAuthenticated
@@ -59,7 +59,6 @@ class ProductoController:
         categoria_query = get_object_or_404(Categorias, pk=dataDict["categoria"])
 
         productoInfo = ProductoInfo(
-            codigo=dataDict["codigo"],
             descripcion=dataDict["descripcion"],
             categoria=categoria_query,
             pago_trabajador=(dataDict.get("pago_trabajador")),
@@ -107,10 +106,7 @@ class ProductoController:
         try:
             productoInfo.save()
         except Exception as e:
-            if str(e).startswith("UNIQUE constraint"):
-                raise HttpError(400, "El código debe ser único")
-            else:
-                raise HttpError(500, "Error inesperado")
+            raise HttpError(500, "Error inesperado")
 
         return {"success": True}
 
@@ -125,9 +121,6 @@ class ProductoController:
 
         producto = get_object_or_404(ProductoInfo, pk=id)
         categoria_query = get_object_or_404(Categorias, pk=dataDict["categoria"])
-
-        if producto.codigo != dataDict["codigo"]:
-            producto.codigo = dataDict["codigo"]
 
         producto.descripcion = dataDict["descripcion"]
         producto.categoria = categoria_query

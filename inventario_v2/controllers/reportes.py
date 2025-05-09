@@ -230,7 +230,6 @@ class ReportesController:
                     .values(
                         "id",
                         "descripcion",
-                        "codigo",
                         "cantidad",
                     )
                 )
@@ -248,7 +247,6 @@ class ReportesController:
                         {
                             "id": producto.pk,
                             "descripcion": producto.nombre,
-                            "codigo": None,
                             "cantidad": producto.inventario_area.cantidad,
                         }
                     )
@@ -264,7 +262,6 @@ class ReportesController:
                         {
                             "id": producto.pk,
                             "descripcion": producto.nombre,
-                            "codigo": None,
                             "cantidad": producto.inventario_almacen.cantidad,
                         }
                     )
@@ -283,7 +280,6 @@ class ReportesController:
                     .values(
                         "id",
                         "descripcion",
-                        "codigo",
                         "cantidad",
                     )
                 )
@@ -304,7 +300,6 @@ class ReportesController:
                     .values(
                         "id",
                         "descripcion",
-                        "codigo",
                         "cantidad",
                     )
                 )
@@ -325,7 +320,6 @@ class ReportesController:
                     .values(
                         "id",
                         "descripcion",
-                        "codigo",
                         "cantidad",
                     )
                 )

@@ -123,7 +123,7 @@ class EntradaAlmacenCafeteriaSchema(ModelSchema):
 
 class ProductoCodigoSchema(Schema):
     id: int
-    codigo: str
+    descripcion: str
     categoria: CategoriasSchema
 
 
@@ -245,7 +245,6 @@ class AddVentaSchema(Schema):
 
 class OtrosProductos(Schema):
     id: int
-    codigo: str
     descripcion: str
     precio_venta: condecimal(gt=0)
     cantidad: int
@@ -263,7 +262,6 @@ class ProductoInfoModifySchema(Schema):
 class ProductoInfoParaReporte(Schema):
     id: int
     descripcion: str
-    codigo: Optional[str] = None
     cantidad: Decimal
     precio_venta: Optional[condecimal(gt=0)] = None
     importe: Optional[condecimal(gt=0)] = None
@@ -299,7 +297,6 @@ class ReportesSchema(Schema):
 
 class Zapatos(Schema):
     id: int
-    info__codigo: str
     info__descripcion: str
     color: str
     numero: int
@@ -327,7 +324,6 @@ class AlmacenCafeteria(Schema):
 
 
 class AddProductoSchema(Schema):
-    codigo: str
     descripcion: str
     categoria: int
     precio_costo: condecimal(gt=0)
@@ -336,7 +332,6 @@ class AddProductoSchema(Schema):
 
 
 class UpdateProductoSchema(Schema):
-    codigo: str
     descripcion: str
     categoria: int
     precio_costo: condecimal(gt=0)

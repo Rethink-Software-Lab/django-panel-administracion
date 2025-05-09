@@ -75,7 +75,7 @@ class EntradasController:
 
                 for producto in data.productos:
                     producto_info = get_object_or_404(
-                        ProductoInfo, codigo=producto.producto
+                        ProductoInfo, pk=producto.producto
                     )
 
                     variantesResponse = []

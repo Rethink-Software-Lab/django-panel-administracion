@@ -91,7 +91,6 @@ class Categorias(models.Model):
 
 
 class ProductoInfo(models.Model):
-    codigo = models.CharField(max_length=30, unique=True)
     descripcion = models.CharField(max_length=100, blank=False, null=False)
     imagen = models.ForeignKey(Image, on_delete=models.SET_NULL, null=True, blank=True)
     pago_trabajador = models.IntegerField()

@@ -44,7 +44,7 @@ class SalidasController:
                     producto__almacen_revoltosa=False,
                     producto__ajusteinventario__isnull=True,
                 )
-                .only("codigo", "categoria")
+                .only("descripcion", "categoria")
                 .distinct()
             )
 
@@ -65,9 +65,7 @@ class SalidasController:
         else:
             area_venta = None
 
-        producto_info = get_object_or_404(
-            ProductoInfo, codigo=dataDict["producto_info"]
-        )
+        producto_info = get_object_or_404(ProductoInfo, pk=dataDict["producto_info"])
         usuario_search = get_object_or_404(User, pk=request.auth["id"])
 
         if producto_info.categoria.nombre == "Zapatos":

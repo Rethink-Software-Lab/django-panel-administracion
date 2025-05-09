@@ -23,7 +23,6 @@ class InventarioController:
             .values(
                 "id",
                 "descripcion",
-                "codigo",
                 "cantidad",
                 "categoria__nombre",
                 "precio_venta",
@@ -37,7 +36,6 @@ class InventarioController:
             ajusteinventario__isnull=True,
         ).values(
             "id",
-            "info__codigo",
             "info__descripcion",
             "color",
             "numero",
@@ -47,44 +45,6 @@ class InventarioController:
 
         return {
             "inventario": {"productos": producto_info, "zapatos": zapatos},
-            "categorias": categorias,
-        }
-
-    @route.get("area-venta/{id}/", response=InventarioAreaVentaSchema)
-    def getInventarioAreaVenta(self, id: int):
-        area_venta = get_object_or_404(AreaVenta, pk=id)
-        producto_info = (
-            ProductoInfo.objects.filter(
-                producto__venta__isnull=True,
-                producto__area_venta=area_venta,
-            )
-            .annotate(cantidad=Count(F("producto")))
-            .exclude(Q(cantidad__lt=1) | Q(categoria__nombre="Zapatos"))
-            .values(
-                "id",
-                "descripcion",
-                "codigo",
-                "precio_venta",
-                "cantidad",
-                "categoria__nombre",
-            )
-        )
-        zapatos = Producto.objects.filter(
-            venta__isnull=True, area_venta=area_venta, info__categoria__nombre="Zapatos"
-        ).values(
-            "id",
-            "info__codigo",
-            "info__descripcion",
-            "color",
-            "numero",
-        )
-
-        categorias = Categorias.objects.all()
-
-        return {
-            "productos": producto_info,
-            "zapatos": zapatos,
-            "area_venta": area_venta.nombre,
             "categorias": categorias,
         }
 
@@ -102,7 +62,6 @@ class InventarioController:
             .values(
                 "id",
                 "descripcion",
-                "codigo",
                 "cantidad",
                 "categoria__nombre",
                 "precio_venta",
@@ -116,7 +75,6 @@ class InventarioController:
             ajusteinventario__isnull=True,
         ).values(
             "id",
-            "info__codigo",
             "info__descripcion",
             "color",
             "numero",

@@ -40,7 +40,7 @@ class SalidasRevoltosaController:
                     producto__almacen_revoltosa=True,
                     producto__ajusteinventario__isnull=True,
                 )
-                .only("codigo", "categoria")
+                .only("descripcion", "categoria")
                 .distinct()
             )
 
@@ -52,9 +52,7 @@ class SalidasRevoltosaController:
     def add_salida_revoltosa(self, request, data: AddSalidaRevoltosaSchema):
         dataDict = data.model_dump()
 
-        producto_info = get_object_or_404(
-            ProductoInfo, codigo=dataDict["producto_info"]
-        )
+        producto_info = get_object_or_404(ProductoInfo, pk=data.producto_info)
 
         area_revoltosa = get_object_or_404(AreaVenta, nombre="Revoltosa")
 
