@@ -1,7 +1,7 @@
 import datetime
 from ninja import ModelSchema, Schema
 from inventario.models import *
-from typing import List, Optional, Literal, Any
+from typing import List, Optional, Literal, Any, Dict
 from pydantic import condecimal, conint, validator, Field, model_validator
 from decimal import Decimal
 from typing_extensions import Annotated
@@ -288,10 +288,11 @@ class ReportesSchema(Schema):
     productos: List[ProductoInfoParaReporte]
     area: str
     total: Optional[TotalReporte] = None
-    pago_trabajador: Optional[conint(ge=0)] = None
+    pago_trabajador: Optional[Annotated[int, Field(ge=0)]] = None
+    ventas_por_usuario: Dict[str, Annotated[int, Field(ge=0)]]
     gastos_variables: Optional[List[GastosReporte]] = None
     gastos_fijos: Optional[List[GastosReporte]] = None
-    costo_producto: Optional[condecimal()] = None
+    costo_producto: Optional[Decimal] = None
     subtotal: Optional[SubtotalReporteVentas] = None
 
 
