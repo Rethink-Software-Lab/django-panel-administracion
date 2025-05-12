@@ -191,6 +191,20 @@ class ReportesController:
                 or 0
             )
 
+            ventas_por_usuario = {}
+
+            prod = producto_info.annotate(
+                usuario=F("producto__venta__usuario__username"),
+                pago=F("pago_trabajador") * F("cantidad"),
+            )
+            for producto in prod:
+                usuario = producto.get("usuario", "Sin usuario")
+
+                if usuario not in ventas_por_usuario:
+                    ventas_por_usuario[usuario] = 0
+
+                ventas_por_usuario[usuario] += producto.get("pago", 0)
+
             monto_gastos_variables = (
                 gastos_variables.aggregate(total=Sum("cantidad"))["total"] or 0
             ) + pago_trabajador
@@ -209,6 +223,7 @@ class ReportesController:
                 "gastos_fijos": gastos_fijos,
                 "gastos_variables": gastos_variables,
                 "pago_trabajador": round(pago_trabajador, 2),
+                "ventas_por_usuario": ventas_por_usuario,
                 "total": {
                     "general": total,
                     "efectivo": efectivo - total_costos,
