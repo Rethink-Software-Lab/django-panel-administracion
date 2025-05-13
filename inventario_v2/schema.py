@@ -289,7 +289,7 @@ class ReportesSchema(Schema):
     area: str
     total: Optional[TotalReporte] = None
     pago_trabajador: Optional[Annotated[int, Field(ge=0)]] = None
-    ventas_por_usuario: Dict[str, Annotated[int, Field(ge=0)]]
+    ventas_por_usuario: Optional[Dict[str, Annotated[int, Field(ge=0)]]] = None
     gastos_variables: Optional[List[GastosReporte]] = None
     gastos_fijos: Optional[List[GastosReporte]] = None
     costo_producto: Optional[Decimal] = None
