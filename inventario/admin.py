@@ -140,6 +140,8 @@ admin.site.register(Ingrediente_Cantidad)
 admin.site.register(Elaboraciones)
 admin.site.register(Ventas_Cafeteria)
 admin.site.register(Salidas_Cafeteria)
+admin.site.register(HistorialPrecioCostoSalon)
+admin.site.register(HistorialPrecioVentaSalon)
 
 
 @admin.register(ProductoInfo)
@@ -149,8 +151,6 @@ class ProductInfoAdmin(admin.ModelAdmin):
         "descripcion",
         "imagen",
         "categoria",
-        "precio_costo",
-        "precio_venta",
         "pago_trabajador",
     ]
 
