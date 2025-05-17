@@ -70,9 +70,9 @@ class ResponseEntradasPrinciapl(Schema):
     cuentas: List[TarjetasSchema]
 
 
-class ProductoWithCategotiaSchema(Schema):
-    productos: List[ProductoInfoSchema]
-    categorias: List[CategoriasSchema]
+# class ProductoWithCategotiaSchema(Schema):
+#     productos: List[ProductoInfoSchema]
+#     categorias: List[CategoriasSchema]
 
 
 class ProductoSchema(ModelSchema):
@@ -263,8 +263,8 @@ class ProductoInfoParaReporte(Schema):
     id: int
     descripcion: str
     cantidad: Decimal
-    precio_venta: Optional[condecimal(gt=0)] = None
-    importe: Optional[condecimal(gt=0)] = None
+    precio_venta: Optional[Annotated[Decimal, Field(gt=0)]] = None
+    importe: Optional[Annotated[Decimal, Field(gt=0)]] = None
 
 
 class SubtotalReporteVentas(Schema):
@@ -327,17 +327,15 @@ class AlmacenCafeteria(Schema):
 class AddProductoSchema(Schema):
     descripcion: str
     categoria: int
-    precio_costo: condecimal(gt=0)
-    precio_venta: condecimal(gt=0)
-    pago_trabajador: conint(ge=0)
+    precio_costo: Annotated[Decimal, Field(gt=0)]
+    precio_venta: Annotated[Decimal, Field(gt=0)]
+    pago_trabajador: Annotated[int, Field(ge=0)]
 
 
 class UpdateProductoSchema(Schema):
     descripcion: str
     categoria: int
-    precio_costo: condecimal(gt=0)
-    precio_venta: condecimal(gt=0)
-    pago_trabajador: conint(ge=0)
+    pago_trabajador: Annotated[int, Field(ge=0)]
     deletePhoto: bool
 
 

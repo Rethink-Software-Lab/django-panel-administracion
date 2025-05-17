@@ -95,15 +95,51 @@ class ProductoInfo(models.Model):
     imagen = models.ForeignKey(Image, on_delete=models.SET_NULL, null=True, blank=True)
     pago_trabajador = models.IntegerField()
     categoria = models.ForeignKey(Categorias, on_delete=models.CASCADE)
-    precio_costo = models.DecimalField(
-        max_digits=7, decimal_places=2, blank=False, null=False
-    )
-    precio_venta = models.DecimalField(
-        max_digits=7, decimal_places=2, blank=False, null=False
-    )
+    # precio_costo = models.DecimalField(
+    #     max_digits=7, decimal_places=2, blank=False, null=False
+    # )
+    # precio_venta = models.DecimalField(
+    #     max_digits=7, decimal_places=2, blank=False, null=False
+    # )
+
+    @property
+    def precio_costo(self):
+        return self.historial_costo.order_by("-id").first().precio
+
+    @property
+    def precio_venta(self):
+        return self.historial_venta.order_by("-id").first().precio
 
     def __str__(self):
         return self.descripcion
+
+
+class HistorialPrecioCostoSalon(models.Model):
+    producto_info = models.ForeignKey(
+        ProductoInfo,
+        on_delete=models.CASCADE,
+        related_name="historial_costo",
+        null=True,
+    )
+    precio = models.DecimalField(
+        max_digits=7, decimal_places=2, blank=False, null=False
+    )
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True)
+    fecha_inicio = models.DateTimeField(auto_now_add=True)
+
+
+class HistorialPrecioVentaSalon(models.Model):
+    producto_info = models.ForeignKey(
+        ProductoInfo,
+        on_delete=models.CASCADE,
+        related_name="historial_venta",
+        null=True,
+    )
+    precio = models.DecimalField(
+        max_digits=7, decimal_places=2, blank=False, null=False
+    )
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True)
+    fecha_inicio = models.DateTimeField(auto_now_add=True)
 
 
 class Proveedor(models.Model):

@@ -11,6 +11,8 @@ from inventario.models import (
     GastosChoices,
     FrecuenciaChoices,
     Productos_Cafeteria,
+    HistorialPrecioCostoSalon,
+    HistorialPrecioVentaSalon,
 )
 from ..schema import ReportesSchema
 from ninja_extra import api_controller, route
@@ -21,6 +23,7 @@ from ..utils import (
     obtener_ultimo_dia_mes,
 )
 from django.db.models.functions import Coalesce
+from django.db.models import OuterRef, Subquery
 
 
 @api_controller("reportes/", tags=["Categorías"], permissions=[])
@@ -117,22 +120,42 @@ class ReportesController:
             if area != "general":
                 filtros_productos["producto__area_venta"] = area
 
+            ultimo_precio_costo = (
+                HistorialPrecioCostoSalon.objects.filter(
+                    producto_info_id=OuterRef("pk")
+                )
+                .order_by("-id")
+                .values("precio")[:1]
+            )
+
+            ultimo_precio_venta = (
+                HistorialPrecioVentaSalon.objects.filter(
+                    producto_info_id=OuterRef("pk")
+                )
+                .order_by("-id")
+                .values("precio")[:1]
+            )
+
             producto_info = (
                 ProductoInfo.objects.filter(**filtros_productos)
                 .annotate(
                     cantidad=Count("producto"),
-                    importe=F("cantidad") * F("precio_venta"),
+                    precio_c=Subquery(ultimo_precio_costo),
+                    precio_v=Subquery(ultimo_precio_venta),
                 )
+                .annotate(importe=F("cantidad") * F("precio_v"))
                 .order_by("importe")
                 .values(
                     "id",
                     "descripcion",
                     "cantidad",
-                    "precio_venta",
-                    "precio_costo",
                     "importe",
+                    precio_venta=F("precio_v"),
+                    precio_cost=F("precio_c"),
                 )
             )
+
+            print(producto_info)
 
             filtros_ventas: dict[str, str | tuple[date, date]] = {
                 "created_at__date__range": (parse_desde, parse_hasta)
@@ -151,7 +174,7 @@ class ReportesController:
             pagos = ventas.aggregate(
                 efectivo=Coalesce(
                     Sum(
-                        "producto__info__precio_venta",
+                        "producto__info__historial_venta__precio",
                         filter=Q(metodo_pago="EFECTIVO"),
                     ),
                     Decimal(0),
@@ -165,7 +188,7 @@ class ReportesController:
                 ),
                 transferencia=Coalesce(
                     Sum(
-                        "producto__info__precio_venta",
+                        "producto__info__historial_venta__precio",
                         filter=Q(metodo_pago="TRANSFERENCIA"),
                     ),
                     Decimal(0),

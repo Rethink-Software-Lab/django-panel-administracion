@@ -25,7 +25,7 @@ class InventarioController:
                 "descripcion",
                 "cantidad",
                 "categoria__nombre",
-                "precio_venta",
+                precio_venta=F("historial_venta__precio"),
             )
         )
         zapatos = Producto.objects.filter(

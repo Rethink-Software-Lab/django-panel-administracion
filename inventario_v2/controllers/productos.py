@@ -14,17 +14,21 @@ from inventario.models import (
     SalidaAlmacenRevoltosa,
     EntradaAlmacen,
     Cuentas,
+    HistorialPrecioCostoSalon,
+    HistorialPrecioVentaSalon,
+    User,
 )
 from ..schema import (
     ResponseEntradasPrinciapl,
     AddProductoSchema,
     UpdateProductoSchema,
-    ProductoWithCategotiaSchema,
+    # ProductoWithCategotiaSchema,
 )
 from ninja_extra import api_controller, route
 from typing import Optional
 import cloudinary.uploader
 from django.db import transaction
+from django.db.models import F
 from ..custom_permissions import isAuthenticated
 
 # TODO:
@@ -44,26 +48,44 @@ class ProductoController:
 
         return {"productos": producto_info, "cuentas": cuentas}
 
-    @route.get("/with-categorias/", response=ProductoWithCategotiaSchema)
-    def get_productos_with_categoria(self):
-        producto_info = ProductoInfo.objects.all().order_by("-id")
-        categorias = Categorias.objects.all()
-        return {"productos": producto_info, "categorias": categorias}
+    # @route.get("/with-categorias/", response=ProductoWithCategotiaSchema)
+    # def get_productos_with_categoria(self):
+    #     producto_info = (
+    #         ProductoInfo.objects.select_related(
+    #             "precio_costo", "precio_venta", "categoria"
+    #         )
+    #         .values(
+    #             "id",
+    #             "descripcion",
+    #             "categoria",
+    #             "pago_trabajador",
+    #             "precio_costo__precio",
+    #             "precio_venta__precio",
+    #         )
+    #         .annotate(
+    #             precio_costo=F("precio_costo__precio"),
+    #             precio_venta=F("precio_venta__precio"),
+    #         )
+    #         .order_by("-id")
+    #     )
+    #     categorias = Categorias.objects.all()
+    #     return {"productos": producto_info, "categorias": categorias}
 
     @route.post()
     def addProducto(
-        self, data: AddProductoSchema, imagen: Optional[UploadedFile] = File(None)
+        self,
+        request,
+        data: AddProductoSchema,
+        imagen: Optional[UploadedFile] = File(None),
     ):
-        dataDict = data.model_dump()
 
-        categoria_query = get_object_or_404(Categorias, pk=dataDict["categoria"])
+        categoria_query = get_object_or_404(Categorias, pk=data.categoria)
+        usuario = get_object_or_404(User, pk=request.auth["id"])
 
         productoInfo = ProductoInfo(
-            descripcion=dataDict["descripcion"],
+            descripcion=data.descripcion,
             categoria=categoria_query,
-            pago_trabajador=(dataDict.get("pago_trabajador")),
-            precio_costo=dataDict["precio_costo"],
-            precio_venta=dataDict["precio_venta"],
+            pago_trabajador=data.pago_trabajador,
         )
 
         if imagen:
@@ -105,6 +127,12 @@ class ProductoController:
                 raise HttpError(424, "Failed Dependecy")
         try:
             productoInfo.save()
+            HistorialPrecioCostoSalon.objects.create(
+                precio=data.precio_costo, usuario=usuario, producto_info=productoInfo
+            )
+            HistorialPrecioVentaSalon.objects.create(
+                precio=data.precio_venta, usuario=usuario, producto_info=productoInfo
+            )
         except Exception as e:
             raise HttpError(500, "Error inesperado")
 
@@ -117,18 +145,15 @@ class ProductoController:
         data: UpdateProductoSchema,
         imagen: Optional[UploadedFile] = File(None),
     ):
-        dataDict = data.model_dump()
 
         producto = get_object_or_404(ProductoInfo, pk=id)
-        categoria_query = get_object_or_404(Categorias, pk=dataDict["categoria"])
+        categoria_query = get_object_or_404(Categorias, pk=data.categoria)
 
-        producto.descripcion = dataDict["descripcion"]
+        producto.descripcion = data.descripcion
         producto.categoria = categoria_query
-        producto.pago_trabajador = dataDict["pago_trabajador"]
-        producto.precio_costo = dataDict["precio_costo"]
-        producto.precio_venta = dataDict["precio_venta"]
+        producto.pago_trabajador = data.pago_trabajador
 
-        if not imagen and dataDict.get("deletePhoto"):
+        if not imagen and data.deletePhoto:
             if producto.imagen:
                 try:
                     cloudinary.uploader.destroy(producto.imagen.public_id)

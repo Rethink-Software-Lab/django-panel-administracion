@@ -77,6 +77,7 @@ class EntradasController:
                     producto_info = get_object_or_404(
                         ProductoInfo, pk=producto.producto
                     )
+                    print(producto_info.precio_costo)
 
                     variantesResponse = []
 
