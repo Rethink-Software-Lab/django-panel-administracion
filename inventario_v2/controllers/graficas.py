@@ -63,8 +63,8 @@ class GraficasController:
                             venta__created_at__date=dia_fecha, area_venta=area
                         )
                         .annotate(
-                            diferencia=F("info__precio_venta")
-                            - F("info__precio_costo")
+                            diferencia=F("info__historial_venta__precio")
+                            - F("info__historial_costo__precio")
                             - F("info__pago_trabajador")
                         )
                         .aggregate(total=Sum("diferencia"))["total"]
@@ -132,8 +132,8 @@ class GraficasController:
                         venta__created_at__date__month=mes,
                     )
                     .annotate(
-                        diferencia=F("info__precio_venta")
-                        - F("info__precio_costo")
+                        diferencia=F("info__historial_venta__precio")
+                        - F("info__historial_costo__precio")
                         - F("info__pago_trabajador")
                     )
                     .aggregate(total=Sum("diferencia"))
@@ -230,8 +230,8 @@ class GraficasController:
         productos_hoy = (
             Producto.objects.filter(venta__created_at__date=hoy)
             .annotate(
-                diferencia=F("info__precio_venta")
-                - F("info__precio_costo")
+                diferencia=F("info__historial_venta__precio")
+                - F("info__historial_costo__precio")
                 - F("info__pago_trabajador")
             )
             .aggregate(ventaHoy=Sum("diferencia"))["ventaHoy"]
@@ -287,8 +287,8 @@ class GraficasController:
                 venta__created_at__range=[inicio_semana, fin_semana]
             )
             .annotate(
-                diferencia=F("info__precio_venta")
-                - F("info__precio_costo")
+                diferencia=F("info__historial_venta__precio")
+                - F("info__historial_costo__precio")
                 - F("info__pago_trabajador")
             )
             .aggregate(ventaSemana=Sum("diferencia"))["ventaSemana"]
@@ -343,8 +343,8 @@ class GraficasController:
         productos_mes = (
             Producto.objects.filter(venta__created_at__range=[inicio_mes, fin_mes])
             .annotate(
-                diferencia=F("info__precio_venta")
-                - F("info__precio_costo")
+                diferencia=F("info__historial_venta__precio")
+                - F("info__historial_costo__precio")
                 - F("info__pago_trabajador")
             )
             .aggregate(ventaMes=Sum("diferencia"))["ventaMes"]
