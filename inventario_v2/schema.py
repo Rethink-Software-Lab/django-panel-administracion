@@ -751,7 +751,7 @@ class Add_Venta_Cafeteria(Schema):
 class Productos_Reportes_Cafeteria(ModelSchema):
     cantidad: Decimal
     importe: Decimal
-    precio_venta: Decimal
+    precio_venta: Optional[Decimal] = None
 
     class Meta:
         model = Productos_Cafeteria
