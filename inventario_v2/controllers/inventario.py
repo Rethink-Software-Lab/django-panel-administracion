@@ -1,8 +1,15 @@
-from inventario.models import AreaVenta, ProductoInfo, Producto, Categorias
+from collections import defaultdict
+from inventario.models import (
+    AreaVenta,
+    ProductoInfo,
+    Producto,
+    Categorias,
+    HistorialPrecioVentaSalon,
+)
 from ..schema import InventarioAreaVentaSchema, Almacenes, AlmacenCafeteria
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
-from django.db.models import F, Count, Q
+from django.db.models import F, Count, Q, OuterRef, Subquery
 from ..custom_permissions import isAuthenticated
 
 
@@ -11,23 +18,33 @@ class InventarioController:
 
     @route.get("almacen/", response=Almacenes)
     def getInventarioAlmacen(self):
+
+        ultimo_precio = (
+            HistorialPrecioVentaSalon.objects.filter(producto_info=OuterRef("pk"))
+            .order_by("-fecha_inicio")
+            .values("precio")[:1]
+        )
         producto_info = (
-            ProductoInfo.objects.filter(
+            ProductoInfo.objects.select_related("producto", "categoria")
+            .filter(
                 producto__venta__isnull=True,
                 producto__area_venta__isnull=True,
                 producto__almacen_revoltosa=False,
                 producto__ajusteinventario__isnull=True,
             )
-            .annotate(cantidad=Count(F("producto")))
+            .annotate(
+                cantidad=Count(F("producto")), precio_venta=Subquery(ultimo_precio)
+            )
             .exclude(Q(cantidad__lt=1) | Q(categoria__nombre="Zapatos"))
             .values(
                 "id",
                 "descripcion",
                 "cantidad",
                 "categoria__nombre",
-                precio_venta=F("historial_venta__precio"),
+                "precio_venta",
             )
         )
+
         zapatos = Producto.objects.filter(
             venta__isnull=True,
             area_venta__isnull=True,
@@ -50,14 +67,24 @@ class InventarioController:
 
     @route.get("almacen-revoltosa/", response=Almacenes)
     def getInventarioAlmacenRevoltosa(self):
+
+        ultimo_precio = (
+            HistorialPrecioVentaSalon.objects.filter(producto_info=OuterRef("pk"))
+            .order_by("-fecha_inicio")
+            .values("precio")[:1]
+        )
+
         producto_info = (
-            ProductoInfo.objects.filter(
+            ProductoInfo.objects.select_related("producto", "categoria")
+            .filter(
                 producto__venta__isnull=True,
                 producto__area_venta__isnull=True,
                 producto__almacen_revoltosa=True,
                 producto__ajusteinventario__isnull=True,
             )
-            .annotate(cantidad=Count(F("producto")))
+            .annotate(
+                cantidad=Count(F("producto")), precio_venta=Subquery(ultimo_precio)
+            )
             .exclude(Q(cantidad__lt=1) | Q(categoria__nombre="Zapatos"))
             .values(
                 "id",
