@@ -13,10 +13,21 @@ from inventario.models import (
     Productos_Cafeteria,
     HistorialPrecioCostoSalon,
     HistorialPrecioVentaSalon,
+    Producto,
 )
 from ..schema import ReportesSchema
 from ninja_extra import api_controller, route
-from django.db.models import F, Count, Q, Sum, When, Case, IntegerField, QuerySet
+from django.db.models import (
+    F,
+    Count,
+    Q,
+    Sum,
+    When,
+    Case,
+    IntegerField,
+    ExpressionWrapper,
+    DecimalField,
+)
 from ..utils import (
     calcular_dias_laborables,
     obtener_dias_semana_rango,
@@ -120,42 +131,53 @@ class ReportesController:
             if area != "general":
                 filtros_productos["producto__area_venta"] = area
 
-            ultimo_precio_costo = (
+            productos_info_qs = ProductoInfo.objects.filter(**filtros_productos)
+
+            historico_costo = (
                 HistorialPrecioCostoSalon.objects.filter(
-                    producto_info_id=OuterRef("pk")
+                    producto_info=OuterRef("pk"),
+                    fecha_inicio__lte=OuterRef("producto__venta__created_at"),
                 )
-                .order_by("-id")
+                .order_by("-fecha_inicio")
                 .values("precio")[:1]
             )
 
-            ultimo_precio_venta = (
+            historico_venta = (
                 HistorialPrecioVentaSalon.objects.filter(
-                    producto_info_id=OuterRef("pk")
+                    producto_info=OuterRef("pk"),
+                    fecha_inicio__lte=OuterRef("producto__venta__created_at"),
                 )
-                .order_by("-id")
+                .order_by("-fecha_inicio")
                 .values("precio")[:1]
+            )
+
+            productos_info_qs = productos_info_qs.annotate(
+                precio_c=Subquery(historico_costo),
+                precio_v=Subquery(historico_venta),
             )
 
             producto_info = (
-                ProductoInfo.objects.filter(**filtros_productos)
-                .annotate(
+                productos_info_qs.annotate(
                     cantidad=Count("producto"),
-                    precio_c=Subquery(ultimo_precio_costo),
-                    precio_v=Subquery(ultimo_precio_venta),
+                    importe=ExpressionWrapper(
+                        F("cantidad") * F("precio_v"), output_field=DecimalField()
+                    ),
+                    costo=ExpressionWrapper(
+                        F("cantidad") * F("precio_c"), output_field=DecimalField()
+                    ),
                 )
-                .annotate(importe=F("cantidad") * F("precio_v"))
-                .order_by("importe")
+                # .annotate(importe=F("importe") - F("costo_total"))
                 .values(
                     "id",
-                    "descripcion",
-                    "cantidad",
                     "importe",
+                    "cantidad",
+                    "descripcion",
                     precio_venta=F("precio_v"),
-                    precio_cost=F("precio_c"),
+                    precio_costo=F("precio_c"),
                 )
+                .distinct()
+                .order_by("-importe")
             )
-
-            print(producto_info)
 
             filtros_ventas: dict[str, str | tuple[date, date]] = {
                 "created_at__date__range": (parse_desde, parse_hasta)
