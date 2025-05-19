@@ -352,8 +352,17 @@ class CafeteriaController:
                 productos_sin_repeticion.append(producto)
             else:
                 idx = productos_sin_repeticion.index(producto)
-                productos_sin_repeticion[idx]["cantidad"] += producto.get("cantidad", 0)
-                productos_sin_repeticion[idx]["importe"] += producto.get("importe", 0)
+                cantidad_actual = productos_sin_repeticion[idx].get("cantidad", 0) or 0
+                importe_actual = productos_sin_repeticion[idx].get("importe", 0) or 0
+                cantidad_nueva = producto.get("cantidad", 0) or 0
+                importe_nuevo = producto.get("importe", 0) or 0
+
+                productos_sin_repeticion[idx]["cantidad"] = (
+                    cantidad_actual + cantidad_nueva
+                )
+                productos_sin_repeticion[idx]["importe"] = (
+                    importe_actual + importe_nuevo
+                )
 
         mano_obra = 0
         costo_ingredientes_elaboraciones = 0
