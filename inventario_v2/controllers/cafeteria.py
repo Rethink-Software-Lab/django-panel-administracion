@@ -344,25 +344,29 @@ class CafeteriaController:
 
         total_gastos_fijos = sum(gasto.get("cantidad", 0) for gasto in gastos_fijos)
 
-        # Recorrer productos y elaboraciones para evitar repeticiones
-        productos_sin_repeticion = []
         elaboraciones_sin_repeticion = []
+        # Recorrer productos y elaboraciones para evitar repeticiones
+        productos_sin_repeticion = {}
         for producto in productos:
-            if producto not in productos_sin_repeticion:
-                productos_sin_repeticion.append(producto)
+            producto_id = producto["id"]
+            if producto_id not in productos_sin_repeticion:
+                productos_sin_repeticion[producto_id] = {
+                    "id": producto["id"],
+                    "nombre": producto["nombre"],
+                    "cantidad": Decimal(str(producto.get("cantidad", 0) or 0)),
+                    "importe": Decimal(str(producto.get("importe", 0) or 0)),
+                    "precio_costo": producto.get("precio_costo"),
+                    "precio_venta": producto.get("precio_venta"),
+                }
             else:
-                idx = productos_sin_repeticion.index(producto)
-                cantidad_actual = productos_sin_repeticion[idx].get("cantidad", 0) or 0
-                importe_actual = productos_sin_repeticion[idx].get("importe", 0) or 0
-                cantidad_nueva = producto.get("cantidad", 0) or 0
-                importe_nuevo = producto.get("importe", 0) or 0
+                productos_sin_repeticion[producto_id]["cantidad"] += Decimal(
+                    str(producto.get("cantidad", 0) or 0)
+                )
+                productos_sin_repeticion[producto_id]["importe"] += Decimal(
+                    str(producto.get("importe", 0) or 0)
+                )
 
-                productos_sin_repeticion[idx]["cantidad"] = (
-                    cantidad_actual + cantidad_nueva
-                )
-                productos_sin_repeticion[idx]["importe"] = (
-                    importe_actual + importe_nuevo
-                )
+        productos_sin_repeticion = list(productos_sin_repeticion.values())
 
         mano_obra = 0
         costo_ingredientes_elaboraciones = 0
