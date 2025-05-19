@@ -166,7 +166,6 @@ class ReportesController:
                         F("cantidad") * F("precio_c"), output_field=DecimalField()
                     ),
                 )
-                # .annotate(importe=F("importe") - F("costo_total"))
                 .values(
                     "id",
                     "importe",

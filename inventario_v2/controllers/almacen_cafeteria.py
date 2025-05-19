@@ -15,6 +15,8 @@ from inventario.models import (
     Cuentas,
     Transacciones,
     Proveedor,
+    HistorialPrecioCostoCafeteria,
+    HistorialPrecioVentaCafeteria,
 )
 
 from ..schema import (
@@ -109,20 +111,43 @@ class AlmacenCafeteriaController:
             )
 
             total_cantidad = 0
-            for producto in body_dict["productos"]:
+            for producto in body.productos:
                 producto_cafeteria = get_object_or_404(
-                    Productos_Cafeteria, pk=producto.get("producto")
+                    Productos_Cafeteria, pk=producto.producto
                 )
+
+                if (
+                    producto_cafeteria.precio_costo != Decimal(producto.precio_costo)
+                    if producto.precio_costo
+                    else 0
+                ):
+                    HistorialPrecioCostoCafeteria.objects.create(
+                        precio=producto.precio_costo,
+                        producto=producto_cafeteria,
+                        usuario=usuario,
+                    )
+
+                if (
+                    producto_cafeteria.precio_venta != Decimal(producto.precio_venta)
+                    if producto.precio_venta
+                    else 0
+                ):
+                    HistorialPrecioVentaCafeteria.objects.create(
+                        precio=producto.precio_venta,
+                        producto=producto_cafeteria,
+                        usuario=usuario,
+                    )
+
                 total_cantidad += (
-                    Decimal(producto.get("cantidad")) * producto_cafeteria.precio_costo
+                    Decimal(producto.cantidad) * producto_cafeteria.precio_costo
                 )
                 producto_cafeteria.inventario_almacen.cantidad += Decimal(
-                    producto.get("cantidad")
+                    producto.cantidad
                 )
                 producto_cafeteria.inventario_almacen.save()
                 producto_entrada = Productos_Entradas_Cafeteria.objects.create(
                     producto=producto_cafeteria,
-                    cantidad=producto.get("cantidad"),
+                    cantidad=producto.cantidad,
                 )
                 entrada.productos.add(producto_entrada)
 

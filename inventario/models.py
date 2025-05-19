@@ -95,12 +95,6 @@ class ProductoInfo(models.Model):
     imagen = models.ForeignKey(Image, on_delete=models.SET_NULL, null=True, blank=True)
     pago_trabajador = models.IntegerField()
     categoria = models.ForeignKey(Categorias, on_delete=models.CASCADE)
-    # precio_costo = models.DecimalField(
-    #     max_digits=7, decimal_places=2, blank=False, null=False
-    # )
-    # precio_venta = models.DecimalField(
-    #     max_digits=7, decimal_places=2, blank=False, null=False
-    # )
 
     @property
     def precio_costo(self):
@@ -310,15 +304,47 @@ class Cuentas(models.Model):
 # CAFERTERIA
 class Productos_Cafeteria(models.Model):
     nombre = models.CharField(max_length=50, blank=False, null=False)
-    precio_costo = models.DecimalField(
-        max_digits=12, decimal_places=2, blank=False, null=False
-    )
-    precio_venta = models.DecimalField(
-        max_digits=12, decimal_places=2, blank=False, null=False
-    )
+
+    @property
+    def precio_costo(self):
+        ultimo_costo = self.historial_costo.order_by("-id").first()
+        return ultimo_costo.precio if ultimo_costo else Decimal("0.00")
+
+    @property
+    def precio_venta(self):
+        ultima_venta = self.historial_venta.order_by("-id").first()
+        return ultima_venta.precio if ultima_venta else Decimal("0.00")
 
     def __str__(self) -> str:
         return self.nombre
+
+
+class HistorialPrecioCostoCafeteria(models.Model):
+    producto = models.ForeignKey(
+        Productos_Cafeteria,
+        on_delete=models.CASCADE,
+        related_name="historial_costo",
+        null=True,
+    )
+    precio = models.DecimalField(
+        max_digits=7, decimal_places=2, blank=False, null=False
+    )
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True)
+    fecha_inicio = models.DateTimeField(auto_now_add=True)
+
+
+class HistorialPrecioVentaCafeteria(models.Model):
+    producto = models.ForeignKey(
+        Productos_Cafeteria,
+        on_delete=models.CASCADE,
+        related_name="historial_venta",
+        null=True,
+    )
+    precio = models.DecimalField(
+        max_digits=7, decimal_places=2, blank=False, null=False
+    )
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True)
+    fecha_inicio = models.DateTimeField(auto_now_add=True)
 
 
 class Inventario_Almacen_Cafeteria(models.Model):

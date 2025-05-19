@@ -544,6 +544,7 @@ class Inventario_Almacen_Cafeteria_Schema(ModelSchema):
 
 class Producto_Cafeteria_Schema(ModelSchema):
     inventario_almacen: Inventario_Almacen_Cafeteria_Schema
+    precio_venta: Decimal
 
     class Meta:
         model = Productos_Cafeteria
@@ -558,6 +559,7 @@ class Inventario_Area_Cafeteria_Schema(ModelSchema):
 
 class Producto_Cafeteria_Area_Schema(ModelSchema):
     inventario_area: Inventario_Almacen_Cafeteria_Schema
+    precio_venta: Decimal
 
     class Meta:
         model = Productos_Cafeteria
@@ -659,6 +661,8 @@ class Entradas_Almacen_Cafeteria_Schema(Schema):
 class Add_Entrada_Cafeteria_Productos(Schema):
     producto: int
     cantidad: str
+    precio_costo: Optional[str] = None
+    precio_venta: Optional[str] = None
 
 
 class Add_Entrada_Cafeteria(Schema):
@@ -686,6 +690,12 @@ class Add_Producto_Cafeteria(Schema):
     nombre: str
     precio_costo: str
     precio_venta: str
+
+
+class Edit_Producto_Cafeteria(Schema):
+    nombre: str
+    precio_costo: Optional[str] = None
+    precio_venta: Optional[str] = None
 
 
 class Ingrediente_Cantidad_Schema(Schema):
@@ -741,6 +751,7 @@ class Add_Venta_Cafeteria(Schema):
 class Productos_Reportes_Cafeteria(ModelSchema):
     cantidad: Decimal
     importe: Decimal
+    precio_venta: Decimal
 
     class Meta:
         model = Productos_Cafeteria
