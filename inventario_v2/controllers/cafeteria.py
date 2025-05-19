@@ -21,6 +21,8 @@ from inventario.models import (
     MermaCafeteria,
     CuentaCasa,
     CuentasChoices,
+    HistorialPrecioCostoCafeteria,
+    HistorialPrecioVentaCafeteria,
 )
 from inventario_v2.utils import (
     calcular_dias_laborables,
@@ -32,6 +34,7 @@ from ..schema import (
     Add_Elaboracion,
     Producto_Cafeteria_Endpoint_Schema,
     Add_Producto_Cafeteria,
+    Edit_Producto_Cafeteria,
     Add_Venta_Cafeteria,
     CafeteriaReporteSchema,
     EndPointCafeteria,
@@ -40,7 +43,18 @@ from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from decimal import Decimal
-from django.db.models import Q, Sum, Value, F, Case, When, BooleanField, IntegerField
+from django.db.models import (
+    Q,
+    Sum,
+    Value,
+    F,
+    Case,
+    When,
+    BooleanField,
+    IntegerField,
+    OuterRef,
+    Subquery,
+)
 from django.db.models.functions import Coalesce
 
 
@@ -50,14 +64,22 @@ class CafeteriaController:
     def get_inventario_cafeteria(self):
 
         inventario = Productos_Cafeteria.objects.filter(inventario_area__cantidad__gt=0)
+
+        historico_venta = (
+            HistorialPrecioVentaCafeteria.objects.filter(
+                producto=OuterRef("productos__producto"),
+                fecha_inicio__lte=OuterRef("created_at"),
+            )
+            .order_by("-fecha_inicio")
+            .values("precio")[:1]
+        )
+
         ventas = (
             Ventas_Cafeteria.objects.all()
             .annotate(
+                precio_v=Subquery(historico_venta),
                 importe=Coalesce(
-                    Sum(
-                        F("productos__producto__precio_venta")
-                        * F("productos__cantidad")
-                    ),
+                    Sum(F("precio_v") * F("productos__cantidad")),
                     Value(Decimal(0)),
                 )
                 + Coalesce(
@@ -138,14 +160,49 @@ class CafeteriaController:
         ultimo_dia_hasta = obtener_ultimo_dia_mes(parse_hasta)
         dias_semana = obtener_dias_semana_rango(parse_desde, parse_hasta)
 
-        productos = Productos_Cafeteria.objects.filter(
-            productos_ventas_cafeteria__ventas_cafeteria__created_at__date__range=(
-                parse_desde,
-                parse_hasta,
+        historico_costo = (
+            HistorialPrecioCostoCafeteria.objects.filter(
+                producto=OuterRef("pk"),
+                fecha_inicio__lte=OuterRef(
+                    "productos_ventas_cafeteria__ventas_cafeteria__created_at"
+                ),
             )
-        ).annotate(
-            cantidad=F("productos_ventas_cafeteria__cantidad"),
-            importe=F("cantidad") * F("precio_venta"),
+            .order_by("-fecha_inicio")
+            .values("precio")[:1]
+        )
+
+        historico_venta = (
+            HistorialPrecioVentaCafeteria.objects.filter(
+                producto=OuterRef("pk"),
+                fecha_inicio__lte=OuterRef(
+                    "productos_ventas_cafeteria__ventas_cafeteria__created_at"
+                ),
+            )
+            .order_by("-fecha_inicio")
+            .values("precio")[:1]
+        )
+
+        productos = (
+            Productos_Cafeteria.objects.filter(
+                productos_ventas_cafeteria__ventas_cafeteria__created_at__date__range=(
+                    parse_desde,
+                    parse_hasta,
+                )
+            )
+            .annotate(
+                cantidad=F("id") * F("productos_ventas_cafeteria__cantidad"),
+                precio_c=Subquery(historico_costo),
+                precio_v=Subquery(historico_venta),
+                importe=F("cantidad") * F("precio_v"),
+            )
+            .values(
+                "id",
+                "nombre",
+                "cantidad",
+                "importe",
+                precio_costo=F("precio_c"),
+                precio_venta=F("precio_v"),
+            )
         )
 
         elaboraciones = Elaboraciones.objects.filter(
@@ -294,12 +351,9 @@ class CafeteriaController:
             if producto not in productos_sin_repeticion:
                 productos_sin_repeticion.append(producto)
             else:
-                productos_sin_repeticion[
-                    productos_sin_repeticion.index(producto)
-                ].cantidad += producto.cantidad
-                productos_sin_repeticion[
-                    productos_sin_repeticion.index(producto)
-                ].importe += producto.importe
+                idx = productos_sin_repeticion.index(producto)
+                productos_sin_repeticion[idx]["cantidad"] += producto.get("cantidad", 0)
+                productos_sin_repeticion[idx]["importe"] += producto.get("importe", 0)
 
         mano_obra = 0
         costo_ingredientes_elaboraciones = 0
@@ -405,9 +459,15 @@ class CafeteriaController:
 
     @route.post("productos/")
     def add_productos_cafeteria(self, request, body: Add_Producto_Cafeteria):
-        body_dict = body.model_dump()
+        usuario = get_object_or_404(User, id=request.auth["id"])
 
-        producto = Productos_Cafeteria.objects.create(**body_dict)
+        producto = Productos_Cafeteria.objects.create(nombre=body.nombre)
+        HistorialPrecioCostoCafeteria.objects.create(
+            precio=body.precio_costo, producto=producto, usuario=usuario
+        )
+        HistorialPrecioVentaCafeteria.objects.create(
+            precio=body.precio_venta, producto=producto, usuario=usuario
+        )
         Inventario_Almacen_Cafeteria.objects.create(producto=producto, cantidad=0)
         Inventario_Area_Cafeteria.objects.create(producto=producto, cantidad=0)
         return
@@ -587,14 +647,32 @@ class CafeteriaController:
         return
 
     @route.put("productos/{id}/")
-    def edit_productos_cafeteria(self, id: int, body: Add_Producto_Cafeteria):
-        body_dict = body.model_dump()
+    def edit_productos_cafeteria(self, request, id: int, body: Edit_Producto_Cafeteria):
 
         producto = get_object_or_404(Productos_Cafeteria, id=id)
-        producto.nombre = body_dict["nombre"]
-        producto.precio_costo = body_dict["precio_costo"]
-        producto.precio_venta = body_dict["precio_venta"]
-        producto.save()
+        usuario = get_object_or_404(User, id=request.auth["id"])
+
+        with transaction.atomic():
+            if producto.nombre != body.nombre:
+                producto.nombre = body.nombre
+                producto.save()
+
+            if (
+                producto.precio_costo != Decimal(body.precio_costo)
+                if body.precio_costo
+                else 0
+            ):
+                HistorialPrecioCostoCafeteria.objects.create(
+                    precio=body.precio_costo, usuario=usuario, producto=producto
+                )
+            if (
+                producto.precio_venta != Decimal(body.precio_venta)
+                if body.precio_venta
+                else 0
+            ):
+                HistorialPrecioVentaCafeteria.objects.create(
+                    precio=body.precio_venta, usuario=usuario, producto=producto
+                )
 
         return
 
