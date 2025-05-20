@@ -185,7 +185,18 @@ class ReportesController:
             if area != "general":
                 filtros_ventas["area_venta__id"] = area
 
-            ventas = Ventas.objects.filter(**filtros_ventas)
+            historico_venta = (
+                HistorialPrecioVentaSalon.objects.filter(
+                    producto_info=OuterRef("producto__info__pk"),
+                    fecha_inicio__lte=OuterRef("created_at"),
+                )
+                .order_by("-fecha_inicio")
+                .values("precio")[:1]
+            )
+
+            ventas = Ventas.objects.filter(**filtros_ventas).annotate(
+                precio_venta=Subquery(historico_venta)
+            )
 
             if area != "general":
                 area_venta = get_object_or_404(AreaVenta, pk=area)
@@ -195,7 +206,7 @@ class ReportesController:
             pagos = ventas.aggregate(
                 efectivo=Coalesce(
                     Sum(
-                        "producto__info__historial_venta__precio",
+                        "precio_venta",
                         filter=Q(metodo_pago="EFECTIVO"),
                     ),
                     Decimal(0),
@@ -209,7 +220,7 @@ class ReportesController:
                 ),
                 transferencia=Coalesce(
                     Sum(
-                        "producto__info__historial_venta__precio",
+                        "precio_venta",
                         filter=Q(metodo_pago="TRANSFERENCIA"),
                     ),
                     Decimal(0),
@@ -222,6 +233,8 @@ class ReportesController:
                     Decimal(0),
                 ),
             )
+
+            print(producto_info)
 
             efectivo = pagos.get("efectivo", Decimal(0))
             transferencia = pagos.get("transferencia", Decimal(0))
