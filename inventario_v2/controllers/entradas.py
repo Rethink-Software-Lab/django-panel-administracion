@@ -178,12 +178,11 @@ class EntradasController:
     def deleteEntrada(self, id: int):
 
         try:
-
             with transaction.atomic():
-
                 entrada = get_object_or_404(EntradaAlmacen, pk=id)
 
                 transaccion = get_object_or_404(Transacciones, entrada=entrada)
+
                 cuenta = get_object_or_404(Cuentas, pk=transaccion.cuenta.pk)
 
                 cuenta.saldo += transaccion.cantidad
@@ -195,20 +194,20 @@ class EntradasController:
                 )
 
                 salidas = SalidaAlmacen.objects.filter(
-                    producto_id__in=productos_ids
+                    producto__id__in=productos_ids
                 ).distinct()
 
                 salidas_revoltosa = SalidaAlmacenRevoltosa.objects.filter(
-                    producto_id__in=productos_ids
+                    producto__id__in=productos_ids
                 ).distinct()
 
-                ventas = Ventas.objects.filter(producto_id__in=productos_ids).distinct()
+                ventas = Ventas.objects.filter(
+                    producto__id__in=productos_ids
+                ).distinct()
 
                 ventas.delete()
                 salidas.delete()
                 salidas_revoltosa.delete()
                 entrada.delete()
-
-            return {"message": "Entrada y elementos relacionados eliminados con éxito"}
         except Exception as e:
-            return {"error": f"Error al eliminar la entrada: {str(e)}"}, 400
+            raise HttpError(400, f"Error al eliminar la entrada: {str(e)}")
