@@ -346,27 +346,18 @@ class CafeteriaController:
 
         elaboraciones_sin_repeticion = []
         # Recorrer productos y elaboraciones para evitar repeticiones
-        productos_sin_repeticion = {}
+        productos_sin_repeticion = []
         for producto in productos:
-            producto_id = producto["id"]
-            if producto_id not in productos_sin_repeticion:
-                productos_sin_repeticion[producto_id] = {
-                    "id": producto["id"],
-                    "nombre": producto["nombre"],
-                    "cantidad": Decimal(str(producto.get("cantidad", 0) or 0)),
-                    "importe": Decimal(str(producto.get("importe", 0) or 0)),
-                    "precio_costo": producto.get("precio_costo"),
-                    "precio_venta": producto.get("precio_venta"),
-                }
+            if producto not in productos_sin_repeticion:
+                productos_sin_repeticion.append(producto)
             else:
-                productos_sin_repeticion[producto_id]["cantidad"] += Decimal(
+                idx = productos_sin_repeticion.index(producto)
+                productos_sin_repeticion[idx]["cantidad"] += Decimal(
                     str(producto.get("cantidad", 0) or 0)
                 )
-                productos_sin_repeticion[producto_id]["importe"] += Decimal(
+                productos_sin_repeticion[idx]["importe"] += Decimal(
                     str(producto.get("importe", 0) or 0)
                 )
-
-        productos_sin_repeticion = list(productos_sin_repeticion.values())
 
         mano_obra = 0
         costo_ingredientes_elaboraciones = 0

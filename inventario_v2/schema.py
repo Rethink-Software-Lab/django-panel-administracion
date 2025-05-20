@@ -573,6 +573,8 @@ class User_Only_Username(Schema):
 class Productos_Entrada_Cafeteria(Schema):
     id: int
     nombre: str
+    precio_costo: Decimal
+    precio_venta: Decimal
 
 
 class Productos_Ventas_Cafeteria(Schema):
