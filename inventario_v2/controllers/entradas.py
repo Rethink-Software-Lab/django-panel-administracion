@@ -175,9 +175,12 @@ class EntradasController:
             raise HttpError(400, "Bad Request")
 
     @route.delete("{id}/")
-    def deleteEntrada(self, request, id: int):
+    def deleteEntrada(self, id: int):
+
         try:
+
             with transaction.atomic():
+
                 entrada = get_object_or_404(EntradaAlmacen, pk=id)
 
                 transaccion = get_object_or_404(Transacciones, entrada=entrada)
@@ -185,20 +188,21 @@ class EntradasController:
 
                 cuenta.saldo += transaccion.cantidad
                 cuenta.save()
-
                 transaccion.delete()
 
-                productos = Producto.objects.filter(entrada=entrada)
+                productos_ids = Producto.objects.filter(entrada=entrada).values_list(
+                    "id", flat=True
+                )
 
                 salidas = SalidaAlmacen.objects.filter(
-                    producto__in=productos
+                    producto_id__in=productos_ids
                 ).distinct()
 
                 salidas_revoltosa = SalidaAlmacenRevoltosa.objects.filter(
-                    producto__in=productos
+                    producto_id__in=productos_ids
                 ).distinct()
 
-                ventas = Ventas.objects.filter(producto__in=productos).distinct()
+                ventas = Ventas.objects.filter(producto_id__in=productos_ids).distinct()
 
                 ventas.delete()
                 salidas.delete()
