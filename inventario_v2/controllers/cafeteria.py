@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+from django.utils import timezone
 from typing import List
 from ninja.errors import HttpError
 from inventario.models import (
@@ -90,6 +91,9 @@ class CafeteriaController:
                     Value(Decimal(0)),
                 ),
                 tarjeta=F("transacciones__cuenta__nombre"),
+            )
+            .filter(
+                created_at__gte=timezone.now() - timedelta(days=7),
             )
             .order_by("-id")
             .distinct()
@@ -206,7 +210,7 @@ class CafeteriaController:
                 )
             )
             .annotate(
-                cantidad=F("id") * F("productos_ventas_cafeteria__cantidad"),
+                cantidad=F("productos_ventas_cafeteria__cantidad"),
                 precio_c=Coalesce(Subquery(historico_costo), Subquery(respaldo_costo)),
                 precio_v=Coalesce(Subquery(historico_venta), Subquery(respaldo_venta)),
                 importe=F("cantidad") * F("precio_v"),
@@ -360,20 +364,32 @@ class CafeteriaController:
 
         total_gastos_fijos = sum(gasto.get("cantidad", 0) for gasto in gastos_fijos)
 
+        print(productos)
+
         elaboraciones_sin_repeticion = []
         # Recorrer productos y elaboraciones para evitar repeticiones
-        productos_sin_repeticion = []
+        productos_agrupados = {}
+
         for producto in productos:
-            if producto not in productos_sin_repeticion:
-                productos_sin_repeticion.append(producto)
-            else:
-                idx = productos_sin_repeticion.index(producto)
-                productos_sin_repeticion[idx]["cantidad"] += Decimal(
-                    str(producto.get("cantidad", 0) or 0)
-                )
-                productos_sin_repeticion[idx]["importe"] += Decimal(
-                    str(producto.get("importe", 0) or 0)
-                )
+            producto_id = producto["id"]
+            if producto_id not in productos_agrupados:
+                productos_agrupados[producto_id] = {
+                    "id": producto_id,
+                    "nombre": producto["nombre"],
+                    "cantidad": Decimal(0),
+                    "importe": Decimal(0),
+                    "precio_costo": producto.get("precio_costo"),
+                    "precio_venta": producto.get("precio_venta"),
+                }
+
+            productos_agrupados[producto_id]["cantidad"] += Decimal(
+                str(producto.get("cantidad", 0) or 0)
+            )
+            productos_agrupados[producto_id]["importe"] += Decimal(
+                str(producto.get("importe", 0) or 0)
+            )
+
+        productos_sin_repeticion = list(productos_agrupados.values())
 
         mano_obra = 0
         costo_ingredientes_elaboraciones = 0

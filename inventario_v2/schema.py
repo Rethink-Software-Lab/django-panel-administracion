@@ -577,13 +577,18 @@ class Productos_Entrada_Cafeteria(Schema):
     precio_venta: Decimal
 
 
+class Producto_In_Venta_Cafeteria(Schema):
+    id: int
+    nombre: str
+
+
 class Productos_Ventas_Cafeteria(Schema):
-    producto: Productos_Entrada_Cafeteria
+    producto: Producto_In_Venta_Cafeteria
     cantidad: Decimal
 
 
 class Elaboraciones_Ventas_Cafeteria(Schema):
-    producto: Productos_Entrada_Cafeteria
+    producto: Producto_In_Venta_Cafeteria
     cantidad: Decimal
 
 
