@@ -171,6 +171,14 @@ class CafeteriaController:
             .values("precio")[:1]
         )
 
+        respaldo_costo = (
+            HistorialPrecioCostoCafeteria.objects.filter(
+                producto=OuterRef("pk"),
+            )
+            .order_by("fecha_inicio")
+            .values("precio")[:1]
+        )
+
         historico_venta = (
             HistorialPrecioVentaCafeteria.objects.filter(
                 producto=OuterRef("pk"),
@@ -179,6 +187,14 @@ class CafeteriaController:
                 ),
             )
             .order_by("-fecha_inicio")
+            .values("precio")[:1]
+        )
+
+        respaldo_venta = (
+            HistorialPrecioVentaCafeteria.objects.filter(
+                producto=OuterRef("pk"),
+            )
+            .order_by("fecha_inicio")
             .values("precio")[:1]
         )
 
@@ -191,8 +207,8 @@ class CafeteriaController:
             )
             .annotate(
                 cantidad=F("id") * F("productos_ventas_cafeteria__cantidad"),
-                precio_c=Subquery(historico_costo),
-                precio_v=Subquery(historico_venta),
+                precio_c=Coalesce(Subquery(historico_costo), Subquery(respaldo_costo)),
+                precio_v=Coalesce(Subquery(historico_venta), Subquery(respaldo_venta)),
                 importe=F("cantidad") * F("precio_v"),
             )
             .values(
