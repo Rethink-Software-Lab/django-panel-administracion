@@ -364,8 +364,6 @@ class CafeteriaController:
 
         total_gastos_fijos = sum(gasto.get("cantidad", 0) for gasto in gastos_fijos)
 
-        print(productos)
-
         elaboraciones_sin_repeticion = []
         # Recorrer productos y elaboraciones para evitar repeticiones
         productos_agrupados = {}
