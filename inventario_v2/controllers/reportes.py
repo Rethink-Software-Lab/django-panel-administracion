@@ -174,9 +174,31 @@ class ReportesController:
                     precio_venta=F("precio_v"),
                     precio_costo=F("precio_c"),
                 )
-                .distinct()
                 .order_by("-importe")
             )
+
+            productos_agrupados = {}
+
+            for producto in producto_info:
+                producto_id = producto["id"]
+                if producto_id not in productos_agrupados:
+                    productos_agrupados[producto_id] = {
+                        "id": producto_id,
+                        "descripcion": producto["descripcion"],
+                        "cantidad": Decimal(0),
+                        "importe": Decimal(0),
+                        "precio_costo": producto.get("precio_costo"),
+                        "precio_venta": producto.get("precio_venta"),
+                    }
+
+                productos_agrupados[producto_id]["cantidad"] += Decimal(
+                    str(producto.get("cantidad", 0) or 0)
+                )
+                productos_agrupados[producto_id]["importe"] += Decimal(
+                    str(producto.get("importe", 0) or 0)
+                )
+
+            productos_sin_repeticion = list(productos_agrupados.values())
 
             filtros_ventas: dict[str, str | tuple[date, date]] = {
                 "created_at__date__range": (parse_desde, parse_hasta)
@@ -234,8 +256,6 @@ class ReportesController:
                 ),
             )
 
-            print(producto_info)
-
             efectivo = pagos.get("efectivo", Decimal(0))
             transferencia = pagos.get("transferencia", Decimal(0))
 
@@ -271,7 +291,7 @@ class ReportesController:
             total = subtotal - total_costos
 
             return {
-                "productos": list(producto_info),
+                "productos": productos_sin_repeticion,
                 "subtotal": {
                     "general": subtotal,
                     "efectivo": efectivo,
