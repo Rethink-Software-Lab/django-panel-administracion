@@ -1,8 +1,8 @@
 from decimal import Decimal
-from typing import Optional
+from typing import List, Optional
 from ninja.errors import HttpError
 
-from .schema import SearchProductSchema, LoginSchema, TokenSchema
+from .schema import NoRepresentadosSchema, SearchProductSchema, LoginSchema, TokenSchema
 from inventario.models import ProductoInfo, Producto, AreaVenta, User
 from ninja.security import HttpBearer
 import jwt
@@ -11,6 +11,11 @@ from django.conf import settings
 from ninja_extra import NinjaExtraAPI
 from django.shortcuts import get_object_or_404
 from datetime import datetime, timedelta
+from django.db.models import (
+    Count,
+    Q,
+    F,
+)
 
 from inventario_v2.controllers.categorias import CategoriasController
 from inventario_v2.controllers.entradas import EntradasController
@@ -82,6 +87,39 @@ def login(request, data: LoginSchema):
         return {"token": token}
     else:
         raise HttpError(401, "Credenciales inválidas")
+
+
+@app.get(
+    "no-representados/", response=List[NoRepresentadosSchema], tags=["No Representados"]
+)
+def nR(request):
+
+    productos_info_sin_ventas = (
+        ProductoInfo.objects.select_related("producto")
+        .annotate(
+            productos_disp=Count(
+                "producto",
+                filter=Q(
+                    producto__venta__isnull=True, producto__area_venta__isnull=True
+                ),
+            ),
+            productos_area_venta=Count(
+                "producto",
+                filter=Q(
+                    producto__venta__isnull=True, producto__area_venta__isnull=False
+                ),
+            ),
+        )
+        .filter(
+            productos_disp__gt=0,
+            productos_area_venta=0,
+        )
+        .values(
+            "id",
+            nombre=F("descripcion"),
+        )
+    )
+    return productos_info_sin_ventas
 
 
 # TODO: Dividir info_producto y tabla_producto
