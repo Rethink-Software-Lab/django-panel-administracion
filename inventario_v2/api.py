@@ -1,8 +1,8 @@
 from decimal import Decimal
-from typing import Optional
+from typing import List, Optional
 from ninja.errors import HttpError
 
-from .schema import SearchProductSchema, LoginSchema, TokenSchema
+from .schema import NoRepresentadosSchema, SearchProductSchema, LoginSchema, TokenSchema
 from inventario.models import ProductoInfo, Producto, AreaVenta, User
 from ninja.security import HttpBearer
 import jwt
@@ -11,6 +11,11 @@ from django.conf import settings
 from ninja_extra import NinjaExtraAPI
 from django.shortcuts import get_object_or_404
 from datetime import datetime, timedelta
+from django.db.models import (
+    Count,
+    Q,
+    F,
+)
 
 from inventario_v2.controllers.categorias import CategoriasController
 from inventario_v2.controllers.entradas import EntradasController
@@ -84,86 +89,113 @@ def login(request, data: LoginSchema):
         raise HttpError(401, "Credenciales inválidas")
 
 
+@app.get(
+    "no-representados/", response=List[NoRepresentadosSchema], tags=["No Representados"]
+)
+def nR(request):
+
+    productos_info_sin_ventas = (
+        ProductoInfo.objects.select_related("producto")
+        .annotate(
+            productos_disp=Count(
+                "producto",
+                filter=Q(
+                    producto__venta__isnull=True, producto__area_venta__isnull=True
+                ),
+            ),
+            productos_area_venta=Count(
+                "producto",
+                filter=Q(
+                    producto__venta__isnull=True, producto__area_venta__isnull=False
+                ),
+            ),
+        )
+        .filter(
+            productos_disp__gt=0,
+            productos_area_venta=0,
+        )
+        .values(
+            "id",
+            nombre=F("descripcion"),
+        )
+    )
+    return productos_info_sin_ventas
+
+
 # TODO: Dividir info_producto y tabla_producto
 @app.get("search/", response=SearchProductSchema, tags=["Buscar Producto"])
-def search_product(
-    request, codigo: Optional[str] = None, numero: Optional[Decimal] = None
-):
+def search_product(request, id: Optional[int] = None):
     areas = AreaVenta.objects.all().values("id", "nombre")
-    if codigo:
-        info = get_object_or_404(ProductoInfo, codigo=codigo)
-    else:
-        info = None
+
+    info = get_object_or_404(ProductoInfo, id=id)
+
     dataDict = []
-    if not codigo:
-        for area in areas:
+    # if not codigo:
+    #     for area in areas:
+    #         data = Producto.objects.filter(
+    #             venta__isnull=True,
+    #             info__categoria__nombre="Zapatos",
+    #             area_venta=area["id"],
+    #             numero=numero,
+    #             ajusteinventario__isnull=True,
+    #         ).values("id", "info__codigo", "color", "numero")
+    #         if len(data) > 0:
+    #             dataDict.append({"area": area["nombre"], "productos": data})
+
+    #     productos_almacen = Producto.objects.filter(
+    #         venta__isnull=True,
+    #         area_venta__isnull=True,
+    #         info__categoria__nombre="Zapatos",
+    #         ajusteinventario__isnull=True,
+    #         numero=numero,
+    #     ).values("id", "info__codigo", "color", "numero")
+    #     if productos_almacen.count() > 0:
+    #         dataDict.append({"area": "Almacén", "productos": productos_almacen})
+
+    for area in areas:
+        if info.categoria.nombre == "Zapatos":
             data = Producto.objects.filter(
                 venta__isnull=True,
                 info__categoria__nombre="Zapatos",
+                info=info,
                 area_venta=area["id"],
-                numero=numero,
                 ajusteinventario__isnull=True,
-            ).values("id", "info__codigo", "color", "numero")
+            ).values("id", "color", "numero")
             if len(data) > 0:
                 dataDict.append({"area": area["nombre"], "productos": data})
+        else:
+            data = Producto.objects.filter(
+                venta__isnull=True,
+                info=info,
+                area_venta=area["id"],
+                ajusteinventario__isnull=True,
+            ).count()
+            if data > 0:
+                dataDict.append({"area": area["nombre"], "cantidad": data})
 
+    if info.categoria.nombre == "Zapatos":
         productos_almacen = Producto.objects.filter(
             venta__isnull=True,
+            info=info,
             area_venta__isnull=True,
             info__categoria__nombre="Zapatos",
             ajusteinventario__isnull=True,
-            numero=numero,
-        ).values("id", "info__codigo", "color", "numero")
+        ).values("id", "color", "numero")
         if productos_almacen.count() > 0:
             dataDict.append({"area": "Almacén", "productos": productos_almacen})
-
     else:
-        for area in areas:
-            if info.categoria.nombre == "Zapatos":
-                data = Producto.objects.filter(
-                    venta__isnull=True,
-                    info__categoria__nombre="Zapatos",
-                    info__codigo=codigo,
-                    area_venta=area["id"],
-                    **({"numero": numero} if numero is not None else {}),
-                    ajusteinventario__isnull=True,
-                ).values("id", "color", "numero")
-                if len(data) > 0:
-                    dataDict.append({"area": area["nombre"], "productos": data})
-            else:
-                data = Producto.objects.filter(
-                    venta__isnull=True,
-                    info__codigo=codigo,
-                    area_venta=area["id"],
-                    ajusteinventario__isnull=True,
-                ).count()
-                if data > 0:
-                    dataDict.append({"area": area["nombre"], "cantidad": data})
-
-        if info.categoria.nombre == "Zapatos":
-            productos_almacen = Producto.objects.filter(
+        productos_almacen = (
+            Producto.objects.filter(
                 venta__isnull=True,
-                info__codigo=codigo,
+                info=info,
                 area_venta__isnull=True,
-                info__categoria__nombre="Zapatos",
                 ajusteinventario__isnull=True,
-                **({"numero": numero} if numero is not None else {}),
-            ).values("id", "color", "numero")
-            if productos_almacen.count() > 0:
-                dataDict.append({"area": "Almacén", "productos": productos_almacen})
-        else:
-            productos_almacen = (
-                Producto.objects.filter(
-                    venta__isnull=True,
-                    info__codigo=codigo,
-                    area_venta__isnull=True,
-                    ajusteinventario__isnull=True,
-                )
-                .exclude(info__categoria__nombre="Zapatos")
-                .count()
             )
-            if productos_almacen > 0:
-                dataDict.append({"area": "Almacén", "cantidad": productos_almacen})
+            .exclude(info__categoria__nombre="Zapatos")
+            .count()
+        )
+        if productos_almacen > 0:
+            dataDict.append({"area": "Almacén", "cantidad": productos_almacen})
 
     return {
         "info": info,

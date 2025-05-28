@@ -874,3 +874,7 @@ class CuentaCasaSchema(ModelSchema):
 class EndpointCuentaCasa(Schema):
     productos_elaboraciones: List[Productos_Elaboraciones_Schema]
     cuenta_casa: List[CuentaCasaSchema]
+
+
+class NoRepresentadosSchema(Schema):
+    nombre: str
