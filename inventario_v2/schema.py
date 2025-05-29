@@ -53,6 +53,8 @@ class ImagenSchema(ModelSchema):
 class ProductoInfoSchema(ModelSchema):
     imagen: Optional[ImagenSchema] = None
     categoria: CategoriasSchema
+    precio_costo: Optional[Decimal] = None
+    precio_venta: Optional[Decimal] = None
 
     class Meta:
         model = ProductoInfo
