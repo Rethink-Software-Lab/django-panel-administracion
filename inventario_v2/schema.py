@@ -877,4 +877,5 @@ class EndpointCuentaCasa(Schema):
 
 
 class NoRepresentadosSchema(Schema):
+    id: int
     nombre: str
