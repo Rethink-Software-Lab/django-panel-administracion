@@ -100,13 +100,17 @@ def nR(request):
             productos_disp=Count(
                 "producto",
                 filter=Q(
-                    producto__venta__isnull=True, producto__area_venta__isnull=True
+                    producto__venta__isnull=True,
+                    producto__area_venta__isnull=True,
+                    producto__ajusteinventario__isnull=True,
                 ),
             ),
             productos_area_venta=Count(
                 "producto",
                 filter=Q(
-                    producto__venta__isnull=True, producto__area_venta__isnull=False
+                    producto__venta__isnull=True,
+                    producto__area_venta__isnull=False,
+                    producto__ajusteinventario__isnull=True,
                 ),
             ),
         )
