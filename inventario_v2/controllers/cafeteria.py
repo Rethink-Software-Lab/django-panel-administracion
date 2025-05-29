@@ -413,37 +413,13 @@ class CafeteriaController:
 
         total_costo_producto = costo_producto + costo_ingredientes_elaboraciones
 
-        total_merma = 0
-        mermas = MermaCafeteria.objects.filter(
-            created_at__date__range=(parse_desde, parse_hasta),
-        )
-
-        for merma in mermas:
-            for producto in merma.productos.all():
-                total_merma += producto.producto.precio_costo * producto.cantidad
-
-            for elaboracion in merma.elaboraciones.all():
-                for ingrediente in elaboracion.producto.ingredientes_cantidad.all():
-                    total_merma += (
-                        ingrediente.ingrediente.precio_costo * ingrediente.cantidad
-                    )
-
-        total_cuenta_casa = 0
         mano_obra_cuenta_casa = 0
         cuentas_casa = CuentaCasa.objects.filter(
             created_at__date__range=(parse_desde, parse_hasta),
         )
 
         for cuenta_casa in cuentas_casa:
-            for producto in cuenta_casa.productos.all():
-                total_cuenta_casa += producto.producto.precio_costo * producto.cantidad
-
             for elaboracion in cuenta_casa.elaboraciones.all():
-                for ingrediente in elaboracion.producto.ingredientes_cantidad.all():
-                    total_cuenta_casa += (
-                        ingrediente.ingrediente.precio_costo * ingrediente.cantidad
-                    )
-                total_cuenta_casa += elaboracion.producto.mano_obra
                 mano_obra_cuenta_casa += elaboracion.producto.mano_obra
 
         subtotal_productos = (
@@ -462,10 +438,9 @@ class CafeteriaController:
             total_productos
             + total_elaboraciones
             - mano_obra
+            - mano_obra_cuenta_casa
             - total_gastos_fijos
             - monto_gastos_variables
-            # - total_merma
-            # - total_cuenta_casa
         )
 
         return {
@@ -475,6 +450,7 @@ class CafeteriaController:
                 "general": total,
                 "efectivo": efectivo
                 - mano_obra
+                - mano_obra_cuenta_casa
                 - total_gastos_fijos
                 - monto_gastos_variables,
                 "transferencia": transferencia,
@@ -484,8 +460,6 @@ class CafeteriaController:
                 "efectivo": efectivo,
                 "transferencia": transferencia,
             },
-            "merma": total_merma,
-            "cuenta_casa": total_cuenta_casa,
             "mano_obra": mano_obra + mano_obra_cuenta_casa,
             "gastos_variables": gastos_variables,
             "gastos_fijos": gastos_fijos,

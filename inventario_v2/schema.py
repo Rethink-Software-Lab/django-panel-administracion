@@ -803,8 +803,6 @@ class CafeteriaReporteSchema(Schema):
     elaboraciones: List[Elaboraciones_Reportes_Cafeteria]
     total: TotalReporteCafeteria
     subtotal: SubtotalReporteCafeteria
-    merma: Decimal
-    cuenta_casa: Decimal
     mano_obra: Decimal
     gastos_variables: List[GastosVariablesReporteCafeteria]
     gastos_fijos: List[GastosFijosReporteCafeteria]
