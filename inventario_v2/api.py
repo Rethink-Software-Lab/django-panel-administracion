@@ -122,7 +122,6 @@ def nR(request):
     return productos_info_sin_ventas
 
 
-# TODO: Dividir info_producto y tabla_producto
 @app.get("search/", response=SearchProductSchema, tags=["Buscar Producto"])
 def search_product(request, id: Optional[int] = None):
     areas = AreaVenta.objects.all().values("id", "nombre")
@@ -130,27 +129,6 @@ def search_product(request, id: Optional[int] = None):
     info = get_object_or_404(ProductoInfo, id=id)
 
     dataDict = []
-    # if not codigo:
-    #     for area in areas:
-    #         data = Producto.objects.filter(
-    #             venta__isnull=True,
-    #             info__categoria__nombre="Zapatos",
-    #             area_venta=area["id"],
-    #             numero=numero,
-    #             ajusteinventario__isnull=True,
-    #         ).values("id", "info__codigo", "color", "numero")
-    #         if len(data) > 0:
-    #             dataDict.append({"area": area["nombre"], "productos": data})
-
-    #     productos_almacen = Producto.objects.filter(
-    #         venta__isnull=True,
-    #         area_venta__isnull=True,
-    #         info__categoria__nombre="Zapatos",
-    #         ajusteinventario__isnull=True,
-    #         numero=numero,
-    #     ).values("id", "info__codigo", "color", "numero")
-    #     if productos_almacen.count() > 0:
-    #         dataDict.append({"area": "Almacén", "productos": productos_almacen})
 
     for area in areas:
         if info.categoria.nombre == "Zapatos":
