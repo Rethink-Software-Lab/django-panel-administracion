@@ -169,6 +169,7 @@ class ReportesController:
                 .values(
                     "id",
                     "importe",
+                    "costo",
                     "cantidad",
                     "descripcion",
                     precio_venta=F("precio_v"),
@@ -260,6 +261,10 @@ class ReportesController:
             transferencia = pagos.get("transferencia", Decimal(0))
 
             subtotal = producto_info.aggregate(subtotal=Sum("importe"))["subtotal"] or 0
+            costo_productos = (
+                producto_info.aggregate(costo_productos=Sum("costo"))["costo_productos"]
+                or 0
+            )
 
             pago_trabajador = (
                 producto_info.aggregate(
@@ -286,9 +291,11 @@ class ReportesController:
                 gastos_variables.aggregate(total=Sum("cantidad"))["total"] or 0
             ) + pago_trabajador
 
-            total_costos = total_gastos_fijos + monto_gastos_variables or 0
+            total_gatos = total_gastos_fijos + monto_gastos_variables or 0
 
-            total = subtotal - total_costos
+            total = subtotal - total_gatos
+
+            ganancia = total - costo_productos
 
             return {
                 "productos": productos_sin_repeticion,
@@ -303,9 +310,10 @@ class ReportesController:
                 "ventas_por_usuario": ventas_por_usuario,
                 "total": {
                     "general": total,
-                    "efectivo": efectivo - total_costos,
+                    "efectivo": efectivo - total_gatos,
                     "transferencia": transferencia,
                 },
+                "ganancia": ganancia,
                 "area": area_venta.nombre if area != "general" else "general",
             }
 

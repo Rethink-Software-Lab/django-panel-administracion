@@ -214,12 +214,14 @@ class CafeteriaController:
                 precio_c=Coalesce(Subquery(historico_costo), Subquery(respaldo_costo)),
                 precio_v=Coalesce(Subquery(historico_venta), Subquery(respaldo_venta)),
                 importe=F("cantidad") * F("precio_v"),
+                costo=F("cantidad") * F("precio_c"),
             )
             .values(
                 "id",
                 "nombre",
                 "cantidad",
                 "importe",
+                "costo",
                 precio_costo=F("precio_c"),
                 precio_venta=F("precio_v"),
             )
@@ -301,11 +303,8 @@ class CafeteriaController:
             + (efectivo_y_transferencia_ventas["transferencia"] or 0)
         )
 
-        costo_producto = (
-            productos.aggregate(costo_producto=Sum(F("cantidad") * F("precio_costo")))[
-                "costo_producto"
-            ]
-            or 0
+        costo_productos = (
+            productos.aggregate(costo_productos=Sum(F("costo")))["costo_productos"] or 0
         )
 
         gastos_variables = Gastos.objects.filter(
@@ -411,7 +410,7 @@ class CafeteriaController:
                     * elaboracion.cantidad
                 )
 
-        total_costo_producto = costo_producto + costo_ingredientes_elaboraciones
+        total_costo_producto = costo_productos + costo_ingredientes_elaboraciones
 
         mano_obra_cuenta_casa = 0
         cuentas_casa = CuentaCasa.objects.filter(
@@ -443,6 +442,8 @@ class CafeteriaController:
             - monto_gastos_variables
         )
 
+        ganancia = total - total_costo_producto or 0
+
         return {
             "productos": productos_sin_repeticion,
             "elaboraciones": elaboraciones_sin_repeticion,
@@ -463,6 +464,7 @@ class CafeteriaController:
             "mano_obra": mano_obra + mano_obra_cuenta_casa,
             "gastos_variables": gastos_variables,
             "gastos_fijos": gastos_fijos,
+            "ganancia": ganancia,
         }
 
     @route.post("productos/")
