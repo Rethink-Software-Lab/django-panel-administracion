@@ -296,6 +296,7 @@ class ReportesSchema(Schema):
     gastos_fijos: Optional[List[GastosReporte]] = None
     costo_producto: Optional[Decimal] = None
     subtotal: Optional[SubtotalReporteVentas] = None
+    ganancia: Optional[Decimal] = None
 
 
 class Zapatos(Schema):
@@ -806,6 +807,7 @@ class CafeteriaReporteSchema(Schema):
     mano_obra: Decimal
     gastos_variables: List[GastosVariablesReporteCafeteria]
     gastos_fijos: List[GastosFijosReporteCafeteria]
+    ganancia: Decimal
 
 
 class Producto_Salida_Schema(Schema):
