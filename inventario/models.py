@@ -393,12 +393,28 @@ class Ingrediente_Cantidad(models.Model):
 class Elaboraciones(models.Model):
     nombre = models.CharField(max_length=50, blank=False, null=False)
     ingredientes_cantidad = models.ManyToManyField(Ingrediente_Cantidad, blank=False)
-    precio = models.DecimalField(
-        max_digits=12, decimal_places=2, blank=False, null=False
-    )
     mano_obra = models.DecimalField(
         max_digits=12, decimal_places=2, blank=False, null=False
     )
+
+    @property
+    def precio(self):
+        ultimo_precio = self.precio_elaboracion.order_by("-id").first()
+        return ultimo_precio.precio if ultimo_precio else Decimal("0.00")
+
+
+class PrecioElaboracion(models.Model):
+    elaboracion = models.ForeignKey(
+        Elaboraciones,
+        on_delete=models.CASCADE,
+        related_name="precio_elaboracion",
+        null=True,
+    )
+    precio = models.DecimalField(
+        max_digits=7, decimal_places=2, blank=False, null=False
+    )
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True)
+    fecha_inicio = models.DateTimeField(auto_now_add=True)
 
 
 class Productos_Entradas_Cafeteria(models.Model):

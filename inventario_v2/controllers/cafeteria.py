@@ -19,7 +19,7 @@ from inventario.models import (
     Productos_Cafeteria,
     Inventario_Almacen_Cafeteria,
     Ventas_Cafeteria,
-    MermaCafeteria,
+    PrecioElaboracion,
     CuentaCasa,
     CuentasChoices,
     HistorialPrecioCostoCafeteria,
@@ -227,6 +227,25 @@ class CafeteriaController:
             )
         )
 
+        historico_precio_elaboracion = (
+            PrecioElaboracion.objects.filter(
+                elaboracion=OuterRef("pk"),
+                fecha_inicio__lte=OuterRef(
+                    "elaboraciones_ventas_cafeteria__ventas_cafeteria__created_at"
+                ),
+            )
+            .order_by("-fecha_inicio")
+            .values("precio")[:1]
+        )
+
+        respaldo_precio_elaboracion = (
+            PrecioElaboracion.objects.filter(
+                elaboracion=OuterRef("pk"),
+            )
+            .order_by("fecha_inicio")
+            .values("precio")[:1]
+        )
+
         elaboraciones = Elaboraciones.objects.filter(
             elaboraciones_ventas_cafeteria__ventas_cafeteria__created_at__date__range=(
                 parse_desde,
@@ -234,7 +253,11 @@ class CafeteriaController:
             )
         ).annotate(
             cantidad=F("elaboraciones_ventas_cafeteria__cantidad"),
-            importe=F("cantidad") * F("precio"),
+            precio_unitario=Coalesce(
+                Subquery(historico_precio_elaboracion),
+                Subquery(respaldo_precio_elaboracion),
+            ),
+            importe=F("cantidad") * F("precio_unitario"),
         )
 
         efectivo_productos = (
@@ -484,21 +507,24 @@ class CafeteriaController:
 
     @route.post("elaboraciones/")
     def add_elaboracion(self, request, body: Add_Elaboracion):
-        body_dict = body.model_dump()
+        usuario = get_object_or_404(User, id=request.auth["id"])
 
         with transaction.atomic():
             elaboracion = Elaboraciones.objects.create(
-                nombre=body_dict["nombre"],
-                precio=body_dict["precio"],
-                mano_obra=body_dict["mano_obra"],
+                nombre=body.nombre,
+                mano_obra=body.mano_obra,
             )
 
-            for ingrediente in body_dict["ingredientes"]:
+            PrecioElaboracion.objects.create(
+                elaboracion=elaboracion, precio=body.precio, usuario=usuario
+            )
+
+            for ingrediente in body.ingredientes:
                 producto = get_object_or_404(
-                    Productos_Cafeteria, pk=ingrediente["producto"]
+                    Productos_Cafeteria, pk=ingrediente.producto
                 )
                 ingrediente = Ingrediente_Cantidad.objects.create(
-                    ingrediente=producto, cantidad=ingrediente["cantidad"]
+                    ingrediente=producto, cantidad=ingrediente.cantidad
                 )
                 elaboracion.ingredientes_cantidad.add(ingrediente)
 
@@ -687,14 +713,25 @@ class CafeteriaController:
         return
 
     @route.put("elaboraciones/{id}/")
-    def edit_elaboracion(self, id: int, body: Add_Elaboracion):
-        body_dict = body.model_dump()
+    def edit_elaboracion(self, request, id: int, body: Add_Elaboracion):
+
+        usuario = get_object_or_404(User, id=request.auth["id"])
 
         with transaction.atomic():
             elaboracion = get_object_or_404(Elaboraciones, id=id)
-            elaboracion.nombre = body_dict["nombre"]
-            elaboracion.precio = body_dict["precio"]
-            elaboracion.mano_obra = body_dict["mano_obra"]
+            ultimo_precio_elaboracion = PrecioElaboracion.objects.filter(
+                elaboracion=elaboracion
+            ).first()
+            elaboracion.nombre = body.nombre
+            elaboracion.mano_obra = Decimal(body.mano_obra)
+
+            if (
+                ultimo_precio_elaboracion
+                and ultimo_precio_elaboracion.precio != body.precio
+            ):
+                PrecioElaboracion.objects.create(
+                    elaboracion=elaboracion, precio=body.precio, usuario=usuario
+                )
 
             # { id_ingrediente : <Ingrediente_Cantidad> }
             ingredientes_existentes_dict = {
@@ -703,28 +740,28 @@ class CafeteriaController:
             }
 
             # Agregar o actualizar
-            for ingrediente_nuevo in body_dict["ingredientes"]:
-                if ingrediente_nuevo["producto"] in ingredientes_existentes_dict:
+            for ingrediente_nuevo in body.ingredientes:
+                if ingrediente_nuevo.producto in ingredientes_existentes_dict:
                     # Actualizar la cantidad
                     ingrediente_existente = ingredientes_existentes_dict[
-                        ingrediente_nuevo["producto"]
+                        ingrediente_nuevo.producto
                     ]
-                    ingrediente_existente.cantidad = ingrediente_nuevo["cantidad"]
+                    ingrediente_existente.cantidad = ingrediente_nuevo.cantidad
                     ingrediente_existente.save()
                 else:
                     # Agregar
                     producto = get_object_or_404(
-                        Productos_Cafeteria, pk=ingrediente_nuevo["producto"]
+                        Productos_Cafeteria, pk=ingrediente_nuevo.producto
                     )
                     ingrediente = Ingrediente_Cantidad.objects.create(
-                        ingrediente=producto, cantidad=ingrediente_nuevo["cantidad"]
+                        ingrediente=producto, cantidad=ingrediente_nuevo.cantidad
                     )
                     elaboracion.ingredientes_cantidad.add(ingrediente)
 
             # Eliminar ingredientes que no están en la lista de nuevos ingredientes
             for ingrediente_existente_id in list(ingredientes_existentes_dict.keys()):
                 if ingrediente_existente_id not in [
-                    ingrediente["producto"] for ingrediente in body_dict["ingredientes"]
+                    ingrediente.producto for ingrediente in body.ingredientes
                 ]:
                     Ingrediente_Cantidad.objects.filter(
                         ingrediente_id=ingrediente_existente_id
