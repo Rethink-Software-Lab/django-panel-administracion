@@ -715,6 +715,7 @@ class Ingrediente_Cantidad_Schema(Schema):
 
 class ElaboracionesSchema(ModelSchema):
     ingredientes_cantidad: List[Ingrediente_Cantidad_Schema]
+    precio: Annotated[Decimal, Field(ge=0)]
 
     class Meta:
         model = Elaboraciones
@@ -752,8 +753,8 @@ class Prod_Add_Venta(Schema):
 
 class Add_Venta_Cafeteria(Schema):
     metodo_pago: METODO_PAGO
-    transferencia: Optional[condecimal(gt=0)] = None
-    efectivo: Optional[condecimal(gt=0)] = None
+    transferencia: Optional[Annotated[Decimal, Field(gt=0)]] = None
+    efectivo: Optional[Annotated[Decimal, Field(gt=0)]] = None
     tarjeta: Optional[int] = None
     productos: List[Prod_Add_Venta]
 
@@ -769,6 +770,7 @@ class Productos_Reportes_Cafeteria(ModelSchema):
 
 
 class Elaboraciones_Reportes_Cafeteria(ModelSchema):
+    precio_unitario: Annotated[Decimal, Field(ge=0)]
     cantidad: Decimal
     importe: Decimal
 
