@@ -596,10 +596,10 @@ class Elaboraciones_Ventas_Cafeteria(Schema):
 
 
 class Ventas_Cafeteria_Schema(ModelSchema):
-    usuario: Optional[User_Only_Username] = None
+    usuario: Optional[str] = None
     productos: List[Productos_Ventas_Cafeteria]
     elaboraciones: List[Elaboraciones_Ventas_Cafeteria]
-    importe: Decimal
+    importe: Annotated[Decimal, Field(gt=0)]
     cuenta: Optional[str] = None
 
     class Meta:
