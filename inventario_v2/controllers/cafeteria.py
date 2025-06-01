@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from django.forms import DecimalField
 from django.utils import timezone
 from typing import List
 from ninja.errors import HttpError
@@ -68,37 +69,92 @@ class CafeteriaController:
 
         historico_venta = (
             HistorialPrecioVentaCafeteria.objects.filter(
-                producto=OuterRef("productos__producto"),
-                fecha_inicio__lte=OuterRef("created_at"),
+                producto=OuterRef("producto__id"),
+                fecha_inicio__lte=OuterRef("ventas_cafeteria__created_at"),
             )
             .order_by("-fecha_inicio")
             .values("precio")[:1]
         )
 
-        ventas = (
-            Ventas_Cafeteria.objects.all()
-            .annotate(
-                precio_v=Subquery(historico_venta),
-                importe=Coalesce(
-                    Sum(F("precio_v") * F("productos__cantidad")),
-                    Value(Decimal(0)),
-                )
-                + Coalesce(
-                    Sum(
-                        F("elaboraciones__producto__precio")
-                        * F("elaboraciones__cantidad")
-                    ),
-                    Value(Decimal(0)),
-                ),
-                tarjeta=F("transacciones__cuenta__nombre"),
+        respaldo_venta = (
+            HistorialPrecioVentaCafeteria.objects.filter(
+                producto=OuterRef("producto__id"),
             )
-            .filter(
+            .order_by("fecha_inicio")
+            .values("precio")[:1]
+        )
+
+        historico_precio_elaboracion = (
+            PrecioElaboracion.objects.filter(
+                elaboracion=OuterRef("producto_id"),
+                fecha_inicio__lte=OuterRef("ventas_cafeteria__created_at"),
+            )
+            .order_by("-fecha_inicio")
+            .values("precio")[:1]
+        )
+
+        respaldo_precio_elaboracion = (
+            PrecioElaboracion.objects.filter(
+                elaboracion=OuterRef("producto_id"),
+            )
+            .order_by("fecha_inicio")
+            .values("precio")[:1]
+        )
+
+        ventas = (
+            Ventas_Cafeteria.objects.filter(
                 created_at__gte=timezone.now() - timedelta(days=7),
+            )
+            .annotate(
+                cuenta=F("transacciones__cuenta__nombre"),
             )
             .order_by("-id")
             .distinct()
         )
+
+        ventas_formated = []
+
+        for venta in ventas:
+            if venta.productos:
+                productos_venta = venta.productos.all().annotate(
+                    importe=F("cantidad")
+                    * Coalesce(Subquery(historico_venta), Subquery(respaldo_venta))
+                )
+
+            if venta.elaboraciones:
+                elaboraciones_venta = venta.elaboraciones.all().annotate(
+                    importe=F("cantidad")
+                    * Coalesce(
+                        Subquery(historico_precio_elaboracion),
+                        Subquery(respaldo_precio_elaboracion),
+                    )
+                )
+
+            importe_total = (
+                productos_venta.aggregate(importe_total=Sum(F("importe")))[
+                    "importe_total"
+                ]
+                or 0
+                + elaboraciones_venta.aggregate(importe_total=Sum(F("importe")))[
+                    "importe_total"
+                ]
+                or 0
+            )
+
+            ventas_formated.append(
+                {
+                    "usuario": venta.usuario.username,
+                    "productos": productos_venta,
+                    "elaboraciones": elaboraciones_venta,
+                    "importe": importe_total,
+                    "cuenta": venta.cuenta,
+                    "metodo_pago": venta.metodo_pago,
+                    "created_at": venta.created_at,
+                }
+            )
+
         productos = Productos_Cafeteria.objects.all()
+
         elaboraciones = Elaboraciones.objects.all()
         tarjetas = Cuentas.objects.filter(tipo=CuentasChoices.BANCARIA).annotate(
             total_ingresos=Sum(
@@ -131,7 +187,7 @@ class CafeteriaController:
 
         return {
             "inventario": inventario,
-            "ventas": ventas,
+            "ventas": ventas_formated,
             "tarjetas": tarjetas,
             "productos_elaboraciones": productos_elaboraciones,
         }
