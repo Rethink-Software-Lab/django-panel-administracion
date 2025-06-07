@@ -109,7 +109,7 @@ class CafeteriaController:
                 cuenta=F("transacciones__cuenta__nombre"),
             )
             .order_by("-id")
-            .distinct()
+            .distinct("id")
         )
 
         ventas_formated = []
@@ -143,11 +143,14 @@ class CafeteriaController:
 
             ventas_formated.append(
                 {
+                    "id": venta.pk,
                     "usuario": venta.usuario.username,
                     "productos": productos_venta,
                     "elaboraciones": elaboraciones_venta,
                     "importe": importe_total,
                     "cuenta": venta.cuenta,
+                    "efectivo": venta.efectivo,
+                    "transferencia": venta.transferencia,
                     "metodo_pago": venta.metodo_pago,
                     "created_at": venta.created_at,
                 }
