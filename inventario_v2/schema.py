@@ -72,11 +72,6 @@ class ResponseEntradasPrinciapl(Schema):
     cuentas: List[TarjetasSchema]
 
 
-# class ProductoWithCategotiaSchema(Schema):
-#     productos: List[ProductoInfoSchema]
-#     categorias: List[CategoriasSchema]
-
-
 class ProductoSchema(ModelSchema):
     info: ProductoInfoSchema
 
@@ -141,7 +136,9 @@ class AddEntradaSchema(Schema):
     proveedor: str
     productos: List[ProductosEntradaAlmacenPrincipal]
     comprador: str
-    cuenta: str
+    cuenta: Optional[str] = None
+    efectivo: Optional[Annotated[Decimal, Field(gt=0)]] = None
+    transferencia: Optional[Annotated[Decimal, Field(gt=0)]] = None
 
 
 class AreaVentaModifySchema(ModelSchema):
