@@ -21,7 +21,7 @@ from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
 from typing import List
 from django.db import transaction
-from django.db.models import Count, F
+from django.db.models import F
 
 from ..custom_permissions import isStaff
 
@@ -78,7 +78,12 @@ class EntradasController:
             sum_precio_costo = 0
             for producto in data.productos:
                 producto_info = get_object_or_404(ProductoInfo, pk=producto.producto)
-                sum_precio_costo += producto_info.precio_costo * producto.cantidad
+                if producto_info.categoria.nombre == 'Zapatos':
+                    for variante in producto.variantes:
+                        for num in variante.numeros:
+                            sum_precio_costo += producto_info.precio_costo * num.cantidad
+                else:
+                    sum_precio_costo += producto_info.precio_costo * producto.cantidad
 
             if (
                 data.efectivo
