@@ -370,7 +370,6 @@ class Otros(Schema):
 
 class newZapatos(Schema):
     id: int
-    info__codigo: Optional[str] = None
     color: str
     numero: int
 
