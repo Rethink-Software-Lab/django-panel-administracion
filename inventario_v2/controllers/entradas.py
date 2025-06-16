@@ -36,7 +36,7 @@ class EntradasController:
 
         entradas = (
             EntradaAlmacen.objects.filter(
-                created_at__gte=timezone.now() - timedelta(days=7)
+                created_at__gte=timezone.now() - timedelta(days=45)
             )
             .annotate(
                 username=F("usuario__username"),
