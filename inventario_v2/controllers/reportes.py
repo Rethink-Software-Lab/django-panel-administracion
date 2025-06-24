@@ -10,11 +10,10 @@ from inventario.models import (
     Gastos,
     GastosChoices,
     FrecuenciaChoices,
-    Productos_Cafeteria,
     HistorialPrecioCostoSalon,
     HistorialPrecioVentaSalon,
-    Producto,
 )
+from inventario_v2.controllers.utils_reportes.reportes_ventas import get_reporte_ventas
 from ..schema import ReportesSchema
 from ninja_extra import api_controller, route
 from django.db.models import (
@@ -36,6 +35,8 @@ from ..utils import (
 from django.db.models.functions import Coalesce
 from django.db.models import OuterRef, Subquery
 
+from inventario_v2.controllers.utils_reportes.get_reporte_inventario import get_reporte
+
 
 @api_controller("reportes/", tags=["Categorías"], permissions=[])
 class ReportesController:
@@ -51,379 +52,275 @@ class ReportesController:
         parse_desde = desde.date()
         parse_hasta = hasta.date()
 
-        dias_laborables = calcular_dias_laborables(parse_desde, parse_hasta)
-        ultimo_dia_hasta = obtener_ultimo_dia_mes(parse_hasta)
-        dias_semana = obtener_dias_semana_rango(parse_desde, parse_hasta)
+        # dias_laborables = calcular_dias_laborables(parse_desde, parse_hasta)
+        # ultimo_dia_hasta = obtener_ultimo_dia_mes(parse_hasta)
+        # dias_semana = obtener_dias_semana_rango(parse_desde, parse_hasta)
 
         if type == "ventas":
-            filtros_gastos_variables = {
-                "tipo": GastosChoices.VARIABLE,
-                "created_at__date__range": (parse_desde, parse_hasta),
-            }
+            # filtros_gastos_variables = {
+            #     "tipo": GastosChoices.VARIABLE,
+            #     "created_at__date__range": (parse_desde, parse_hasta),
+            # }
 
-            if area != "general":
-                filtros_gastos_variables["area_venta"] = area
+            # if area != "general":
+            #     filtros_gastos_variables["area_venta"] = area
 
-            gastos_variables = Gastos.objects.filter(**filtros_gastos_variables).only(
-                "descripcion", "cantidad"
-            )
+            # gastos_variables = Gastos.objects.filter(**filtros_gastos_variables).only(
+            #     "descripcion", "cantidad"
+            # )
 
-            filtros_gastos_fijos = {
-                "tipo": GastosChoices.FIJO,
-                "created_at__date__lte": parse_hasta,
-            }
+            # filtros_gastos_fijos = {
+            #     "tipo": GastosChoices.FIJO,
+            #     "created_at__date__lte": parse_hasta,
+            # }
 
-            if area != "general":
-                filtros_gastos_fijos["area_venta"] = area
-                filtros_gastos_fijos["is_cafeteria"] = False
+            # if area != "general":
+            #     filtros_gastos_fijos["area_venta"] = area
+            #     filtros_gastos_fijos["is_cafeteria"] = False
 
-            gastos_fijos_result = Gastos.objects.filter(
-                **filtros_gastos_fijos
-            ).annotate(
-                dia_mes_ajustado=Case(
-                    When(dia_mes__gt=ultimo_dia_hasta, then=ultimo_dia_hasta),
-                    default=F("dia_mes"),
-                    output_field=IntegerField(),
-                )
-            )
+            # gastos_fijos_result = Gastos.objects.filter(
+            #     **filtros_gastos_fijos
+            # ).annotate(
+            #     dia_mes_ajustado=Case(
+            #         When(dia_mes__gt=ultimo_dia_hasta, then=ultimo_dia_hasta),
+            #         default=F("dia_mes"),
+            #         output_field=IntegerField(),
+            #     )
+            # )
 
-            gastos_fijos = []
+            # gastos_fijos = []
 
-            for gasto in gastos_fijos_result:
-                if (
-                    gasto.frecuencia == FrecuenciaChoices.MENSUAL
-                    and gasto.dia_mes_ajustado
-                    in range(parse_desde.day, parse_hasta.day + 1)
-                ):
-                    gastos_fijos.append(
-                        {
-                            "descripcion": gasto.descripcion,
-                            "cantidad": gasto.cantidad,
-                        }
-                    )
-                elif (
-                    gasto.frecuencia == FrecuenciaChoices.SEMANAL
-                    and gasto.dia_semana in dias_semana
-                ):
-                    gastos_fijos.append(
-                        {
-                            "descripcion": gasto.descripcion,
-                            "cantidad": gasto.cantidad
-                            * dias_semana.get(gasto.dia_semana, 0),
-                        }
-                    )
-                elif gasto.frecuencia == FrecuenciaChoices.LUNES_SABADO:
-                    gastos_fijos.append(
-                        {
-                            "descripcion": gasto.descripcion,
-                            "cantidad": gasto.cantidad * dias_laborables,
-                        }
-                    )
+            # for gasto in gastos_fijos_result:
+            #     if (
+            #         gasto.frecuencia == FrecuenciaChoices.MENSUAL
+            #         and gasto.dia_mes_ajustado
+            #         in range(parse_desde.day, parse_hasta.day + 1)
+            #     ):
+            #         gastos_fijos.append(
+            #             {
+            #                 "descripcion": gasto.descripcion,
+            #                 "cantidad": gasto.cantidad,
+            #             }
+            #         )
+            #     elif (
+            #         gasto.frecuencia == FrecuenciaChoices.SEMANAL
+            #         and gasto.dia_semana in dias_semana
+            #     ):
+            #         gastos_fijos.append(
+            #             {
+            #                 "descripcion": gasto.descripcion,
+            #                 "cantidad": gasto.cantidad
+            #                 * dias_semana.get(gasto.dia_semana, 0),
+            #             }
+            #         )
+            #     elif gasto.frecuencia == FrecuenciaChoices.LUNES_SABADO:
+            #         gastos_fijos.append(
+            #             {
+            #                 "descripcion": gasto.descripcion,
+            #                 "cantidad": gasto.cantidad * dias_laborables,
+            #             }
+            #         )
 
-            filtros_productos = {
-                "producto__venta__created_at__date__range": (
-                    parse_desde,
-                    parse_hasta,
-                ),
-                "producto__ajusteinventario__isnull": True,
-            }
+            # filtros_productos = {
+            #     "producto__venta__created_at__date__range": (
+            #         parse_desde,
+            #         parse_hasta,
+            #     ),
+            #     "producto__ajusteinventario__isnull": True,
+            # }
 
-            if area != "general":
-                filtros_productos["producto__area_venta"] = area
+            # if area != "general":
+            #     filtros_productos["producto__area_venta"] = area
 
-            productos_info_qs = ProductoInfo.objects.filter(**filtros_productos)
+            # productos_info_qs = ProductoInfo.objects.filter(**filtros_productos)
 
-            historico_costo = (
-                HistorialPrecioCostoSalon.objects.filter(
-                    producto_info=OuterRef("pk"),
-                    fecha_inicio__lte=OuterRef("producto__venta__created_at"),
-                )
-                .order_by("-fecha_inicio")
-                .values("precio")[:1]
-            )
+            # historico_costo = (
+            #     HistorialPrecioCostoSalon.objects.filter(
+            #         producto_info=OuterRef("pk"),
+            #         fecha_inicio__lte=OuterRef("producto__venta__created_at"),
+            #     )
+            #     .order_by("-fecha_inicio")
+            #     .values("precio")[:1]
+            # )
 
-            historico_venta = (
-                HistorialPrecioVentaSalon.objects.filter(
-                    producto_info=OuterRef("pk"),
-                    fecha_inicio__lte=OuterRef("producto__venta__created_at"),
-                )
-                .order_by("-fecha_inicio")
-                .values("precio")[:1]
-            )
+            # historico_venta = (
+            #     HistorialPrecioVentaSalon.objects.filter(
+            #         producto_info=OuterRef("pk"),
+            #         fecha_inicio__lte=OuterRef("producto__venta__created_at"),
+            #     )
+            #     .order_by("-fecha_inicio")
+            #     .values("precio")[:1]
+            # )
 
-            productos_info_qs = productos_info_qs.annotate(
-                precio_c=Subquery(historico_costo),
-                precio_v=Subquery(historico_venta),
-            )
+            # productos_info_qs = productos_info_qs.annotate(
+            #     precio_c=Subquery(historico_costo),
+            #     precio_v=Subquery(historico_venta),
+            # )
 
-            producto_info = (
-                productos_info_qs.annotate(
-                    cantidad=Count("producto"),
-                    importe=ExpressionWrapper(
-                        F("cantidad") * F("precio_v"), output_field=DecimalField()
-                    ),
-                    costo=ExpressionWrapper(
-                        F("cantidad") * F("precio_c"), output_field=DecimalField()
-                    ),
-                )
-                .values(
-                    "id",
-                    "importe",
-                    "costo",
-                    "cantidad",
-                    "descripcion",
-                    precio_venta=F("precio_v"),
-                    precio_costo=F("precio_c"),
-                )
-                .order_by("-importe")
-            )
+            # producto_info = (
+            #     productos_info_qs.annotate(
+            #         cantidad=Count("producto"),
+            #         importe=ExpressionWrapper(
+            #             F("cantidad") * F("precio_v"), output_field=DecimalField()
+            #         ),
+            #         costo=ExpressionWrapper(
+            #             F("cantidad") * F("precio_c"), output_field=DecimalField()
+            #         ),
+            #     )
+            #     .values(
+            #         "id",
+            #         "importe",
+            #         "costo",
+            #         "cantidad",
+            #         "descripcion",
+            #         precio_venta=F("precio_v"),
+            #         precio_costo=F("precio_c"),
+            #     )
+            #     .order_by("-importe")
+            # )
 
-            productos_agrupados = {}
+            # productos_agrupados = {}
 
-            for producto in producto_info:
-                producto_id = producto["id"]
-                if producto_id not in productos_agrupados:
-                    productos_agrupados[producto_id] = {
-                        "id": producto_id,
-                        "descripcion": producto["descripcion"],
-                        "cantidad": Decimal(0),
-                        "importe": Decimal(0),
-                        "precio_costo": producto.get("precio_costo"),
-                        "precio_venta": producto.get("precio_venta"),
-                    }
+            # for producto in producto_info:
+            #     producto_id = producto["id"]
+            #     if producto_id not in productos_agrupados:
+            #         productos_agrupados[producto_id] = {
+            #             "id": producto_id,
+            #             "descripcion": producto["descripcion"],
+            #             "cantidad": Decimal(0),
+            #             "importe": Decimal(0),
+            #             "precio_costo": producto.get("precio_costo"),
+            #             "precio_venta": producto.get("precio_venta"),
+            #         }
 
-                productos_agrupados[producto_id]["cantidad"] += Decimal(
-                    str(producto.get("cantidad", 0) or 0)
-                )
-                productos_agrupados[producto_id]["importe"] += Decimal(
-                    str(producto.get("importe", 0) or 0)
-                )
+            #     productos_agrupados[producto_id]["cantidad"] += Decimal(
+            #         str(producto.get("cantidad", 0) or 0)
+            #     )
+            #     productos_agrupados[producto_id]["importe"] += Decimal(
+            #         str(producto.get("importe", 0) or 0)
+            #     )
 
-            productos_sin_repeticion = list(productos_agrupados.values())
+            # productos_sin_repeticion = list(productos_agrupados.values())
 
-            filtros_ventas: dict[str, str | tuple[date, date]] = {
-                "created_at__date__range": (parse_desde, parse_hasta)
-            }
+            # filtros_ventas: dict[str, str | tuple[date, date]] = {
+            #     "created_at__date__range": (parse_desde, parse_hasta)
+            # }
 
-            if area != "general":
-                filtros_ventas["area_venta__id"] = area
+            # if area != "general":
+            #     filtros_ventas["area_venta__id"] = area
 
-            historico_venta = (
-                HistorialPrecioVentaSalon.objects.filter(
-                    producto_info=OuterRef("producto__info__pk"),
-                    fecha_inicio__lte=OuterRef("created_at"),
-                )
-                .order_by("-fecha_inicio")
-                .values("precio")[:1]
-            )
+            # historico_venta = (
+            #     HistorialPrecioVentaSalon.objects.filter(
+            #         producto_info=OuterRef("producto__info__pk"),
+            #         fecha_inicio__lte=OuterRef("created_at"),
+            #     )
+            #     .order_by("-fecha_inicio")
+            #     .values("precio")[:1]
+            # )
 
-            ventas = Ventas.objects.filter(**filtros_ventas).annotate(
-                precio_venta=Subquery(historico_venta)
-            )
+            # ventas = Ventas.objects.filter(**filtros_ventas).annotate(
+            #     precio_venta=Subquery(historico_venta)
+            # )
 
-            if area != "general":
-                area_venta = get_object_or_404(AreaVenta, pk=area)
+            # if area != "general":
+            #     area_venta = get_object_or_404(AreaVenta, pk=area)
 
-            total_gastos_fijos = sum(gasto.get("cantidad", 0) for gasto in gastos_fijos)
+            # total_gastos_fijos = sum(gasto.get("cantidad", 0) for gasto in gastos_fijos)
 
-            pagos = ventas.aggregate(
-                efectivo=Coalesce(
-                    Sum(
-                        "precio_venta",
-                        filter=Q(metodo_pago="EFECTIVO"),
-                    ),
-                    Decimal(0),
-                )
-                + Coalesce(
-                    Sum(
-                        "efectivo",
-                        filter=Q(metodo_pago="MIXTO"),
-                    ),
-                    Decimal(0),
-                ),
-                transferencia=Coalesce(
-                    Sum(
-                        "precio_venta",
-                        filter=Q(metodo_pago="TRANSFERENCIA"),
-                    ),
-                    Decimal(0),
-                )
-                + Coalesce(
-                    Sum(
-                        "transferencia",
-                        filter=Q(metodo_pago="MIXTO"),
-                    ),
-                    Decimal(0),
-                ),
-            )
+            # pagos = ventas.aggregate(
+            #     efectivo=Coalesce(
+            #         Sum(
+            #             "precio_venta",
+            #             filter=Q(metodo_pago="EFECTIVO"),
+            #         ),
+            #         Decimal(0),
+            #     )
+            #     + Coalesce(
+            #         Sum(
+            #             "efectivo",
+            #             filter=Q(metodo_pago="MIXTO"),
+            #         ),
+            #         Decimal(0),
+            #     ),
+            #     transferencia=Coalesce(
+            #         Sum(
+            #             "precio_venta",
+            #             filter=Q(metodo_pago="TRANSFERENCIA"),
+            #         ),
+            #         Decimal(0),
+            #     )
+            #     + Coalesce(
+            #         Sum(
+            #             "transferencia",
+            #             filter=Q(metodo_pago="MIXTO"),
+            #         ),
+            #         Decimal(0),
+            #     ),
+            # )
 
-            efectivo = pagos.get("efectivo", Decimal(0))
-            transferencia = pagos.get("transferencia", Decimal(0))
+            # efectivo = pagos.get("efectivo", Decimal(0))
+            # transferencia = pagos.get("transferencia", Decimal(0))
 
-            subtotal = producto_info.aggregate(subtotal=Sum("importe"))["subtotal"] or 0
-            costo_productos = (
-                producto_info.aggregate(costo_productos=Sum("costo"))["costo_productos"]
-                or 0
-            )
+            # subtotal = producto_info.aggregate(subtotal=Sum("importe"))["subtotal"] or 0
+            # costo_productos = (
+            #     producto_info.aggregate(costo_productos=Sum("costo"))["costo_productos"]
+            #     or 0
+            # )
 
-            pago_trabajador = (
-                producto_info.aggregate(
-                    pago_trabajador=Sum(F("pago_trabajador") * F("cantidad"))
-                )["pago_trabajador"]
-                or 0
-            )
+            # pago_trabajador = (
+            #     producto_info.aggregate(
+            #         pago_trabajador=Sum(F("pago_trabajador") * F("cantidad"))
+            #     )["pago_trabajador"]
+            #     or 0
+            # )
 
-            ventas_por_usuario = {}
+            # ventas_por_usuario = {}
 
-            prod = producto_info.annotate(
-                usuario=F("producto__venta__usuario__username"),
-                pago=F("pago_trabajador") * F("cantidad"),
-            )
-            for producto in prod:
-                usuario = producto.get("usuario", "Sin usuario")
+            # prod = producto_info.annotate(
+            #     usuario=F("producto__venta__usuario__username"),
+            #     pago=F("pago_trabajador") * F("cantidad"),
+            # )
+            # for producto in prod:
+            #     usuario = producto.get("usuario", "Sin usuario")
 
-                if usuario not in ventas_por_usuario:
-                    ventas_por_usuario[usuario] = 0
+            #     if usuario not in ventas_por_usuario:
+            #         ventas_por_usuario[usuario] = 0
 
-                ventas_por_usuario[usuario] += producto.get("pago", 0)
+            #     ventas_por_usuario[usuario] += producto.get("pago", 0)
 
-            monto_gastos_variables = (
-                gastos_variables.aggregate(total=Sum("cantidad"))["total"] or 0
-            ) + pago_trabajador
+            # monto_gastos_variables = (
+            #     gastos_variables.aggregate(total=Sum("cantidad"))["total"] or 0
+            # ) + pago_trabajador
 
-            total_gatos = total_gastos_fijos + monto_gastos_variables or 0
+            # total_gatos = total_gastos_fijos + monto_gastos_variables or 0
 
-            total = subtotal - total_gatos
+            # total = subtotal - total_gatos
 
-            ganancia = total - costo_productos
+            # ganancia = total - costo_productos
 
-            return {
-                "productos": productos_sin_repeticion,
-                "subtotal": {
-                    "general": subtotal,
-                    "efectivo": efectivo,
-                    "transferencia": transferencia,
-                },
-                "gastos_fijos": gastos_fijos,
-                "gastos_variables": gastos_variables,
-                "pago_trabajador": round(pago_trabajador, 2),
-                "ventas_por_usuario": ventas_por_usuario,
-                "total": {
-                    "general": total,
-                    "efectivo": efectivo - total_gatos,
-                    "transferencia": transferencia,
-                },
-                "ganancia": ganancia,
-                "area": area_venta.nombre if area != "general" else "general",
-            }
+            # return {
+            #     "productos": productos_sin_repeticion,
+            #     "subtotal": {
+            #         "general": subtotal,
+            #         "efectivo": efectivo,
+            #         "transferencia": transferencia,
+            #     },
+            #     "gastos_fijos": gastos_fijos,
+            #     "gastos_variables": gastos_variables,
+            #     "pago_trabajador": round(pago_trabajador, 2),
+            #     "ventas_por_usuario": ventas_por_usuario,
+            #     "total": {
+            #         "general": total,
+            #         "efectivo": efectivo - total_gatos,
+            #         "transferencia": transferencia,
+            #     },
+            #     "ganancia": ganancia,
+            #     "area": area_venta.nombre if area != "general" else "general",
+            # }
+
+            response = get_reporte_ventas(parse_desde, parse_hasta, area)
+            return response
 
         elif type == "inventario":
-            if area == "general":
-                area_venta = "General"
-                producto_info = (
-                    ProductoInfo.objects.filter(
-                        producto__venta__isnull=True,
-                        producto__ajusteinventario__isnull=True,
-                    )
-                    .annotate(cantidad=Count(F("producto")))
-                    .exclude(cantidad__lt=1)
-                    .values(
-                        "id",
-                        "descripcion",
-                        "cantidad",
-                    )
-                )
-                if categoria != "todas":
-                    producto_info = producto_info.filter(categoria__id=categoria)
-
-            elif area == "cafeteria":
-                area_venta = "Cafetería"
-                productos = Productos_Cafeteria.objects.filter(
-                    inventario_area__cantidad__gt=0
-                )
-                producto_info = []
-                for producto in productos:
-                    producto_info.append(
-                        {
-                            "id": producto.pk,
-                            "descripcion": producto.nombre,
-                            "cantidad": producto.inventario_area.cantidad,
-                        }
-                    )
-
-            elif area == "almacen-cafeteria":
-                area_venta = "Almacén Cafetería"
-                productos = Productos_Cafeteria.objects.filter(
-                    inventario_almacen__cantidad__gt=0
-                )
-                producto_info = []
-                for producto in productos:
-                    producto_info.append(
-                        {
-                            "id": producto.pk,
-                            "descripcion": producto.nombre,
-                            "cantidad": producto.inventario_almacen.cantidad,
-                        }
-                    )
-
-            elif area == "almacen-principal":
-                area_venta = "Almacén Principal"
-                producto_info = (
-                    ProductoInfo.objects.filter(
-                        producto__area_venta__isnull=True,
-                        producto__almacen_revoltosa=False,
-                        producto__venta__isnull=True,
-                        producto__ajusteinventario__isnull=True,
-                    )
-                    .annotate(cantidad=Count(F("producto")))
-                    .exclude(cantidad__lt=1)
-                    .values(
-                        "id",
-                        "descripcion",
-                        "cantidad",
-                    )
-                )
-                if categoria != "todas":
-                    producto_info = producto_info.filter(categoria__id=categoria)
-
-            elif area == "almacen-revoltosa":
-                area_venta = "Almacén Revoltosa"
-                producto_info = (
-                    ProductoInfo.objects.filter(
-                        producto__area_venta__isnull=True,
-                        producto__almacen_revoltosa=True,
-                        producto__venta__isnull=True,
-                        producto__ajusteinventario__isnull=True,
-                    )
-                    .annotate(cantidad=Count(F("producto")))
-                    .exclude(cantidad__lt=1)
-                    .values(
-                        "id",
-                        "descripcion",
-                        "cantidad",
-                    )
-                )
-                if categoria != "todas":
-                    producto_info = producto_info.filter(categoria__id=categoria)
-
-            else:
-                area_venta = get_object_or_404(AreaVenta, pk=area).nombre
-                producto_info = (
-                    ProductoInfo.objects.filter(
-                        producto__area_venta=area,
-                        producto__almacen_revoltosa=False,
-                        producto__venta__isnull=True,
-                        producto__ajusteinventario__isnull=True,
-                    )
-                    .annotate(cantidad=Count(F("producto")))
-                    .exclude(cantidad__lt=1)
-                    .values(
-                        "id",
-                        "descripcion",
-                        "cantidad",
-                    )
-                )
-                if categoria != "todas":
-                    producto_info = producto_info.filter(categoria__id=categoria)
-
-            return {"productos": producto_info, "area": area_venta}
+            reporte_inventario = get_reporte(area, categoria)
+            return reporte_inventario
