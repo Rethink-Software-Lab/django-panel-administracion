@@ -6,7 +6,7 @@ from django.db.models import F, Q, Case, Count, ExpressionWrapper, OuterRef, Que
 from django.db.models.base import Coalesce
 from django.shortcuts import get_object_or_404
 
-from inventario.models import FrecuenciaChoices, Gastos, GastosChoices, HistorialPrecioCostoSalon, HistorialPrecioVentaSalon, ProductoInfo, Ventas
+from inventario.models import FrecuenciaChoices, Gastos, GastosChoices, HistorialPrecioCostoSalon, HistorialPrecioVentaSalon, ProductoInfo, Ventas, AreaVenta
 from inventario_v2.utils import calcular_dias_laborables, obtener_dias_semana_rango, obtener_ultimo_dia_mes
 
 def get_gastos_varriables(parse_desde: date, parse_hasta: date, area: str) -> QuerySet[Gastos]:
