@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from django.forms import DecimalField
 from django.utils import timezone
 from typing import List
 from ninja.errors import HttpError
@@ -64,7 +63,6 @@ from django.db.models.functions import Coalesce
 class CafeteriaController:
     @route.get("", response=EndPointCafeteria)
     def get_inventario_cafeteria(self):
-
         inventario = Productos_Cafeteria.objects.filter(inventario_area__cantidad__gt=0)
 
         historico_venta = (
@@ -103,7 +101,7 @@ class CafeteriaController:
 
         ventas = (
             Ventas_Cafeteria.objects.filter(
-                created_at__gte=timezone.now() - timedelta(days=7),
+                created_at__gte=timezone.now() - timedelta(days=30),
             )
             .annotate(
                 cuenta=F("transacciones__cuenta__nombre"),
@@ -197,7 +195,6 @@ class CafeteriaController:
 
     @route.get("productos/", response=List[Producto_Cafeteria_Endpoint_Schema])
     def get_productos_cafeteria(self):
-
         productos = Productos_Cafeteria.objects.all().order_by("-id")
 
         return productos
@@ -743,7 +740,6 @@ class CafeteriaController:
 
     @route.put("productos/{id}/")
     def edit_productos_cafeteria(self, request, id: int, body: Edit_Producto_Cafeteria):
-
         producto = get_object_or_404(Productos_Cafeteria, id=id)
         usuario = get_object_or_404(User, id=request.auth["id"])
 
@@ -773,7 +769,6 @@ class CafeteriaController:
 
     @route.put("elaboraciones/{id}/")
     def edit_elaboracion(self, request, id: int, body: Add_Elaboracion):
-
         usuario = get_object_or_404(User, id=request.auth["id"])
 
         with transaction.atomic():
