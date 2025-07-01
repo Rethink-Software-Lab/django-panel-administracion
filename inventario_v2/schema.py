@@ -263,7 +263,7 @@ class ProductoInfoParaReporte(Schema):
     descripcion: str
     cantidad: Decimal
     precio_venta: Optional[Annotated[Decimal, Field(gt=0)]] = None
-    importe: Optional[Annotated[Decimal, Field(gt=0)]] = None
+    importe: Optional[Decimal] = None
 
 
 class SubtotalReporteVentas(Schema):
