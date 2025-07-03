@@ -498,7 +498,9 @@ class CafeteriaController:
 
         for cuenta_casa in cuentas_casa:
             for elaboracion in cuenta_casa.elaboraciones.all():
-                mano_obra_cuenta_casa += elaboracion.producto.mano_obra
+                mano_obra_cuenta_casa += (
+                    elaboracion.producto.mano_obra * elaboracion.cantidad
+                )
 
         subtotal_productos = (
             productos.aggregate(subtotal=Sum(F("importe")))["subtotal"] or 0
