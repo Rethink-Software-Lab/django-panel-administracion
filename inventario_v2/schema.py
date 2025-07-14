@@ -160,12 +160,6 @@ class Salidas(Schema):
         return v or "Almacén Revoltosa"
 
 
-class SalidaAlmacenSchema(Schema):
-    salidas: List[Salidas]
-    areas_de_venta: List[AreaVentaSchema]
-    productos: List[ProductoCodigoSchema]
-
-
 class SalidaAlmacenRevoltosaSchema(Schema):
     id: int
     usuario__username: str | None
@@ -177,13 +171,6 @@ class SalidaAlmacenRevoltosaSchema(Schema):
 class ProductoInfoSalidaAlmacenRevoltosaSchema(Schema):
     salidas: List[SalidaAlmacenRevoltosaSchema]
     productos: List[ProductoCodigoSchema]
-
-
-class AddSalidaSchema(Schema):
-    area_venta: int | Literal["almacen-revoltosa"]
-    producto_info: str
-    cantidad: Optional[int] = None
-    zapatos_id: Optional[List[int]] = None
 
 
 class AddSalidaRevoltosaSchema(Schema):
