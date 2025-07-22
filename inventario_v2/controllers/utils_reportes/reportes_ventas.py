@@ -311,6 +311,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
 
         if usuario not in ventas_por_usuario:
             ventas_por_usuario[usuario] = 0
+            continue
 
         ventas_por_usuario[usuario] += producto.get("pago", 0)
 
