@@ -1,3 +1,5 @@
+from datetime import timedelta
+from django.utils import timezone
 from typing import List
 from ninja.errors import HttpError
 from inventario.models import (
@@ -36,7 +38,6 @@ from decimal import Decimal
 class AlmacenCafeteriaController:
     @route.get("inventario/", response=List[Producto_Cafeteria_Schema])
     def get_inventario_cafeteria(self):
-
         productos = Productos_Cafeteria.objects.filter(
             inventario_almacen__cantidad__gt=0
         )
@@ -45,7 +46,6 @@ class AlmacenCafeteriaController:
 
     @route.get("entradas/", response=Entradas_Almacen_Cafeteria_Schema)
     def get_entradas_cafeteria(self):
-
         entradas = Entradas_Cafeteria.objects.prefetch_related("productos").order_by(
             "-created_at"
         )
@@ -62,8 +62,9 @@ class AlmacenCafeteriaController:
 
     @route.get("salidas/", response=EndPointSalidasAlmacenCafeteria)
     def get_salidas_almacen_cafeteria(self):
-
-        salidas = Salidas_Cafeteria.objects.order_by("-created_at")
+        salidas = Salidas_Cafeteria.objects.filter(
+            created_at__gte=timezone.now() - timedelta(days=45)
+        ).order_by("-created_at")
         productos = Productos_Cafeteria.objects.filter(
             inventario_almacen__cantidad__gt=0
         )
@@ -96,7 +97,6 @@ class AlmacenCafeteriaController:
         proveedor = Proveedor.objects.get(pk=body.proveedor) if body.proveedor else None
 
         with transaction.atomic():
-
             entrada = Entradas_Cafeteria.objects.create(
                 metodo_pago=body.metodo_pago,
                 comprador=body.comprador,
@@ -159,7 +159,7 @@ class AlmacenCafeteriaController:
                 tipo=TipoTranferenciaChoices.EGRESO,
                 cuenta=cuenta,
                 cantidad=total_cantidad,
-                descripcion=f"[ENT CAF] {total_cantidad}x producto{"s" if len(body_dict['productos']) > 1 else ""}",
+                descripcion=f"[ENT CAF] {total_cantidad}x producto{'s' if len(body_dict['productos']) > 1 else ''}",
             )
 
         return
@@ -188,9 +188,8 @@ class AlmacenCafeteriaController:
                             producto__id=ingrediente.ingrediente.pk,
                         )
 
-                        if (
-                            inventario_almacen.cantidad
-                            < ingrediente.cantidad * Decimal(producto["cantidad"])
+                        if inventario_almacen.cantidad < ingrediente.cantidad * Decimal(
+                            producto["cantidad"]
                         ):
                             raise HttpError(
                                 400,
@@ -247,7 +246,6 @@ class AlmacenCafeteriaController:
         transaccion = get_object_or_404(Transacciones, entrada_cafeteria=entrada)
         cuenta = get_object_or_404(Cuentas, pk=transaccion.cuenta.pk)
         with transaction.atomic():
-
             cuenta.saldo += transaccion.cantidad
             cuenta.save()
 
@@ -284,11 +282,7 @@ class AlmacenCafeteriaController:
                     inventario_almacen.save()
 
                 for elaboracion_salida_almacen_cafeteria in salida.elaboraciones.all():
-                    for (
-                        ingrediente_cantidad
-                    ) in (
-                        elaboracion_salida_almacen_cafeteria.producto.ingredientes_cantidad.all()
-                    ):
+                    for ingrediente_cantidad in elaboracion_salida_almacen_cafeteria.producto.ingredientes_cantidad.all():
                         inventario_almacen = get_object_or_404(
                             Inventario_Almacen_Cafeteria,
                             producto=ingrediente_cantidad.ingrediente,
