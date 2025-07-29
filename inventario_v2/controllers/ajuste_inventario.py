@@ -16,13 +16,17 @@ from ..custom_permissions import isAdmin
 from django.db import transaction
 import re
 from django.db.models import Count
+from datetime import timedelta
+from django.utils import timezone
 
 
 @api_controller("ajuste-inventario/", tags=["Ajuste Inventario"], permissions=[isAdmin])
 class AjusteInventarioController:
     @route.get("", response=AllAjustesSchema)
     def get_all_ajustes(self):
-        ajustes = AjusteInventario.objects.all().order_by("-id")
+        ajustes = AjusteInventario.objects.filter(
+            created_at__gte=timezone.now() - timedelta(days=45),
+        ).order_by("-id")
         ajustes_con_productos = []
         for ajuste in ajustes:
             productos = ajuste.productos.all()
@@ -102,7 +106,7 @@ class AjusteInventarioController:
                         if filtro.count() < producto["cantidad"]:
                             raise HttpError(
                                 400,
-                                f"No hay {product.descripcion} suficientes en {producto["area_venta"]} para esta acción",
+                                f"No hay {product.descripcion} suficientes en {producto['area_venta']} para esta acción",
                             )
 
                         for producto in filtro:
