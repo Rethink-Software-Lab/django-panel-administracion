@@ -19,6 +19,8 @@ from django.db.models import Sum, Q, Value
 from django.db.models.functions import Round, Coalesce
 from datetime import datetime
 from decimal import Decimal
+from datetime import timedelta
+from django.utils import timezone
 
 
 @api_controller("tarjetas/", tags=["Tarjetas"], permissions=[isAdmin | isSupervisor])
@@ -49,7 +51,8 @@ class TarjetasController:
         total_balance = tarjetas.aggregate(balance=Sum("saldo"))["balance"] or 0
 
         transferencias = Transacciones.objects.filter(
-            cuenta__tipo=CuentasChoices.BANCARIA
+            cuenta__tipo=CuentasChoices.BANCARIA,
+            created_at__gte=timezone.now() - timedelta(days=45),
         ).order_by("-id")
         return {
             "tarjetas": tarjetas,
