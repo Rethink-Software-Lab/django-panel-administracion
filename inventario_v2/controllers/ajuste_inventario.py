@@ -66,12 +66,8 @@ class AjusteInventarioController:
         areas_ventas = AreaVenta.objects.all()
 
         productos_info = ProductoInfo.objects.filter(
-            ~Exists(Producto.objects.filter(info=OuterRef("pk"), venta__isnull=False)),
-            ~Exists(
-                Producto.objects.filter(
-                    info=OuterRef("pk"), ajusteinventario__isnull=False
-                )
-            ),
+            producto__venta__isnull=True,
+            producto__ajusteinventario__isnull=True,
         ).distinct()
 
         return {
