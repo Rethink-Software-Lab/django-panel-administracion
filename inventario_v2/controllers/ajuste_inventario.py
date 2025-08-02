@@ -27,7 +27,7 @@ class AjusteInventarioController:
         ahora = timezone.now()
 
         ajustes = (
-            AjusteInventario.objects.filter(created_at__gte=ahora - timedelta(days=45))
+            AjusteInventario.objects.filter(created_at__gte=ahora - timedelta(days=30))
             .prefetch_related(
                 Prefetch("productos", queryset=Producto.objects.select_related("info"))
             )
