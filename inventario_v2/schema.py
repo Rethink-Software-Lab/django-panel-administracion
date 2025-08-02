@@ -28,12 +28,6 @@ class CategoriasSchema(ModelSchema):
         fields = "__all__"
 
 
-class CategoriasModifySchema(ModelSchema):
-    class Meta:
-        model = Categorias
-        exclude = ["id"]
-
-
 class NumerosSchema(Schema):
     numero: float
     cantidad: int
@@ -80,15 +74,6 @@ class ProductoSchema(ModelSchema):
         fields = "__all__"
 
 
-class EntradaAlmacenSchema(Schema):
-    id: int
-    metodo_pago: str
-    nombre_proveedor: Optional[str] = None
-    comprador: str
-    username: Optional[str] = None
-    fecha: datetime.datetime
-
-
 class ProductoParaEntradaAlmacenCafeteriaSchema(Schema):
     id: int
     codigo: str
@@ -130,15 +115,61 @@ class ProductosEntradaAlmacenPrincipal(Schema):
     isZapato: bool
     variantes: Optional[List[VariantesSchema]] = None
 
+    @model_validator(mode="after")
+    def check_variantes_if_zapato(self):
+        if self.isZapato and (not self.variantes or len(self.variantes) == 0):
+            raise ValueError(
+                "Si 'isZapato' es True, 'variantes' debe ser proporcionado y no estar vacío."
+            )
+        return self
+
+
+class EntradaAlmacenSchema(Schema):
+    id: int
+    metodo_pago: str
+    nombre_proveedor: Optional[str] = None
+    comprador: str
+    username: Optional[str] = None
+    fecha: datetime.datetime
+
+
+class CuentasInCreateEntrada(Schema):
+    cuenta: str
+    cantidad: Optional[Decimal] = None
+
 
 class AddEntradaSchema(Schema):
     metodoPago: str
     proveedor: str
     productos: List[ProductosEntradaAlmacenPrincipal]
     comprador: str
-    cuenta: Optional[str] = None
-    efectivo: Optional[Annotated[Decimal, Field(gt=0)]] = None
-    transferencia: Optional[Annotated[Decimal, Field(gt=0)]] = None
+    cuentas: Annotated[List[CuentasInCreateEntrada], Field(min_length=1)]
+
+    @model_validator(mode="after")
+    def validar_cuentas(self):
+        if len(self.cuentas) != 1:
+            for c in self.cuentas:
+                if c.cantidad is None:
+                    raise ValueError(
+                        "Cuando hay varias cuentas, todas deben tener cantidad."
+                    )
+
+        return self
+
+
+class ResponseNumeros(Schema):
+    numero: int
+    ids: str
+
+
+class ResponseVariantes(Schema):
+    color: str
+    numeros: List[ResponseNumeros]
+
+
+class ResponseAddEntrada(Schema):
+    zapato: str
+    variantes: List[ResponseVariantes]
 
 
 class AreaVentaModifySchema(ModelSchema):

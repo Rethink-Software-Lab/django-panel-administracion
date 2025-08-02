@@ -1,5 +1,10 @@
+from decimal import Decimal
+from itertools import count
+from typing import List
+from django.db.models import F
 from ninja.errors import HttpError
 from inventario.models import (
+    CuentasChoices,
     ProductoInfo,
     EntradaAlmacen,
     Producto,
@@ -15,20 +20,93 @@ from inventario.models import (
 )
 from ..schema import (
     AddEntradaSchema,
+    CuentasInCreateEntrada,
     EntradaAlmacenSchema,
+    ProductosEntradaAlmacenPrincipal,
 )
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
-from typing import List
 from django.db import transaction
-from django.db.models import F
 
 from ..custom_permissions import isStaff
 
 
+def sumatoria_precio_costo(productos: List[ProductosEntradaAlmacenPrincipal]) -> int:
+    sum_precio_costo = 0
+    for producto in productos:
+        producto_info = get_object_or_404(ProductoInfo, pk=producto.producto)
+        if producto_info.categoria.nombre == "Zapatos":
+            if not producto.variantes:
+                continue
+            for variante in producto.variantes:
+                for num in variante.numeros:
+                    sum_precio_costo += producto_info.precio_costo * num.cantidad
+        else:
+            sum_precio_costo += producto_info.precio_costo * producto.cantidad
+    return sum_precio_costo
+
+
+def is_valid_cuenta(cuenta: Cuentas, metodo_pago: str) -> HttpError | None:
+    if (
+        metodo_pago == METODO_PAGO.EFECTIVO and cuenta.tipo != CuentasChoices.EFECTIVO
+    ) or (
+        metodo_pago == METODO_PAGO.TRANSFERENCIA
+        and cuenta.tipo != CuentasChoices.BANCARIA
+    ):
+        raise HttpError(400, "Cuenta no válida para el método de pago.")
+
+
+def saldo_suficiente_cuenta(
+    cuenta: Cuentas, saldo_a_rebajar: Decimal
+) -> HttpError | None:
+    if cuenta.saldo < saldo_a_rebajar:
+        raise HttpError(400, f"Saldo insuficiente en la cuenta: {cuenta.nombre}.")
+
+
+def procesar_rebajas_cuentas(
+    cuentas: List[CuentasInCreateEntrada], metodo_pago: str, sum_precio_costo: Decimal
+) -> HttpError | None:
+    if cuentas.count == 1 and metodo_pago == METODO_PAGO.MIXTO:
+        raise HttpError(400, "El método de pago es MIXTO requiere al menos 2 cuentas")
+
+    sum_cantidad_en_cuentas = Decimal(0)
+    for cuenta in cuentas:
+        cuentaQS = get_object_or_404(Cuentas, pk=cuenta.cuenta)
+        is_valid_cuenta(cuentaQS, metodo_pago)
+        saldo_suficiente_cuenta(cuentaQS, Decimal(cuenta.cantidad or 0))
+        sum_cantidad_en_cuentas += Decimal(cuenta.cantidad or 0)
+
+    if sum_cantidad_en_cuentas != sum_precio_costo:
+        raise HttpError(
+            400,
+            "El total de las cantidades de las cuentas no coincide con el precio de costo.",
+        )
+
+
+def rebajar_saldo(cuentas: List[CuentasInCreateEntrada]) -> None:
+    for cuenta in cuentas:
+        cuentaQS = get_object_or_404(Cuentas, pk=cuenta.cuenta)
+        cuentaQS.saldo -= Decimal(cuenta.cantidad or 0)
+        cuentaQS.save()
+
+
+def crear_transacciones(
+    entrada: EntradaAlmacen, cuentas: List[CuentasInCreateEntrada], usuario: User
+) -> None:
+    for cuenta in cuentas:
+        cuentaQS = get_object_or_404(Cuentas, pk=cuenta.cuenta)
+        Transacciones.objects.create(
+            entrada=entrada,
+            usuario=usuario,
+            tipo=TipoTranferenciaChoices.EGRESO,
+            cuenta=cuentaQS,
+            cantidad=Decimal(cuenta.cantidad or 0),
+            descripcion=" ",
+        )
+
+
 @api_controller("entradas/", tags=["Entradas"], permissions=[isStaff])
 class EntradasController:
-
     @route.get("principal/", response=List[EntradaAlmacenSchema])
     def get_entradas(self):
         from django.utils import timezone
@@ -57,273 +135,99 @@ class EntradasController:
 
     @route.post("")
     def addEntrada(self, request, data: AddEntradaSchema):
-
         user = get_object_or_404(User, pk=request.auth["id"])
-        if data.metodoPago != METODO_PAGO.EFECTIVO:
-            cuenta = get_object_or_404(Cuentas, pk=data.cuenta)
-        cuenta_efectivo = get_object_or_404(Cuentas, pk=25)
         proveedor = get_object_or_404(Proveedor, pk=data.proveedor)
+        response = []
+        sum_precio_costo = sumatoria_precio_costo(data.productos)
 
-        with transaction.atomic():
-            entrada = EntradaAlmacen(
-                metodo_pago=data.metodoPago,
-                proveedor=proveedor,
-                usuario=user,
-                comprador=data.comprador,
-            )
-            entrada.save()
+        if len(data.cuentas) == 1:
+            data.cuentas[0].cantidad = Decimal(sum_precio_costo)
 
-            response = []
+        procesar_rebajas_cuentas(
+            data.cuentas, data.metodoPago, Decimal(sum_precio_costo)
+        )
 
-            sum_precio_costo = 0
-            for producto in data.productos:
-                producto_info = get_object_or_404(ProductoInfo, pk=producto.producto)
-                if producto_info.categoria.nombre == 'Zapatos':
-                    for variante in producto.variantes:
-                        for num in variante.numeros:
-                            sum_precio_costo += producto_info.precio_costo * num.cantidad
-                else:
-                    sum_precio_costo += producto_info.precio_costo * producto.cantidad
-
-            if (
-                data.efectivo
-                and data.transferencia
-                and data.metodoPago == METODO_PAGO.MIXTO
-                and data.efectivo + data.transferencia != sum_precio_costo
-            ):
-                raise HttpError(
-                    400,
-                    "El total efectivo + transferencia no coincide con el precio de costo",
+        try:
+            with transaction.atomic():
+                entrada = EntradaAlmacen(
+                    metodo_pago=data.metodoPago,
+                    proveedor=proveedor,
+                    usuario=user,
+                    comprador=data.comprador,
                 )
+                entrada.save()
 
-            if (
-                data.metodoPago == METODO_PAGO.EFECTIVO
-                and cuenta_efectivo.saldo < sum_precio_costo
-            ):
-                raise HttpError(
-                    400,
-                    "No hay saldo suficiente en la cuenta EFECTIVO.",
-                )
+                rebajar_saldo(data.cuentas)
 
-            if (
-                data.metodoPago == METODO_PAGO.TRANSFERENCIA
-                and cuenta.saldo < sum_precio_costo
-            ):
-                raise HttpError(
-                    400,
-                    f"No hay saldo suficiente en la cuenta {cuenta.nombre}.",
-                )
+                crear_transacciones(entrada, data.cuentas, user)
 
-            if (
-                data.metodoPago == METODO_PAGO.MIXTO
-                and data.transferencia
-                and data.efectivo
-            ):
-                if cuenta.saldo < data.transferencia:
-                    raise HttpError(
-                        400,
-                        f"No hay saldo suficiente en la cuenta {cuenta.nombre}.",
+                for producto in data.productos:
+                    producto_info = get_object_or_404(
+                        ProductoInfo, pk=producto.producto
                     )
 
-                if cuenta_efectivo.saldo < data.efectivo:
-                    raise HttpError(
-                        400,
-                        "No hay saldo suficiente en la cuenta EFECTIVO.",
-                    )
+                    variantesResponse = []
 
-            for producto in data.productos:
-                producto_info = get_object_or_404(ProductoInfo, pk=producto.producto)
+                    if producto.isZapato and producto.variantes:
+                        total_zapatos = 0
 
-                variantesResponse = []
+                        for variante in producto.variantes:
+                            productos_pa = []
 
-                if producto.isZapato and producto.variantes:
-                    total_zapatos = 0
+                            for num in variante.numeros:
+                                ids = []
 
-                    for variante in producto.variantes:
-                        productos_pa = []
+                                productos = [
+                                    Producto(
+                                        info=producto_info,
+                                        color=variante.color,
+                                        numero=num.numero,
+                                        entrada=entrada,
+                                    )
+                                    for _ in range(num.cantidad)
+                                ]
 
-                        for num in variante.numeros:
+                                total_zapatos += num.cantidad
 
-                            ids = []
+                                ids = Producto.objects.bulk_create(productos)
 
-                            productos = [
-                                Producto(
-                                    info=producto_info,
-                                    color=variante.color,
-                                    numero=num.numero,
-                                    entrada=entrada,
+                                formated_ids = (
+                                    f"{ids[0].pk}-{ids[-1].pk}"
+                                    if len(ids) > 1
+                                    else ids[0].pk
                                 )
-                                for _ in range(num.cantidad)
-                            ]
+                                productos_pa.append(
+                                    {"numero": num.numero, "ids": formated_ids}
+                                )
 
-                            total_zapatos += num.cantidad
-
-                            ids = Producto.objects.bulk_create(productos)
-
-                            formated_ids = (
-                                f"{ids[0].pk}-{ids[-1].pk}"
-                                if len(ids) > 1
-                                else ids[0].pk
+                            variantesResponse.append(
+                                {"color": variante.color, "numeros": productos_pa}
                             )
-                            productos_pa.append(
-                                {"numero": num.numero, "ids": formated_ids}
+                        response.append(
+                            {
+                                "zapato": producto.producto,
+                                "variantes": variantesResponse,
+                            }
+                        )
+
+                    elif not producto.isZapato and producto.cantidad:
+                        productos = [
+                            Producto(
+                                info=producto_info,
+                                entrada=entrada,
                             )
+                            for _ in range(producto.cantidad)
+                        ]
 
-                        variantesResponse.append(
-                            {"color": variante.color, "numeros": productos_pa}
-                        )
-                    response.append(
-                        {
-                            "zapato": producto.producto,
-                            "variantes": variantesResponse,
-                        }
-                    )
-
-                    if (
-                        data.metodoPago == METODO_PAGO.MIXTO
-                        and data.efectivo
-                        and data.transferencia
-                    ):
-                        cuenta_efectivo.saldo -= data.efectivo
-                        cuenta_efectivo.save()
-
-                        cuenta.saldo -= data.transferencia
-                        cuenta.save()
-
-                        Transacciones.objects.create(
-                            entrada=entrada,
-                            usuario=user,
-                            tipo=TipoTranferenciaChoices.EGRESO,
-                            cuenta=cuenta_efectivo,
-                            cantidad=data.efectivo,
-                            descripcion=(
-                                f"[ENT MIX] {total_zapatos}x {producto_info.descripcion[:34]}..."
-                                if len(producto_info.descripcion) > 34
-                                else f"[ENT MIX] {total_zapatos}x {producto_info.descripcion}"
-                            ),
-                        )
-
-                        Transacciones.objects.create(
-                            entrada=entrada,
-                            usuario=user,
-                            tipo=TipoTranferenciaChoices.EGRESO,
-                            cuenta=cuenta,
-                            cantidad=data.transferencia,
-                            descripcion=(
-                                f"[ENT MIX] {total_zapatos}x {producto_info.descripcion[:34]}..."
-                                if len(producto_info.descripcion) > 34
-                                else f"[ENT MIX] {total_zapatos}x {producto_info.descripcion}"
-                            ),
-                        )
-                    else:
-                        if data.metodoPago == METODO_PAGO.TRANSFERENCIA:
-                            cuenta.saldo -= total_zapatos * producto_info.precio_costo
-                            cuenta.save()
-                        else:
-                            cuenta_efectivo.saldo -= (
-                                total_zapatos * producto_info.precio_costo
-                            )
-                            cuenta_efectivo.save()
-                        Transacciones.objects.create(
-                            entrada=entrada,
-                            usuario=user,
-                            tipo=TipoTranferenciaChoices.EGRESO,
-                            cuenta=(
-                                cuenta
-                                if data.metodoPago == METODO_PAGO.TRANSFERENCIA
-                                else cuenta_efectivo
-                            ),
-                            cantidad=total_zapatos * producto_info.precio_costo,
-                            descripcion=(
-                                f"[ENT] {total_zapatos}x {producto_info.descripcion[:38]}..."
-                                if len(producto_info.descripcion) > 38
-                                else f"[ENT] {total_zapatos}x {producto_info.descripcion}"
-                            ),
-                        )
-
-                elif producto.isZapato == False and producto.cantidad:
-                    productos = [
-                        Producto(
-                            info=producto_info,
-                            entrada=entrada,
-                        )
-                        for _ in range(producto.cantidad)
-                    ]
-
-                    Producto.objects.bulk_create(productos)
-
-                    if (
-                        data.metodoPago == METODO_PAGO.MIXTO
-                        and data.efectivo
-                        and data.transferencia
-                    ):
-                        cuenta_efectivo.saldo -= data.efectivo
-                        cuenta_efectivo.save()
-
-                        cuenta.saldo -= data.transferencia
-                        cuenta.save()
-
-                        Transacciones.objects.create(
-                            entrada=entrada,
-                            usuario=user,
-                            tipo=TipoTranferenciaChoices.EGRESO,
-                            cuenta=cuenta_efectivo,
-                            cantidad=data.efectivo,
-                            descripcion=(
-                                f"[ENT MIX] {producto.cantidad}x {producto_info.descripcion[:34]}..."
-                                if len(producto_info.descripcion) > 34
-                                else f"[ENT MIX] {producto.cantidad}x {producto_info.descripcion}"
-                            ),
-                        )
-
-                        Transacciones.objects.create(
-                            entrada=entrada,
-                            usuario=user,
-                            tipo=TipoTranferenciaChoices.EGRESO,
-                            cuenta=cuenta,
-                            cantidad=data.transferencia,
-                            descripcion=(
-                                f"[ENT MIX] {producto.cantidad}x {producto_info.descripcion[:34]}..."
-                                if len(producto_info.descripcion) > 34
-                                else f"[ENT MIX] {producto.cantidad}x {producto_info.descripcion}"
-                            ),
-                        )
-                    else:
-                        if data.metodoPago == METODO_PAGO.TRANSFERENCIA:
-                            cuenta.saldo -= (
-                                producto.cantidad * producto_info.precio_costo
-                            )
-                            cuenta.save()
-                        else:
-                            cuenta_efectivo.saldo -= (
-                                producto.cantidad * producto_info.precio_costo
-                            )
-                            cuenta_efectivo.save()
-                        Transacciones.objects.create(
-                            entrada=entrada,
-                            usuario=user,
-                            tipo=TipoTranferenciaChoices.EGRESO,
-                            cuenta=(
-                                cuenta
-                                if data.metodoPago == METODO_PAGO.TRANSFERENCIA
-                                else cuenta_efectivo
-                            ),
-                            cantidad=producto.cantidad * producto_info.precio_costo,
-                            descripcion=(
-                                f"[ENT] {producto.cantidad}x {producto_info.descripcion[:38]}..."
-                                if len(producto_info.descripcion) > 38
-                                else f"[ENT] {producto.cantidad}x {producto_info.descripcion}"
-                            ),
-                        )
-
-                else:
-                    raise HttpError(400, "Bad Request")
-
+                        Producto.objects.bulk_create(productos)
             return response
+
+        except Exception as err:
+            print(err)
+            raise HttpError(500, "Error al crear la entrada.")
 
     @route.delete("{id}/")
     def deleteEntrada(self, id: int):
-
         try:
             with transaction.atomic():
                 entrada = get_object_or_404(EntradaAlmacen, pk=id)

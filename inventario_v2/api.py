@@ -1,4 +1,3 @@
-from decimal import Decimal
 from typing import List, Optional
 from ninja.errors import HttpError
 
@@ -17,7 +16,7 @@ from django.db.models import (
     F,
 )
 
-from inventario_v2.controllers.categorias import CategoriasController
+
 from inventario_v2.controllers.entradas import EntradasController
 from inventario_v2.controllers.graficas import GraficasController
 from inventario_v2.controllers.salidas import SalidasController
@@ -93,7 +92,6 @@ def login(request, data: LoginSchema):
     "no-representados/", response=List[NoRepresentadosSchema], tags=["No Representados"]
 )
 def nR(request):
-
     productos_info_sin_ventas = (
         ProductoInfo.objects.select_related("producto")
         .annotate(
@@ -187,7 +185,6 @@ def search_product(request, id: Optional[int] = None):
 
 
 app.register_controllers(
-    CategoriasController,
     EntradasController,
     GraficasController,
     SalidasController,
