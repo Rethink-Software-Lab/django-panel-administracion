@@ -15,7 +15,7 @@ from django.shortcuts import get_object_or_404
 from ..custom_permissions import isAdmin
 from django.db import transaction
 import re
-from django.db.models import Count
+from django.db.models import Exists, OuterRef, Prefetch
 from datetime import timedelta
 from django.utils import timezone
 
@@ -24,17 +24,34 @@ from django.utils import timezone
 class AjusteInventarioController:
     @route.get("", response=AllAjustesSchema)
     def get_all_ajustes(self):
-        ajustes = AjusteInventario.objects.filter(
-            created_at__gte=timezone.now() - timedelta(days=45),
-        ).order_by("-id")
-        ajustes_con_productos = []
-        for ajuste in ajustes:
-            productos = ajuste.productos.all()
-            infos = (
-                ProductoInfo.objects.filter(producto__in=productos)
-                .annotate(total_transfers=Count("producto"))
-                .distinct()
+        ahora = timezone.now()
+
+        ajustes = (
+            AjusteInventario.objects.filter(created_at__gte=ahora - timedelta(days=45))
+            .prefetch_related(
+                Prefetch("productos", queryset=Producto.objects.select_related("info"))
             )
+            .select_related("usuario")
+            .order_by("-id")
+        )
+
+        ajustes_con_productos = []
+
+        for ajuste in ajustes:
+            productos = list(ajuste.productos.all())
+
+            info_counter = {}
+            for producto in productos:
+                info = getattr(producto, "info", None)
+                if info:
+                    if info.id not in info_counter:
+                        info_counter[info.id] = {"info": info, "total_transfers": 0}
+                    info_counter[info.id]["total_transfers"] += 1
+
+            infos = [
+                {**vars(data["info"]), "total_transfers": data["total_transfers"]}
+                for data in info_counter.values()
+            ]
 
             ajustes_con_productos.append(
                 {
@@ -47,10 +64,16 @@ class AjusteInventarioController:
             )
 
         areas_ventas = AreaVenta.objects.all()
+
         productos_info = ProductoInfo.objects.filter(
-            producto__venta__isnull=True,
-            producto__ajusteinventario__isnull=True,
+            ~Exists(Producto.objects.filter(info=OuterRef("pk"), venta__isnull=False)),
+            ~Exists(
+                Producto.objects.filter(
+                    info=OuterRef("pk"), ajusteinventario__isnull=False
+                )
+            ),
         ).distinct()
+
         return {
             "ajustes": ajustes_con_productos,
             "areas_ventas": areas_ventas,
