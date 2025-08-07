@@ -466,12 +466,6 @@ class AjusteSchema(ModelSchema):
         fields = "__all__"
 
 
-class AllAjustesSchema(Schema):
-    ajustes: List[AjusteSchema]
-    areas_ventas: List[AreaVentaSchema]
-    productos_info: List[ProductoInfoSchema]
-
-
 class ProductosAjuste(Schema):
     producto: int
     cantidad: Optional[int] = None

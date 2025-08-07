@@ -1,6 +1,5 @@
 from ninja.errors import HttpError
 from inventario.models import (
-    AreaVenta,
     ProductoInfo,
     Producto,
     User,
@@ -8,74 +7,16 @@ from inventario.models import (
 )
 from ..schema import (
     AjustesModifySchema,
-    AllAjustesSchema,
 )
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
 from ..custom_permissions import isAdmin
 from django.db import transaction
 import re
-from django.db.models import Exists, OuterRef, Prefetch
-from datetime import timedelta
-from django.utils import timezone
 
 
 @api_controller("ajuste-inventario/", tags=["Ajuste Inventario"], permissions=[isAdmin])
 class AjusteInventarioController:
-    @route.get("", response=AllAjustesSchema)
-    def get_all_ajustes(self):
-        ahora = timezone.now()
-
-        ajustes = (
-            AjusteInventario.objects.filter(created_at__gte=ahora - timedelta(days=30))
-            .prefetch_related(
-                Prefetch("productos", queryset=Producto.objects.select_related("info"))
-            )
-            .select_related("usuario")
-            .order_by("-id")
-        )
-
-        ajustes_con_productos = []
-
-        for ajuste in ajustes:
-            productos = list(ajuste.productos.all())
-
-            info_counter = {}
-            for producto in productos:
-                info = getattr(producto, "info", None)
-                if info:
-                    if info.id not in info_counter:
-                        info_counter[info.id] = {"info": info, "total_transfers": 0}
-                    info_counter[info.id]["total_transfers"] += 1
-
-            infos = [
-                {**vars(data["info"]), "total_transfers": data["total_transfers"]}
-                for data in info_counter.values()
-            ]
-
-            ajustes_con_productos.append(
-                {
-                    "id": ajuste.pk,
-                    "created_at": ajuste.created_at,
-                    "usuario": ajuste.usuario,
-                    "motivo": ajuste.motivo,
-                    "productos": infos,
-                }
-            )
-
-        areas_ventas = AreaVenta.objects.all()
-
-        productos_info = ProductoInfo.objects.filter(
-            producto__venta__isnull=True,
-            producto__ajusteinventario__isnull=True,
-        ).distinct()
-
-        return {
-            "ajustes": ajustes_con_productos,
-            "areas_ventas": areas_ventas,
-            "productos_info": productos_info,
-        }
-
     @route.post("")
     def addAjuste(self, request, body: AjustesModifySchema):
         body_dict = body.model_dump()
