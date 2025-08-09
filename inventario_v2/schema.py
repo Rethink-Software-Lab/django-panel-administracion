@@ -172,12 +172,6 @@ class ResponseAddEntrada(Schema):
     variantes: List[ResponseVariantes]
 
 
-class AreaVentaModifySchema(ModelSchema):
-    class Meta:
-        model = AreaVenta
-        exclude = ("id",)
-
-
 class Salidas(Schema):
     id: int
     area_venta__nombre: Optional[str] = None

@@ -26,7 +26,6 @@ from inventario_v2.controllers.inventario import InventarioController
 from inventario_v2.controllers.productos import ProductoController
 from inventario_v2.controllers.usuarios import UsuariosController
 from inventario_v2.controllers.reportes import ReportesController
-from .controllers.areas_ventas import AreasVentasController
 from .controllers.transferencias import TransferenciasController
 from .controllers.ajuste_inventario import AjusteInventarioController
 from .controllers.gastos import GastosController
@@ -194,7 +193,6 @@ app.register_controllers(
     ProductoController,
     UsuariosController,
     ReportesController,
-    AreasVentasController,
     TransferenciasController,
     AjusteInventarioController,
     GastosController,
