@@ -433,12 +433,6 @@ class TransferenciaSchema(ModelSchema):
         fields = "__all__"
 
 
-class AllTransferenciasSchema(Schema):
-    transferencias: List[TransferenciaSchema]
-    areas_ventas: List[AreaVentaSchema]
-    productos_info: List[ProductoInfoSchema]
-
-
 class ProductosTransfer(Schema):
     producto: int
     cantidad: Optional[int] = None
