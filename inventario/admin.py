@@ -7,7 +7,6 @@ admin.site.register(EntradaAlmacen)
 admin.site.register(SalidaAlmacen)
 admin.site.register(Ventas)
 admin.site.register(Categorias)
-admin.site.register(Transacciones)
 admin.site.register(Productos_Cafeteria)
 
 
@@ -56,6 +55,25 @@ class ProductoAdmin(admin.ModelAdmin):
     salida_adapt.short_description = "Salida"
     salida_revoltosa_adapt.short_description = "Salida Revoltosa"
     venta_adapt.short_description = "Venta"
+
+
+@admin.register(Transacciones)
+class TransaccionesAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "cuenta_adapt",
+        "venta",
+        "descripcion",
+        "tipo",
+        "cantidad",
+        "usuario",
+        "created_at",
+    ]
+
+    def cuenta_adapt(self, obj):
+        return obj.cuenta.nombre
+
+    cuenta_adapt.short_description = "Cuenta"
 
 
 @admin.register(AreaVenta)

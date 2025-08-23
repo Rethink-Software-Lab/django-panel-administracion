@@ -1,5 +1,4 @@
 from decimal import Decimal
-from itertools import count
 from typing import List
 from django.db.models import F
 from ninja.errors import HttpError
@@ -114,7 +113,7 @@ class EntradasController:
 
         entradas = (
             EntradaAlmacen.objects.filter(
-                created_at__gte=timezone.now() - timedelta(days=45)
+                created_at__gte=timezone.now() - timedelta(days=60)
             )
             .annotate(
                 username=F("usuario__username"),

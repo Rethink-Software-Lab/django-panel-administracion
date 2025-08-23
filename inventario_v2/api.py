@@ -21,7 +21,6 @@ from inventario_v2.controllers.entradas import EntradasController
 from inventario_v2.controllers.graficas import GraficasController
 from inventario_v2.controllers.salidas import SalidasController
 from inventario_v2.controllers.salidas_revoltosa import SalidasRevoltosaController
-from inventario_v2.controllers.ventas import VentasController
 from inventario_v2.controllers.inventario import InventarioController
 from inventario_v2.controllers.productos import ProductoController
 from inventario_v2.controllers.usuarios import UsuariosController
@@ -188,7 +187,6 @@ app.register_controllers(
     GraficasController,
     SalidasController,
     SalidasRevoltosaController,
-    VentasController,
     InventarioController,
     ProductoController,
     UsuariosController,

@@ -19,12 +19,14 @@ from django.db.models.base import Coalesce
 from django.shortcuts import get_object_or_404
 
 from inventario.models import (
+    CuentasChoices,
     FrecuenciaChoices,
     Gastos,
     GastosChoices,
     HistorialPrecioCostoSalon,
     HistorialPrecioVentaSalon,
     ProductoInfo,
+    TipoTranferenciaChoices,
     Ventas,
     AreaVenta,
 )
@@ -226,67 +228,43 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
     if area != "general":
         filtros_ventas["area_venta__id"] = area
 
-    historico_venta = (
-        HistorialPrecioVentaSalon.objects.filter(
-            producto_info=OuterRef("producto__info__pk"),
-            fecha_inicio__lte=OuterRef("created_at"),
-        )
-        .order_by("-fecha_inicio")
-        .values("precio")[:1]
-    )
-
-    alternativa_historico_venta = (
-        HistorialPrecioVentaSalon.objects.filter(
-            producto_info=OuterRef("producto__info__pk"),
-        )
-        .order_by("-fecha_inicio")
-        .values("precio")[:1]
-    )
-
-    ventas = Ventas.objects.filter(**filtros_ventas).annotate(
-        precio_venta=Coalesce(
-            Subquery(historico_venta), Subquery(alternativa_historico_venta)
-        )
-    )
-
     if area != "general":
         area_venta = get_object_or_404(AreaVenta, pk=area)
 
     total_gastos_fijos = sum(gasto.get("cantidad", 0) for gasto in gastos_fijos)
 
-    pagos = ventas.aggregate(
-        efectivo=Coalesce(
-            Sum(
-                "precio_venta",
-                filter=Q(metodo_pago="EFECTIVO"),
-            ),
-            Decimal(0),
-        )
-        + Coalesce(
-            Sum(
-                "efectivo",
-                filter=Q(metodo_pago="MIXTO"),
-            ),
-            Decimal(0),
+    ventas = Ventas.objects.filter(**filtros_ventas).annotate(
+        productos_count=Count("producto"),
+        pago_trabajador_total=ExpressionWrapper(
+            F("producto__info__pago_trabajador") * F("productos_count"),
+            output_field=DecimalField(),
         ),
-        transferencia=Coalesce(
-            Sum(
-                "precio_venta",
-                filter=Q(metodo_pago="TRANSFERENCIA"),
+        efectivo_total=Sum(
+            "transacciones__cantidad",
+            filter=Q(
+                transacciones__tipo=TipoTranferenciaChoices.INGRESO,
+                transacciones__cuenta__tipo=CuentasChoices.EFECTIVO,
             ),
-            Decimal(0),
-        )
-        + Coalesce(
-            Sum(
-                "transferencia",
-                filter=Q(metodo_pago="MIXTO"),
-            ),
-            Decimal(0),
+            output_field=DecimalField(),
         ),
     )
 
-    efectivo = pagos.get("efectivo", Decimal(0))
-    transferencia = pagos.get("transferencia", Decimal(0))
+    subtotales = ventas.aggregate(
+        subtotal_efectivo=Sum(
+            ExpressionWrapper(
+                F("efectivo_total") + F("pago_trabajador_total"),
+                output_field=DecimalField(),
+            )
+        ),
+        subtotal_transferencia=Sum(
+            "transacciones__cantidad",
+            filter=Q(
+                transacciones__tipo=TipoTranferenciaChoices.INGRESO,
+                transacciones__cuenta__tipo=CuentasChoices.BANCARIA,
+            ),
+            output_field=DecimalField(),
+        ),
+    )
 
     subtotal = producto_info.aggregate(subtotal=Sum("importe"))["subtotal"] or 0
     costo_productos = (
@@ -328,8 +306,8 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
         "productos": productos_sin_repeticion,
         "subtotal": {
             "general": subtotal,
-            "efectivo": efectivo,
-            "transferencia": transferencia,
+            "efectivo": subtotales.get("subtotal_efectivo", 0),
+            "transferencia": subtotales.get("subtotal_transferencia", 0),
         },
         "gastos_fijos": gastos_fijos,
         "gastos_variables": gastos_variables,
@@ -337,8 +315,8 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
         "ventas_por_usuario": ventas_por_usuario,
         "total": {
             "general": total,
-            "efectivo": efectivo - total_gatos,
-            "transferencia": transferencia,
+            "efectivo": subtotales.get("subtotal_efectivo", 0) - total_gatos,
+            "transferencia": subtotales.get("subtotal_transferencia", 0),
         },
         "ganancia": ganancia,
         "area": area_venta.nombre if area != "general" else "general",
