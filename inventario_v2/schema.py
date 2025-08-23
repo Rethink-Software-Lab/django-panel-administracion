@@ -456,14 +456,6 @@ class GastosModifySchema(Schema):
     dia_mes: Optional[Annotated[int, Field(strict=True, ge=1, le=31)]] = None
 
 
-class TarjetasWithTotalMESyDIASchema(Schema):
-    id: int
-    saldo: Decimal
-    nombre: str
-    banco: Optional[str] = None
-    total_transferencias_mes: Decimal
-
-
 class TarjetasForVentas(Schema):
     id: int
     nombre: str
@@ -478,26 +470,11 @@ class TarjetasModifySchema(Schema):
     saldo_inicial: str
 
 
-class TransferenciasTarjetasSchema(ModelSchema):
-    cuenta: TarjetasSchema
-    usuario: Optional[UsuariosSchema] = None
-
-    class Meta:
-        model = Transacciones
-        fields = "__all__"
-
-
 class TransferenciasTarjetasModify(Schema):
     cuenta: int
     cantidad: str
     descripcion: str
     tipo: str
-
-
-class TarjetasEndpoint(Schema):
-    tarjetas: List[TarjetasWithTotalMESyDIASchema]
-    transferencias: List[TransferenciasTarjetasSchema]
-    total_balance: Decimal
 
 
 class Inventario_Almacen_Cafeteria_Schema(ModelSchema):

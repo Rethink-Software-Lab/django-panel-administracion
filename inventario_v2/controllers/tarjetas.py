@@ -4,60 +4,20 @@ from inventario.models import (
     Cuentas,
     Transacciones,
     TipoTranferenciaChoices,
-    CuentasChoices,
 )
 from ..schema import (
     TarjetasModifySchema,
-    TarjetasEndpoint,
     TransferenciasTarjetasModify,
 )
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
 from ..custom_permissions import isAdmin, isSupervisor
 from django.db import transaction
-from django.db.models import Sum, Q, Value
-from django.db.models.functions import Round, Coalesce
-from datetime import datetime
 from decimal import Decimal
-from datetime import timedelta
-from django.utils import timezone
 
 
 @api_controller("tarjetas/", tags=["Tarjetas"], permissions=[isAdmin | isSupervisor])
 class TarjetasController:
-    @route.get("", response=TarjetasEndpoint)
-    def get_all_tarjetas(self):
-        tarjetas = (
-            Cuentas.objects.annotate(
-                total_transferencias_mes=Round(
-                    Coalesce(
-                        Sum(
-                            "transacciones__cantidad",
-                            filter=Q(
-                                transacciones__created_at__month=datetime.now().month,
-                                transacciones__tipo=TipoTranferenciaChoices.INGRESO,
-                            ),
-                        ),
-                        Value(Decimal(0)),
-                    ),
-                    2,
-                )
-            )
-            .all()
-            .order_by("-tipo")
-        )
-
-        total_balance = tarjetas.aggregate(balance=Sum("saldo"))["balance"] or 0
-
-        transferencias = Transacciones.objects.filter(
-            created_at__gte=timezone.now() - timedelta(days=45),
-        ).order_by("-id")
-        return {
-            "tarjetas": tarjetas,
-            "transferencias": transferencias,
-            "total_balance": total_balance,
-        }
-
     @route.post("")
     def add_tarjeta(self, body: TarjetasModifySchema):
         body_dict = body.model_dump()
