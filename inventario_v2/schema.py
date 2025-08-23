@@ -219,41 +219,6 @@ class VentasSchema(Schema):
     cantidad: int
 
 
-class AddVentaSchema(Schema):
-    areaVenta: int
-    metodoPago: Literal["EFECTIVO", "TRANSFERENCIA", "MIXTO"]
-    producto_info: str
-    cantidad: Optional[int] = None
-    zapatos_id: Optional[List[int]] = None
-    efectivo: Optional[condecimal(gt=0)] = None
-    transferencia: Optional[condecimal(gt=0)] = None
-    tarjeta: Optional[int] = None
-
-    @validator("efectivo", "transferencia", pre=True, always=True)
-    def check_mixto(cls, v, values, **kwargs):
-        if values.get("metodoPago") == "MIXTO":
-            if v is None:
-                raise ValueError(
-                    "efectivo y transferencia deben tener valor si metodoPago es MIXTO"
-                )
-        else:
-            if v is not None:
-                raise ValueError(
-                    "efectivo y transferencia deben ser None si metodoPago no es MIXTO"
-                )
-        return v
-
-    @validator("tarjetas", pre=True, always=True, check_fields=False)
-    def check_tarjeta(cls, v, values, **kwargs):
-        if (
-            values.get("metodoPago") == "MIXTO"
-            or values.get("metodoPago") == METODO_PAGO.TRANSFERENCIA
-        ):
-            if v is None:
-                raise ValueError("Debe seleccionar una tarjeta")
-        return v
-
-
 class OtrosProductos(Schema):
     id: int
     descripcion: str
@@ -488,7 +453,7 @@ class TarjetasWithTotalMESyDIASchema(Schema):
     id: int
     saldo: Decimal
     nombre: str
-    banco: str
+    banco: Optional[str] = None
     total_transferencias_mes: Decimal
 
 

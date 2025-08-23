@@ -28,8 +28,7 @@ class TarjetasController:
     @route.get("", response=TarjetasEndpoint)
     def get_all_tarjetas(self):
         tarjetas = (
-            Cuentas.objects.filter(tipo=CuentasChoices.BANCARIA)
-            .annotate(
+            Cuentas.objects.annotate(
                 total_transferencias_mes=Round(
                     Coalesce(
                         Sum(
@@ -45,13 +44,12 @@ class TarjetasController:
                 )
             )
             .all()
-            .order_by("-id")
+            .order_by("-tipo")
         )
 
         total_balance = tarjetas.aggregate(balance=Sum("saldo"))["balance"] or 0
 
         transferencias = Transacciones.objects.filter(
-            cuenta__tipo=CuentasChoices.BANCARIA,
             created_at__gte=timezone.now() - timedelta(days=45),
         ).order_by("-id")
         return {
