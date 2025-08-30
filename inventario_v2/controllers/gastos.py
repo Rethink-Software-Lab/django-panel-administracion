@@ -1,7 +1,7 @@
 from ninja.errors import HttpError
 from inventario.models import User, Gastos, GastosChoices, AreaVenta
 
-from ..schema import AllGastosSchema, GastosModifySchema
+from ..schema import  GastosModifySchema
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
 from ..custom_permissions import isAdmin
@@ -9,27 +9,7 @@ from ..custom_permissions import isAdmin
 
 @api_controller("gastos/", tags=["Gastos"], permissions=[isAdmin])
 class GastosController:
-    @route.get("", response=AllGastosSchema)
-    def get_all_gastos(self):
-        gastos_fijos = (
-            Gastos.objects.filter(tipo=GastosChoices.FIJO)
-            .select_related("usuario")
-            .order_by("-id")
-        )
-        gastos_variables = (
-            Gastos.objects.filter(tipo=GastosChoices.VARIABLE)
-            .select_related("usuario")
-            .order_by("-id")
-        )
-
-        areas_venta = AreaVenta.objects.all()
-
-        return {
-            "fijos": gastos_fijos,
-            "variables": gastos_variables,
-            "areas_venta": areas_venta,
-        }
-
+    
     @route.post("")
     def add_gastos(self, request, body: GastosModifySchema):
         body_dict = body.model_dump()
