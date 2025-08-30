@@ -233,35 +233,39 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
 
     total_gastos_fijos = sum(gasto.get("cantidad", 0) for gasto in gastos_fijos)
 
-    ventas = Ventas.objects.filter(**filtros_ventas).annotate(
-        productos_count=Count("producto"),
-        pago_trabajador_total=ExpressionWrapper(
-            F("producto__info__pago_trabajador") * F("productos_count"),
-            output_field=DecimalField(),
-        ),
-        efectivo_total=Sum(
-            "transacciones__cantidad",
-            filter=Q(
-                transacciones__tipo=TipoTranferenciaChoices.INGRESO,
-                transacciones__cuenta__tipo=CuentasChoices.EFECTIVO,
-            ),
-            output_field=DecimalField(),
-        ),
-    )
+    ventas_para_subtotales = Ventas.objects.filter(**filtros_ventas)
 
-    subtotales = ventas.aggregate(
-        subtotal_efectivo=Sum(
-            ExpressionWrapper(
-                F("efectivo_total") + F("pago_trabajador_total"),
-                output_field=DecimalField(),
-            )
-        ),
-        subtotal_transferencia=Sum(
-            "transacciones__cantidad",
-            filter=Q(
-                transacciones__tipo=TipoTranferenciaChoices.INGRESO,
-                transacciones__cuenta__tipo=CuentasChoices.BANCARIA,
+    subtotales = ventas_para_subtotales.aggregate(
+        subtotal_efectivo=Coalesce(
+            Sum(
+                "transacciones__cantidad",
+                filter=Q(
+                    transacciones__tipo=TipoTranferenciaChoices.INGRESO,
+                    transacciones__cuenta__tipo=CuentasChoices.EFECTIVO,
+                ),
             ),
+            Decimal(0),
+            output_field=DecimalField(),
+        ),
+        subtotal_transferencia=Coalesce(
+            ExpressionWrapper(
+                Sum(
+                    "transacciones__cantidad",
+                    filter=Q(
+                        transacciones__tipo=TipoTranferenciaChoices.INGRESO,
+                        transacciones__cuenta__tipo=CuentasChoices.BANCARIA,
+                    ),
+                )
+                - Sum(
+                    "transacciones__cantidad",
+                    filter=Q(
+                        transacciones__tipo=TipoTranferenciaChoices.EGRESO,
+                        transacciones__cuenta__tipo=CuentasChoices.EFECTIVO,
+                    ),
+                ),
+                output_field=DecimalField(),
+            ),
+            Decimal(0),
             output_field=DecimalField(),
         ),
     )
@@ -306,8 +310,8 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
         "productos": productos_sin_repeticion,
         "subtotal": {
             "general": subtotal,
-            "efectivo": subtotales.get("subtotal_efectivo") or Decimal(0),
-            "transferencia": subtotales.get("subtotal_transferencia") or Decimal (0),
+            "efectivo": subtotales.get("subtotal_efectivo", 0) + pago_trabajador,
+            "transferencia": subtotales.get("subtotal_transferencia", 0),
         },
         "gastos_fijos": gastos_fijos,
         "gastos_variables": gastos_variables,
