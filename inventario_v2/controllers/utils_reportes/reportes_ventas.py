@@ -298,9 +298,9 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
 
     monto_gastos_variables = (
         gastos_variables.aggregate(total=Sum("cantidad"))["total"] or 0
-    ) + pago_trabajador
+    )
 
-    total_gatos = total_gastos_fijos + monto_gastos_variables or 0
+    total_gatos = total_gastos_fijos + monto_gastos_variables + pago_trabajador or 0
 
     total = subtotal - total_gatos
 
@@ -319,8 +319,10 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
         "ventas_por_usuario": ventas_por_usuario,
         "total": {
             "general": total,
-            "efectivo": subtotales.get("subtotal_efectivo") or Decimal(0) - total_gatos,
-            "transferencia": subtotales.get("subtotal_transferencia") or Decimal(0),
+            "efectivo": subtotales.get("subtotal_efectivo", 0)
+            - total_gastos_fijos
+            - monto_gastos_variables,
+            "transferencia": subtotales.get("subtotal_transferencia", 0),
         },
         "ganancia": ganancia,
         "area": area_venta.nombre if area != "general" else "general",
