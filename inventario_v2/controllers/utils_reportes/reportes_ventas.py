@@ -319,8 +319,8 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
         "ventas_por_usuario": ventas_por_usuario,
         "total": {
             "general": total,
-            "efectivo": subtotales.get("subtotal_efectivo", 0) - total_gatos,
-            "transferencia": subtotales.get("subtotal_transferencia", 0),
+            "efectivo": subtotales.get("subtotal_efectivo") or Decimal(0) - total_gatos,
+            "transferencia": subtotales.get("subtotal_transferencia") or Decimal(0),
         },
         "ganancia": ganancia,
         "area": area_venta.nombre if area != "general" else "general",

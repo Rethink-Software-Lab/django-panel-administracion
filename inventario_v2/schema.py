@@ -439,13 +439,6 @@ class GastosSchema(ModelSchema):
         model = Gastos
         fields = "__all__"
 
-
-class AllGastosSchema(Schema):
-    fijos: List[GastosSchema]
-    variables: List[GastosSchema]
-    areas_venta: List[AreaVentaSchema]
-
-
 class GastosModifySchema(Schema):
     descripcion: str
     tipo: GastosChoices
