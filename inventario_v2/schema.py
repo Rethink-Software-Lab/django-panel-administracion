@@ -239,7 +239,7 @@ class ProductoInfoParaReporte(Schema):
     id: int
     descripcion: str
     cantidad: Decimal
-    precio_venta: Optional[Annotated[Decimal, Field(gt=0)]] = None
+    precio_venta: Optional[Annotated[Decimal, Field(gte=0)]] = None
     importe: Optional[Decimal] = None
 
 
@@ -438,6 +438,7 @@ class GastosSchema(ModelSchema):
     class Meta:
         model = Gastos
         fields = "__all__"
+
 
 class GastosModifySchema(Schema):
     descripcion: str
