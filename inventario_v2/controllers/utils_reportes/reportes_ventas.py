@@ -248,22 +248,12 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
             output_field=DecimalField(),
         ),
         subtotal_transferencia=Coalesce(
-            ExpressionWrapper(
-                Sum(
-                    "transacciones__cantidad",
-                    filter=Q(
-                        transacciones__tipo=TipoTranferenciaChoices.INGRESO,
-                        transacciones__cuenta__tipo=CuentasChoices.BANCARIA,
-                    ),
-                )
-                - Sum(
-                    "transacciones__cantidad",
-                    filter=Q(
-                        transacciones__tipo=TipoTranferenciaChoices.EGRESO,
-                        transacciones__cuenta__tipo=CuentasChoices.EFECTIVO,
-                    ),
+            Sum(
+                "transacciones__cantidad",
+                filter=Q(
+                    transacciones__tipo=TipoTranferenciaChoices.INGRESO,
+                    transacciones__cuenta__tipo=CuentasChoices.BANCARIA,
                 ),
-                output_field=DecimalField(),
             ),
             Decimal(0),
             output_field=DecimalField(),
