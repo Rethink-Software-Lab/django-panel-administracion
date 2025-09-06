@@ -3,7 +3,6 @@ from decimal import Decimal
 
 from django.db.models import (
     F,
-    Q,
     Case,
     Count,
     ExpressionWrapper,
@@ -19,7 +18,6 @@ from django.db.models.base import Coalesce
 from django.shortcuts import get_object_or_404
 
 from inventario.models import (
-    METODO_PAGO,
     CuentasChoices,
     FrecuenciaChoices,
     Gastos,
@@ -28,6 +26,7 @@ from inventario.models import (
     HistorialPrecioVentaSalon,
     ProductoInfo,
     TipoTranferenciaChoices,
+    Transacciones,
     Ventas,
     AreaVenta,
 )
@@ -236,65 +235,32 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
 
     ventas_para_subtotales = Ventas.objects.filter(**filtros_ventas)
 
-    subtotales = ventas_para_subtotales.aggregate(
-        subtotal_efectivo_bruto=Coalesce(
-            Sum(
-                Case(
-                    When(
-                        Q(metodo_pago=METODO_PAGO.EFECTIVO)
-                        | Q(metodo_pago=METODO_PAGO.MIXTO),
-                        then=F("transacciones__cantidad")
-                        + F("producto__info__pago_trabajador"),
-                    ),
-                    default=F("transacciones__cantidad"),
-                    output_field=DecimalField(),
-                ),
-                filter=Q(
-                    transacciones__tipo=TipoTranferenciaChoices.INGRESO,
-                    transacciones__cuenta__tipo=CuentasChoices.EFECTIVO,
-                ),
-            ),
-            Decimal(0),
-            output_field=DecimalField(),
-        ),
-        subtotal_efectivo_neto=Coalesce(
-            Sum(
-                "transacciones__cantidad",
-                filter=Q(
-                    transacciones__tipo=TipoTranferenciaChoices.INGRESO,
-                    transacciones__cuenta__tipo=CuentasChoices.EFECTIVO,
-                ),
-            )
-            - Coalesce(
-                Sum(
-                    "transacciones__cantidad",
-                    filter=Q(
-                        transacciones__tipo=TipoTranferenciaChoices.EGRESO,
-                        transacciones__cuenta__tipo=CuentasChoices.EFECTIVO,
-                    ),
-                ),
-                Decimal(0),
-            ),
-            Decimal(0),
-            output_field=DecimalField(),
-        ),
-        subtotal_transferencia=Coalesce(
-            Sum(
-                "transacciones__cantidad",
-                filter=Q(
-                    transacciones__tipo=TipoTranferenciaChoices.INGRESO,
-                    transacciones__cuenta__tipo=CuentasChoices.BANCARIA,
-                ),
-            ),
-            Decimal(0),
-            output_field=DecimalField(),
-        ),
-        subtotal_transferencia_efectivo=Coalesce(
-            F("subtotal_efectivo_bruto") + F("subtotal_transferencia"),
-            Decimal(0),
-            output_field=DecimalField(),
-        ),
-    )
+    subtotal_transferencia = Transacciones.objects.filter(
+        venta__in=ventas_para_subtotales,
+        tipo=TipoTranferenciaChoices.INGRESO,
+        cuenta__tipo=CuentasChoices.BANCARIA,
+    ).aggregate(transferencia=Sum("cantidad"))["transferencia"]
+
+    subtotal_efectivo = Transacciones.objects.filter(
+        venta__in=ventas_para_subtotales,
+        tipo=TipoTranferenciaChoices.INGRESO,
+        cuenta__tipo=CuentasChoices.EFECTIVO,
+    ).aggregate(efectivo=Sum("cantidad"))["efectivo"]
+
+    pago_trabajador_para_subtotal_efectivo = Transacciones.objects.filter(
+        venta__in=ventas_para_subtotales,
+        tipo=TipoTranferenciaChoices.INGRESO,
+        cuenta__tipo=CuentasChoices.EFECTIVO,
+    ).aggregate(pago=Sum("venta__producto__info__pago_trabajador"))["pago"]
+
+    transferencia_pago_trabajador = Transacciones.objects.filter(
+        venta__in=ventas_para_subtotales,
+        tipo=TipoTranferenciaChoices.EGRESO,
+        cuenta__tipo=CuentasChoices.EFECTIVO,
+    ).aggregate(transf=Sum("cantidad"))["transf"]
+
+    subtotal_efectivo_bruto = subtotal_efectivo + pago_trabajador_para_subtotal_efectivo
+    subtotal_efectivo_neto = subtotal_efectivo - transferencia_pago_trabajador
 
     subtotal = producto_info.aggregate(subtotal=Sum("importe"))["subtotal"] or 0
     costo_productos = (
@@ -335,9 +301,9 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
     return {
         "productos": productos_sin_repeticion,
         "subtotal": {
-            "general": subtotales.get("subtotal_transferencia_efectivo", 0),
-            "efectivo": subtotales.get("subtotal_efectivo_bruto", 0),
-            "transferencia": subtotales.get("subtotal_transferencia", 0),
+            "general": subtotal,
+            "efectivo": subtotal_efectivo_bruto,
+            "transferencia": subtotal_transferencia,
         },
         "gastos_fijos": gastos_fijos,
         "gastos_variables": gastos_variables,
@@ -345,10 +311,10 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
         "ventas_por_usuario": ventas_por_usuario,
         "total": {
             "general": total,
-            "efectivo": subtotales.get("subtotal_efectivo_neto", 0)
+            "efectivo": subtotal_efectivo_neto
             - total_gastos_fijos
             - monto_gastos_variables,
-            "transferencia": subtotales.get("subtotal_transferencia", 0),
+            "transferencia": subtotal_transferencia,
         },
         "ganancia": ganancia,
         "area": area_venta.nombre if area != "general" else "general",
