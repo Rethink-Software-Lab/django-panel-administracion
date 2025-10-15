@@ -1,15 +1,12 @@
 from datetime import datetime, timedelta
 from django.utils import timezone
 from typing import List
-from ninja.errors import HttpError
 from inventario.models import (
     METODO_PAGO,
-    Elaboraciones_Ventas_Cafeteria,
     FrecuenciaChoices,
     Gastos,
     GastosChoices,
     Inventario_Area_Cafeteria,
-    Productos_Ventas_Cafeteria,
     User,
     Cuentas,
     Transacciones,
@@ -36,7 +33,6 @@ from ..schema import (
     Producto_Cafeteria_Endpoint_Schema,
     Add_Producto_Cafeteria,
     Edit_Producto_Cafeteria,
-    Add_Venta_Cafeteria,
     CafeteriaReporteSchema,
     EndPointCafeteria,
 )
@@ -137,7 +133,7 @@ class CafeteriaController:
                     "importe_total"
                 ]
                 or 0
-            )
+            ) or 0
 
             ventas_formated.append(
                 {
@@ -316,71 +312,56 @@ class CafeteriaController:
             importe=F("cantidad") * F("precio_unitario"),
         )
 
-        efectivo_productos = (
-            productos.aggregate(
-                efectivo=Sum(
-                    F("importe"),
-                    filter=Q(
-                        productos_ventas_cafeteria__ventas_cafeteria__metodo_pago=METODO_PAGO.EFECTIVO
-                    ),
-                ),
-            )["efectivo"]
-            or 0
-        )
-
-        transferencia_productos = (
-            productos.aggregate(
-                transferencia=Sum(
-                    F("importe"),
-                    filter=Q(
-                        productos_ventas_cafeteria__ventas_cafeteria__metodo_pago=METODO_PAGO.TRANSFERENCIA
-                    ),
-                ),
-            )["transferencia"]
-            or 0
-        )
-
-        efectivo_elaboraciones = (
-            elaboraciones.aggregate(
-                efectivo=Sum(
-                    F("importe"),
-                    filter=Q(
-                        elaboraciones_ventas_cafeteria__ventas_cafeteria__metodo_pago=METODO_PAGO.EFECTIVO
-                    ),
-                ),
-            )["efectivo"]
-            or 0
-        )
-
-        transferencia_elaboraciones = (
-            elaboraciones.aggregate(
-                transferencia=Sum(
-                    F("importe"),
-                    filter=Q(
-                        elaboraciones_ventas_cafeteria__ventas_cafeteria__metodo_pago=METODO_PAGO.TRANSFERENCIA
-                    ),
-                ),
-            )["transferencia"]
-            or 0
-        )
-
-        efectivo_y_transferencia_ventas = Ventas_Cafeteria.objects.filter(
+        ventas_para_subtotales = Ventas_Cafeteria.objects.filter(
             created_at__date__range=(
                 parse_desde,
                 parse_hasta,
             )
-        ).aggregate(efectivo=Sum(F("efectivo")), transferencia=Sum(F("transferencia")))
+        )
 
-        efectivo = (
-            efectivo_productos
-            + efectivo_elaboraciones
-            + (efectivo_y_transferencia_ventas["efectivo"] or 0)
+        subtotal_efectivo = (
+            Transacciones.objects.filter(
+                venta_cafeteria__in=ventas_para_subtotales,
+                tipo=TipoTranferenciaChoices.INGRESO,
+                cuenta__tipo=CuentasChoices.EFECTIVO,
+            ).aggregate(total=Sum("cantidad"))["total"]
+            or 0
         )
-        transferencia = (
-            transferencia_productos
-            + transferencia_elaboraciones
-            + (efectivo_y_transferencia_ventas["transferencia"] or 0)
+
+        subtotal_transferencia = (
+            Transacciones.objects.filter(
+                venta_cafeteria__in=ventas_para_subtotales,
+                tipo=TipoTranferenciaChoices.INGRESO,
+                cuenta__tipo=CuentasChoices.BANCARIA,
+            ).aggregate(total=Sum("cantidad"))["total"]
+            or 0
         )
+
+        """ pago_trabajador_para_subtotal_efectivo = (
+            Transacciones.objects.filter(
+                venta_cafeteria__in=ventas_para_subtotales,
+                tipo=TipoTranferenciaChoices.INGRESO,
+                cuenta__tipo=CuentasChoices.EFECTIVO,
+            ).aggregate(
+                pago=Sum("venta_cafeteria__elaboraciones__producto__mano_obra")
+            )["pago"]
+            or 0
+        ) """
+
+        """ transferencia_pago_trabajador = (
+            Transacciones.objects.filter(
+                venta_cafeteria__in=ventas_para_subtotales,
+                tipo=TipoTranferenciaChoices.EGRESO,
+                cuenta__tipo=CuentasChoices.EFECTIVO,
+            ).aggregate(transf=Sum("cantidad"))["transf"]
+            or 0
+        ) """
+
+        """ subtotal_efectivo_bruto = (
+            subtotal_efectivo + pago_trabajador_para_subtotal_efectivo
+        )
+        print(pago_trabajador_para_subtotal_efectivo) """
+        """ subtotal_efectivo_neto = subtotal_efectivo - transferencia_pago_trabajador """
 
         costo_productos = (
             productos.aggregate(costo_productos=Sum(F("costo")))["costo_productos"] or 0
@@ -525,22 +506,24 @@ class CafeteriaController:
 
         ganancia = total - total_costo_producto or 0
 
+        print(monto_gastos_variables)
+
         return {
             "productos": productos_sin_repeticion,
             "elaboraciones": elaboraciones_sin_repeticion,
             "total": {
                 "general": total,
-                "efectivo": efectivo
+                "efectivo": subtotal_efectivo
                 - mano_obra
                 - mano_obra_cuenta_casa
                 - total_gastos_fijos
                 - monto_gastos_variables,
-                "transferencia": transferencia,
+                "transferencia": subtotal_transferencia,
             },
             "subtotal": {
                 "general": subtotal,
-                "efectivo": efectivo,
-                "transferencia": transferencia,
+                "efectivo": subtotal_efectivo,
+                "transferencia": subtotal_transferencia,
             },
             "mano_obra": mano_obra + mano_obra_cuenta_casa,
             "gastos_variables": gastos_variables,
@@ -585,158 +568,6 @@ class CafeteriaController:
                     ingrediente=producto, cantidad=ingrediente.cantidad
                 )
                 elaboracion.ingredientes_cantidad.add(ingrediente)
-
-        return
-
-    @route.post("ventas/")
-    def add_venta(self, request, body: Add_Venta_Cafeteria):
-        body_dict = body.model_dump()
-
-        usuario = get_object_or_404(User, id=request.auth["id"])
-
-        with transaction.atomic():
-            venta = Ventas_Cafeteria.objects.create(
-                usuario=usuario,
-                metodo_pago=body.metodo_pago,
-                efectivo=body.efectivo,
-                transferencia=body.transferencia,
-            )
-
-            total_cantidad_productos = 0
-            total_cantidad_elaboraciones = 0
-            total_venta = Decimal(0)
-
-            for prod_elb in body.productos:
-                if prod_elb.isElaboracion:
-                    elaboracion = get_object_or_404(Elaboraciones, id=prod_elb.producto)
-                    for ingrediente in elaboracion.ingredientes_cantidad.all():
-                        inventario = get_object_or_404(
-                            Inventario_Area_Cafeteria,
-                            producto__id=ingrediente.ingrediente.pk,
-                        )
-
-                        if inventario.cantidad < ingrediente.cantidad * Decimal(
-                            prod_elb.cantidad
-                        ):
-                            raise HttpError(
-                                400,
-                                f"No hay suficiente {ingrediente.ingrediente.nombre}.",
-                            )
-
-                        inventario.cantidad -= ingrediente.cantidad * Decimal(
-                            prod_elb.cantidad
-                        )
-                        inventario.save()
-
-                    total_cantidad_elaboraciones += Decimal(prod_elb.cantidad)
-                    total_venta += elaboracion.precio * Decimal(prod_elb.cantidad)
-
-                    elaboraciones_ventas_cafeteria = (
-                        Elaboraciones_Ventas_Cafeteria.objects.create(
-                            producto=elaboracion,
-                            cantidad=prod_elb.cantidad,
-                        )
-                    )
-                    venta.elaboraciones.add(elaboraciones_ventas_cafeteria)
-                else:
-                    producto = get_object_or_404(
-                        Productos_Cafeteria, id=prod_elb.producto
-                    )
-                    inventario = get_object_or_404(
-                        Inventario_Area_Cafeteria, producto=producto
-                    )
-                    if inventario.cantidad < Decimal(prod_elb.cantidad):
-                        raise HttpError(
-                            400, f"No hay suficiente {producto.nombre} en inventario."
-                        )
-                    inventario.cantidad -= Decimal(prod_elb.cantidad)
-                    inventario.save()
-
-                    total_cantidad_productos += Decimal(prod_elb.cantidad)
-                    total_venta += producto.precio_venta * Decimal(prod_elb.cantidad)
-
-                    productos_ventas_cafeteria = (
-                        Productos_Ventas_Cafeteria.objects.create(
-                            producto=producto,
-                            cantidad=Decimal(prod_elb.cantidad),
-                        )
-                    )
-                    venta.productos.add(productos_ventas_cafeteria)
-
-            if body.metodo_pago == METODO_PAGO.MIXTO and total_venta != Decimal(
-                body_dict["efectivo"]
-            ) + Decimal(body_dict["transferencia"]):
-                raise HttpError(
-                    400,
-                    "El importe no coincide con la suma de efectivo y transferencia",
-                )
-
-            if body.metodo_pago != METODO_PAGO.EFECTIVO:
-                cuenta_transaferencia = get_object_or_404(Cuentas, id=body.tarjeta)
-            cuenta_efectivo = get_object_or_404(Cuentas, id=25)
-
-            if body.metodo_pago == METODO_PAGO.MIXTO:
-                descripcion = (
-                    f"[MIXTO] {total_cantidad_productos}x Prod"
-                    f", {total_cantidad_elaboraciones}x Elab"
-                    " - Cafetería"
-                )
-            else:
-                descripcion = (
-                    f"{total_cantidad_productos}x Prod"
-                    f", {total_cantidad_elaboraciones}x Elab"
-                    " - Cafetería"
-                )
-
-            if body.metodo_pago == METODO_PAGO.MIXTO:
-                transferencia = Decimal(body_dict["transferencia"])
-                efectivo = Decimal(body_dict["efectivo"])
-
-            if body.metodo_pago == METODO_PAGO.MIXTO:
-                Transacciones.objects.create(
-                    cuenta=cuenta_transaferencia,
-                    cantidad=transferencia,
-                    descripcion=descripcion,
-                    tipo=TipoTranferenciaChoices.INGRESO,
-                    usuario=usuario,
-                    venta_cafeteria=venta,
-                )
-                cuenta_transaferencia.saldo += transferencia
-                cuenta_transaferencia.save()
-                Transacciones.objects.create(
-                    cuenta=cuenta_efectivo,
-                    cantidad=efectivo,
-                    descripcion=descripcion,
-                    tipo=TipoTranferenciaChoices.INGRESO,
-                    usuario=usuario,
-                    venta_cafeteria=venta,
-                )
-                cuenta_efectivo.saldo += transferencia
-                cuenta_efectivo.save()
-
-            elif body.metodo_pago == METODO_PAGO.TRANSFERENCIA:
-                Transacciones.objects.create(
-                    cuenta=cuenta_transaferencia,
-                    cantidad=total_venta,
-                    descripcion=descripcion,
-                    tipo=TipoTranferenciaChoices.INGRESO,
-                    usuario=usuario,
-                    venta_cafeteria=venta,
-                )
-                cuenta_transaferencia.saldo += total_venta
-                cuenta_transaferencia.save()
-
-            else:
-                Transacciones.objects.create(
-                    cuenta=cuenta_efectivo,
-                    cantidad=total_venta,
-                    descripcion=descripcion,
-                    tipo=TipoTranferenciaChoices.INGRESO,
-                    usuario=usuario,
-                    venta_cafeteria=venta,
-                )
-                cuenta_efectivo.saldo += total_venta
-                cuenta_efectivo.save()
 
         return
 
@@ -840,39 +671,3 @@ class CafeteriaController:
             ingredientes_cantidad.delete()
         elaboracion.delete()
         return
-
-    @route.delete("ventas/{id}/")
-    def delete_ventas_cafeteria(self, id: int):
-        with transaction.atomic():
-            venta = get_object_or_404(Ventas_Cafeteria, id=id)
-
-            for producto_venta_cafeteria in venta.productos.all():
-                inventario = get_object_or_404(
-                    Inventario_Area_Cafeteria,
-                    producto=producto_venta_cafeteria.producto,
-                )
-                inventario.cantidad += producto_venta_cafeteria.cantidad
-                inventario.save()
-
-            for elaboracion_venta_cafeteria in venta.elaboraciones.all():
-                for (
-                    ingrediente_cantidad
-                ) in elaboracion_venta_cafeteria.producto.ingredientes_cantidad.all():
-                    inventario = get_object_or_404(
-                        Inventario_Area_Cafeteria,
-                        producto=ingrediente_cantidad.ingrediente,
-                    )
-                    inventario.cantidad += ingrediente_cantidad.cantidad * Decimal(
-                        elaboracion_venta_cafeteria.cantidad
-                    )
-                    inventario.save()
-
-            transacciones = Transacciones.objects.filter(venta_cafeteria=venta)
-            for transaccion in transacciones:
-                cuenta = Cuentas.objects.get(pk=transaccion.cuenta.pk)
-                cuenta.saldo -= transaccion.cantidad
-                cuenta.save()
-
-            transaccion.delete()
-
-            venta.delete()
