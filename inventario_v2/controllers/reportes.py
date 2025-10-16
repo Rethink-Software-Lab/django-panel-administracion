@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from typing import Literal
+from typing import Literal, Optional
 
 
 from inventario_v2.controllers.utils_reportes.reportes_ventas import get_reporte_ventas
@@ -17,13 +17,13 @@ class ReportesController:
     def getReportes(
         self,
         type: Literal["ventas", "inventario"] = "ventas",
-        area: str = "general",
-        desde: datetime = datetime.today(),
-        hasta: datetime = datetime.today(),
-        categoria: str = "todas",
+        area: Optional[str] = "general",
+        desde: Optional[datetime] = None,
+        hasta: Optional[datetime] = None,
+        categoria: Optional[str] = "todas",
     ):
-        parse_desde = desde.date()
-        parse_hasta = hasta.date()
+        parse_desde = (desde or datetime.today()).date()
+        parse_hasta = (hasta or datetime.today()).date()
 
         if type == "ventas":
             response = get_reporte_ventas(parse_desde, parse_hasta, area)
