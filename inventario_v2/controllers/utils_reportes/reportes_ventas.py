@@ -30,6 +30,9 @@ from inventario.models import (
     Ventas,
     AreaVenta,
 )
+from inventario_v2.controllers.utils_reportes.reporte_ventas_cafeteria import (
+    get_reporte_ventas_cafeteria,
+)
 from inventario_v2.utils import (
     calcular_dias_laborables,
     obtener_dias_semana_rango,
@@ -60,28 +63,13 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
     ultimo_dia_hasta = obtener_ultimo_dia_mes(parse_hasta)
     dias_semana = obtener_dias_semana_rango(parse_desde, parse_hasta)
 
-    filtros_gastos_variables = {
-        "tipo": GastosChoices.VARIABLE,
-        "created_at__date__range": (parse_desde, parse_hasta),
-    }
+    gastos_variables = Gastos.objects.filter(
+        tipo=GastosChoices.VARIABLE, created_at__date__range=(parse_desde, parse_hasta)
+    ).only("descripcion", "cantidad")
 
-    if area != "general":
-        filtros_gastos_variables["area_venta"] = area
-
-    gastos_variables = Gastos.objects.filter(**filtros_gastos_variables).only(
-        "descripcion", "cantidad"
-    )
-
-    filtros_gastos_fijos = {
-        "tipo": GastosChoices.FIJO,
-        "created_at__date__lte": parse_hasta,
-    }
-
-    if area != "general":
-        filtros_gastos_fijos["area_venta"] = area
-        filtros_gastos_fijos["is_cafeteria"] = False
-
-    gastos_fijos_result = Gastos.objects.filter(**filtros_gastos_fijos).annotate(
+    gastos_fijos_result = Gastos.objects.filter(
+        tipo=GastosChoices.FIJO, created_at__date__lte=parse_hasta
+    ).annotate(
         dia_mes_ajustado=Case(
             When(dia_mes__gt=ultimo_dia_hasta, then=ultimo_dia_hasta),
             default=F("dia_mes"),
@@ -310,6 +298,60 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
 
     ganancia = total - costo_productos
 
+    if area == "general":
+        reporte_cafeteria = get_reporte_ventas_cafeteria(parse_desde, parse_hasta)
+
+        productos_cafeteria_parseados = []
+        for producto in reporte_cafeteria.get("productos"):
+            producto_parseado = {
+                "id": producto.get("id"),
+                "descripcion": producto.get("nombre"),
+                "cantidad": producto.get("cantidad"),
+                "importe": producto.get("importe"),
+                "precio_venta": producto.get("precio_venta"),
+            }
+            productos_cafeteria_parseados.append(producto_parseado)
+
+        elaboraciones_cafeteria_parseadas = []
+        for elaboracion in reporte_cafeteria.get("elaboraciones"):
+            elaboracion_parseada = {
+                "id": elaboracion.id,
+                "descripcion": elaboracion.nombre,
+                "cantidad": elaboracion.cantidad,
+                "importe": elaboracion.importe,
+                "precio_venta": elaboracion.precio_unitario,
+            }
+            elaboraciones_cafeteria_parseadas.append(elaboracion_parseada)
+
+        return {
+            "productos": productos_sin_repeticion
+            + productos_cafeteria_parseados
+            + elaboraciones_cafeteria_parseadas,
+            "subtotal": {
+                "general": subtotal + reporte_cafeteria.get("subtotal").get("general"),
+                "efectivo": subtotal_efectivo_bruto
+                + reporte_cafeteria.get("subtotal").get("efectivo"),
+                "transferencia": subtotal_transferencia
+                + reporte_cafeteria.get("subtotal").get("transferencia"),
+            },
+            "gastos_fijos": gastos_fijos,
+            "gastos_variables": gastos_variables,
+            "pago_trabajador": round(pago_trabajador, 2)
+            + reporte_cafeteria.get("mano_obra"),
+            "ventas_por_usuario": ventas_por_usuario,
+            "total": {
+                "general": total + reporte_cafeteria.get("total").get("general"),
+                "efectivo": subtotal_efectivo_neto
+                - total_gastos_fijos
+                - monto_gastos_variables
+                + reporte_cafeteria.get("total").get("efectivo"),
+                "transferencia": subtotal_transferencia
+                + reporte_cafeteria.get("total").get("transferencia"),
+            },
+            "ganancia": ganancia + reporte_cafeteria.get("ganancia"),
+            "area": area_venta.nombre if area != "general" else "general",
+        }
+
     return {
         "productos": productos_sin_repeticion,
         "subtotal": {
@@ -317,15 +359,11 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
             "efectivo": subtotal_efectivo_bruto,
             "transferencia": subtotal_transferencia,
         },
-        "gastos_fijos": gastos_fijos,
-        "gastos_variables": gastos_variables,
         "pago_trabajador": round(pago_trabajador, 2),
         "ventas_por_usuario": ventas_por_usuario,
         "total": {
-            "general": total,
-            "efectivo": subtotal_efectivo_neto
-            - total_gastos_fijos
-            - monto_gastos_variables,
+            "general": subtotal - pago_trabajador,
+            "efectivo": subtotal_efectivo_neto - monto_gastos_variables,
             "transferencia": subtotal_transferencia,
         },
         "ganancia": ganancia,

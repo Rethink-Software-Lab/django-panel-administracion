@@ -694,11 +694,6 @@ class TotalReporteCafeteria(Schema):
     transferencia: Decimal
 
 
-class GastosVariablesReporteCafeteria(Schema):
-    descripcion: str
-    cantidad: int
-
-
 class GastosFijosReporteCafeteria(Schema):
     descripcion: str
     cantidad: int
@@ -710,8 +705,7 @@ class CafeteriaReporteSchema(Schema):
     total: TotalReporteCafeteria
     subtotal: SubtotalReporteCafeteria
     mano_obra: Decimal
-    gastos_variables: List[GastosVariablesReporteCafeteria]
-    gastos_fijos: List[GastosFijosReporteCafeteria]
+    mano_obra_cuenta_casa: Decimal
     ganancia: Decimal
 
 
