@@ -4,28 +4,21 @@ from typing import List
 from ninja.errors import HttpError
 from inventario.models import (
     Inventario_Area_Cafeteria,
-    TipoTranferenciaChoices,
     User,
     Elaboraciones,
     Productos_Cafeteria,
     Inventario_Almacen_Cafeteria,
     Entradas_Cafeteria,
-    Productos_Entradas_Cafeteria,
     Salidas_Cafeteria,
     Productos_Salidas_Cafeteria,
     Elaboraciones_Salidas_Almacen_Cafeteria,
     Cuentas,
     Transacciones,
-    Proveedor,
-    HistorialPrecioCostoCafeteria,
-    HistorialPrecioVentaCafeteria,
 )
 
 from ..schema import (
     Add_Salida_Cafeteria,
     Producto_Cafeteria_Schema,
-    Entradas_Almacen_Cafeteria_Schema,
-    Add_Entrada_Cafeteria,
     EndPointSalidasAlmacenCafeteria,
 )
 from ninja_extra import api_controller, route
@@ -43,22 +36,6 @@ class AlmacenCafeteriaController:
         )
 
         return productos
-
-    @route.get("entradas/", response=Entradas_Almacen_Cafeteria_Schema)
-    def get_entradas_cafeteria(self):
-        entradas = Entradas_Cafeteria.objects.prefetch_related("productos").order_by(
-            "-created_at"
-        )
-        productos = Productos_Cafeteria.objects.all()
-        cuentas = Cuentas.objects.all()
-        proveedores = Proveedor.objects.all().only("nombre")
-
-        return {
-            "entradas": entradas,
-            "productos": productos,
-            "cuentas": cuentas,
-            "proveedores": proveedores,
-        }
 
     @route.get("salidas/", response=EndPointSalidasAlmacenCafeteria)
     def get_salidas_almacen_cafeteria(self):
@@ -87,82 +64,6 @@ class AlmacenCafeteriaController:
             "salidas": salidas,
             "productos_elaboraciones": productos_elaboraciones,
         }
-
-    @route.post("entradas/")
-    def add_entrada_cafeteria(self, request, body: Add_Entrada_Cafeteria):
-        body_dict = body.model_dump()
-
-        usuario = get_object_or_404(User, pk=request.auth["id"])
-        cuenta = get_object_or_404(Cuentas, pk=body_dict["cuenta"])
-        proveedor = Proveedor.objects.get(pk=body.proveedor) if body.proveedor else None
-
-        with transaction.atomic():
-            entrada = Entradas_Cafeteria.objects.create(
-                metodo_pago=body.metodo_pago,
-                comprador=body.comprador,
-                usuario=usuario,
-                proveedor=proveedor,
-                proveedor_nombre=body.proveedor_nombre,
-                proveedor_nit=body.proveedor_nit,
-                proveedor_telefono=body.proveedor_telefono,
-                proveedor_direccion=body.proveedor_direccion,
-                proveedor_no_cuenta_cup=body.proveedor_no_cuenta_cup,
-                proveedor_no_cuenta_mayorista=body.proveedor_no_cuenta_mayorista,
-            )
-
-            total_cantidad = 0
-            for producto in body.productos:
-                producto_cafeteria = get_object_or_404(
-                    Productos_Cafeteria, pk=producto.producto
-                )
-
-                if (
-                    producto_cafeteria.precio_costo != Decimal(producto.precio_costo)
-                    if producto.precio_costo
-                    else 0
-                ):
-                    HistorialPrecioCostoCafeteria.objects.create(
-                        precio=producto.precio_costo,
-                        producto=producto_cafeteria,
-                        usuario=usuario,
-                    )
-
-                if (
-                    producto_cafeteria.precio_venta != Decimal(producto.precio_venta)
-                    if producto.precio_venta
-                    else 0
-                ):
-                    HistorialPrecioVentaCafeteria.objects.create(
-                        precio=producto.precio_venta,
-                        producto=producto_cafeteria,
-                        usuario=usuario,
-                    )
-
-                total_cantidad += (
-                    Decimal(producto.cantidad) * producto_cafeteria.precio_costo
-                )
-                producto_cafeteria.inventario_almacen.cantidad += Decimal(
-                    producto.cantidad
-                )
-                producto_cafeteria.inventario_almacen.save()
-                producto_entrada = Productos_Entradas_Cafeteria.objects.create(
-                    producto=producto_cafeteria,
-                    cantidad=producto.cantidad,
-                )
-                entrada.productos.add(producto_entrada)
-
-            cuenta.saldo -= total_cantidad
-            cuenta.save()
-            Transacciones.objects.create(
-                entrada_cafeteria=entrada,
-                usuario=usuario,
-                tipo=TipoTranferenciaChoices.EGRESO,
-                cuenta=cuenta,
-                cantidad=total_cantidad,
-                descripcion=f"[ENT CAF] {total_cantidad}x producto{'s' if len(body_dict['productos']) > 1 else ''}",
-            )
-
-        return
 
     @route.post("salidas/")
     def add_salida_cafeteria(self, request, body: Add_Salida_Cafeteria):
@@ -239,28 +140,6 @@ class AlmacenCafeteriaController:
 
         salida.save()
         return
-
-    @route.delete("entradas/{id}/")
-    def delete_entrada_cafeteria(self, id: int):
-        entrada = get_object_or_404(Entradas_Cafeteria, id=id)
-        transaccion = get_object_or_404(Transacciones, entrada_cafeteria=entrada)
-        cuenta = get_object_or_404(Cuentas, pk=transaccion.cuenta.pk)
-        with transaction.atomic():
-            cuenta.saldo += transaccion.cantidad
-            cuenta.save()
-
-            transaccion.delete()
-
-            for producto in entrada.productos.all():
-                inventario = get_object_or_404(
-                    Inventario_Almacen_Cafeteria, producto=producto.producto
-                )
-                if inventario.cantidad - producto.cantidad < 0:
-                    raise HttpError(400, "No hay productos suficientes")
-                inventario.cantidad -= producto.cantidad
-                inventario.save()
-
-            entrada.delete()
 
     @route.delete("salidas/{id}/")
     def delete_salidas_cafeteria(self, id: int):

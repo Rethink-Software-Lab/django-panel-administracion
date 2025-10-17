@@ -593,32 +593,11 @@ class ProveedorEntradasCafeteria(ModelSchema):
         fields = ["id", "nombre"]
 
 
-class Entradas_Almacen_Cafeteria_Schema(Schema):
-    entradas: List[Entradas_CafeteriaSchema]
-    productos: List[Productos_Entrada_Cafeteria]
-    cuentas: List[TarjetasSchema]
-    proveedores: List[ProveedorEntradasCafeteria]
-
-
 class Add_Entrada_Cafeteria_Productos(Schema):
     producto: int
     cantidad: str
     precio_costo: Optional[str] = None
     precio_venta: Optional[str] = None
-
-
-class Add_Entrada_Cafeteria(Schema):
-    comprador: str
-    metodo_pago: METODO_PAGO
-    productos: List[Add_Entrada_Cafeteria_Productos]
-    cuenta: str
-    proveedor: Optional[str] = None
-    proveedor_nombre: Optional[str] = None
-    proveedor_nit: Optional[str] = None
-    proveedor_telefono: Optional[str] = None
-    proveedor_direccion: Optional[str] = None
-    proveedor_no_cuenta_cup: Optional[str] = None
-    proveedor_no_cuenta_mayorista: Optional[str] = None
 
 
 class Producto_Cafeteria_Endpoint_Schema(Schema):
@@ -683,14 +662,6 @@ class Prod_Add_Venta(Schema):
     isElaboracion: bool
 
 
-class Add_Venta_Cafeteria(Schema):
-    metodo_pago: METODO_PAGO
-    transferencia: Optional[Annotated[Decimal, Field(gt=0)]] = None
-    efectivo: Optional[Annotated[Decimal, Field(gt=0)]] = None
-    tarjeta: Optional[int] = None
-    productos: List[Prod_Add_Venta]
-
-
 class Productos_Reportes_Cafeteria(ModelSchema):
     cantidad: Decimal
     importe: Decimal
@@ -723,11 +694,6 @@ class TotalReporteCafeteria(Schema):
     transferencia: Decimal
 
 
-class GastosVariablesReporteCafeteria(Schema):
-    descripcion: str
-    cantidad: int
-
-
 class GastosFijosReporteCafeteria(Schema):
     descripcion: str
     cantidad: int
@@ -739,8 +705,7 @@ class CafeteriaReporteSchema(Schema):
     total: TotalReporteCafeteria
     subtotal: SubtotalReporteCafeteria
     mano_obra: Decimal
-    gastos_variables: List[GastosVariablesReporteCafeteria]
-    gastos_fijos: List[GastosFijosReporteCafeteria]
+    mano_obra_cuenta_casa: Decimal
     ganancia: Decimal
 
 
