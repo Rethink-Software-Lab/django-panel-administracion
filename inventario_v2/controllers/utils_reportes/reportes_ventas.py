@@ -63,13 +63,28 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
     ultimo_dia_hasta = obtener_ultimo_dia_mes(parse_hasta)
     dias_semana = obtener_dias_semana_rango(parse_desde, parse_hasta)
 
-    gastos_variables = Gastos.objects.filter(
-        tipo=GastosChoices.VARIABLE, created_at__date__range=(parse_desde, parse_hasta)
-    ).only("descripcion", "cantidad")
+    filtros_gastos_variables = {
+        "tipo": GastosChoices.VARIABLE,
+        "created_at__date__range": (parse_desde, parse_hasta),
+    }
 
-    gastos_fijos_result = Gastos.objects.filter(
-        tipo=GastosChoices.FIJO, created_at__date__lte=parse_hasta
-    ).annotate(
+    if area != "general":
+        filtros_gastos_variables["area_venta"] = area
+
+    gastos_variables = Gastos.objects.filter(**filtros_gastos_variables).only(
+        "descripcion", "cantidad"
+    )
+
+    filtros_gastos_fijos = {
+        "tipo": GastosChoices.FIJO,
+        "created_at__date__lte": parse_hasta,
+    }
+
+    if area != "general":
+        filtros_gastos_fijos["area_venta"] = area
+        filtros_gastos_fijos["is_cafeteria"] = False
+
+    gastos_fijos_result = Gastos.objects.filter(**filtros_gastos_fijos).annotate(
         dia_mes_ajustado=Case(
             When(dia_mes__gt=ultimo_dia_hasta, then=ultimo_dia_hasta),
             default=F("dia_mes"),
@@ -335,21 +350,28 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
                 + reporte_cafeteria.get("subtotal").get("transferencia"),
             },
             "gastos_fijos": gastos_fijos,
-            "gastos_variables": gastos_variables,
-            "pago_trabajador": round(pago_trabajador, 2)
-            + reporte_cafeteria.get("mano_obra"),
+            "gastos_variables": list(gastos_variables)
+            + list(reporte_cafeteria.get("gastos_variables")),
+            "pago_trabajador": round(pago_trabajador, 2),
+            "mano_obra": reporte_cafeteria.get("mano_obra"),
+            "mano_obra_cuenta_casa": reporte_cafeteria.get("mano_obra_cuenta_casa"),
             "ventas_por_usuario": ventas_por_usuario,
             "total": {
-                "general": total + reporte_cafeteria.get("total").get("general"),
+                "general": total
+                + reporte_cafeteria.get("subtotal").get("general")
+                - reporte_cafeteria.get("mano_obra")
+                - reporte_cafeteria.get("mano_obra_cuenta_casa"),
                 "efectivo": subtotal_efectivo_neto
                 - total_gastos_fijos
                 - monto_gastos_variables
-                + reporte_cafeteria.get("total").get("efectivo"),
+                + reporte_cafeteria.get("subtotal").get("efectivo")
+                - reporte_cafeteria.get("mano_obra")
+                - reporte_cafeteria.get("mano_obra_cuenta_casa"),
                 "transferencia": subtotal_transferencia
                 + reporte_cafeteria.get("total").get("transferencia"),
             },
             "ganancia": ganancia + reporte_cafeteria.get("ganancia"),
-            "area": area_venta.nombre if area != "general" else "general",
+            "area": "general",
         }
 
     return {
@@ -359,13 +381,17 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
             "efectivo": subtotal_efectivo_bruto,
             "transferencia": subtotal_transferencia,
         },
+        "gastos_fijos": gastos_fijos,
+        "gastos_variables": gastos_variables,
         "pago_trabajador": round(pago_trabajador, 2),
         "ventas_por_usuario": ventas_por_usuario,
         "total": {
-            "general": subtotal - pago_trabajador,
-            "efectivo": subtotal_efectivo_neto - monto_gastos_variables,
+            "general": total,
+            "efectivo": subtotal_efectivo_neto
+            - total_gastos_fijos
+            - monto_gastos_variables,
             "transferencia": subtotal_transferencia,
         },
         "ganancia": ganancia,
-        "area": area_venta.nombre if area != "general" else "general",
+        "area": area_venta.nombre,
     }
