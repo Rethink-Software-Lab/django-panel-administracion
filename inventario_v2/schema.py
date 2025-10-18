@@ -268,6 +268,8 @@ class ReportesSchema(Schema):
     ventas_por_usuario: Optional[Dict[str, Annotated[int, Field(ge=0)]]] = None
     gastos_variables: Optional[List[GastosReporte]] = None
     gastos_fijos: Optional[List[GastosReporte]] = None
+    mano_obra: Optional[Decimal] = None
+    mano_obra_cuenta_casa: Optional[Decimal] = None
     costo_producto: Optional[Decimal] = None
     subtotal: Optional[SubtotalReporteVentas] = None
     ganancia: Optional[Decimal] = None
@@ -694,7 +696,7 @@ class TotalReporteCafeteria(Schema):
     transferencia: Decimal
 
 
-class GastosFijosReporteCafeteria(Schema):
+class GastosReporteCafeteria(Schema):
     descripcion: str
     cantidad: int
 
@@ -704,6 +706,8 @@ class CafeteriaReporteSchema(Schema):
     elaboraciones: List[Elaboraciones_Reportes_Cafeteria]
     total: TotalReporteCafeteria
     subtotal: SubtotalReporteCafeteria
+    gastos_variables: List[GastosReporteCafeteria]
+    gastos_fijos: List[GastosReporteCafeteria]
     mano_obra: Decimal
     mano_obra_cuenta_casa: Decimal
     ganancia: Decimal

@@ -38,6 +38,61 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
     ultimo_dia_hasta = obtener_ultimo_dia_mes(hasta)
     dias_semana = obtener_dias_semana_rango(desde, hasta)
 
+    filtros_gastos_variables = {
+        "tipo": GastosChoices.VARIABLE,
+        "created_at__date__range": (desde, hasta),
+        "is_cafeteria": True,
+    }
+
+    gastos_variables = Gastos.objects.filter(**filtros_gastos_variables).only(
+        "descripcion", "cantidad"
+    )
+
+    filtros_gastos_fijos = {
+        "tipo": GastosChoices.FIJO,
+        "created_at__date__lte": hasta,
+        "is_cafeteria": True,
+    }
+
+    gastos_fijos_result = Gastos.objects.filter(**filtros_gastos_fijos).annotate(
+        dia_mes_ajustado=Case(
+            When(dia_mes__gt=ultimo_dia_hasta, then=ultimo_dia_hasta),
+            default=F("dia_mes"),
+            output_field=IntegerField(),
+        )
+    )
+
+    gastos_fijos = []
+
+    for gasto in gastos_fijos_result:
+        if (
+            gasto.frecuencia == FrecuenciaChoices.MENSUAL
+            and gasto.dia_mes_ajustado in range(desde.day, hasta.day + 1)
+        ):
+            gastos_fijos.append(
+                {
+                    "descripcion": gasto.descripcion,
+                    "cantidad": gasto.cantidad,
+                }
+            )
+        elif (
+            gasto.frecuencia == FrecuenciaChoices.SEMANAL
+            and gasto.dia_semana in dias_semana
+        ):
+            gastos_fijos.append(
+                {
+                    "descripcion": gasto.descripcion,
+                    "cantidad": gasto.cantidad * dias_semana.get(gasto.dia_semana, 0),
+                }
+            )
+        elif gasto.frecuencia == FrecuenciaChoices.LUNES_SABADO:
+            gastos_fijos.append(
+                {
+                    "descripcion": gasto.descripcion,
+                    "cantidad": gasto.cantidad * dias_laborables,
+                }
+            )
+
     historico_costo = (
         HistorialPrecioCostoCafeteria.objects.filter(
             producto=OuterRef("pk"),
@@ -233,24 +288,46 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
 
     total_productos = productos.aggregate(total=Sum(F("importe")))["total"] or 0
     total_elaboraciones = elaboraciones.aggregate(total=Sum(F("importe")))["total"] or 0
-    total = total_productos + total_elaboraciones - mano_obra - mano_obra_cuenta_casa
+
+    monto_gastos_fijos = sum(
+        Decimal(gasto_fijo.get("cantidad") or 0) for gasto_fijo in gastos_fijos
+    )
+
+    monto_gastos_variables = (
+        gastos_variables.aggregate(total=Sum("cantidad"))["total"] or 0
+    )
+
+    total = (
+        total_productos
+        + total_elaboraciones
+        - monto_gastos_fijos
+        - monto_gastos_variables
+        - mano_obra
+        - mano_obra_cuenta_casa
+    )
 
     ganancia = total - total_costo_producto or 0
 
     return {
         "productos": productos_sin_repeticion,
         "elaboraciones": elaboraciones_sin_repeticion,
-        "total": {
-            "general": total,
-            "efectivo": subtotal_efectivo - mano_obra - mano_obra_cuenta_casa,
-            "transferencia": subtotal_transferencia,
-        },
         "subtotal": {
             "general": subtotal,
             "efectivo": subtotal_efectivo,
             "transferencia": subtotal_transferencia,
         },
+        "gastos_fijos": gastos_fijos,
+        "gastos_variables": gastos_variables,
         "mano_obra": mano_obra,
         "mano_obra_cuenta_casa": mano_obra_cuenta_casa or 0,
+        "total": {
+            "general": total,
+            "efectivo": subtotal_efectivo
+            - monto_gastos_fijos
+            - monto_gastos_variables
+            - mano_obra
+            - mano_obra_cuenta_casa,
+            "transferencia": subtotal_transferencia,
+        },
         "ganancia": ganancia,
     }
