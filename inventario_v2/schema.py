@@ -442,16 +442,6 @@ class GastosSchema(ModelSchema):
         fields = "__all__"
 
 
-class GastosModifySchema(Schema):
-    descripcion: str
-    tipo: GastosChoices
-    area_venta: int | Literal["cafeteria"]
-    cantidad: Annotated[int, Field(strict=True, gt=0)]
-    frecuencia: Optional[FrecuenciaChoices] = None
-    dia_semana: Optional[Annotated[int, Field(strict=True, ge=0, le=6)]] = None
-    dia_mes: Optional[Annotated[int, Field(strict=True, ge=1, le=31)]] = None
-
-
 class TarjetasForVentas(Schema):
     id: int
     nombre: str

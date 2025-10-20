@@ -244,37 +244,6 @@ class AjusteInventario(models.Model):
     )
 
 
-class GastosChoices(models.TextChoices):
-    FIJO = "FIJO", "Fijo"
-    VARIABLE = "VARIABLE", "Variable"
-
-
-class FrecuenciaChoices(models.TextChoices):
-    LUNES_SABADO = "LUNES_SABADO", "Lunes-Sábado"
-    SEMANAL = "SEMANAL", "Semanal"
-    MENSUAL = "MENSUAL", "Mensual"
-
-
-class Gastos(models.Model):
-    tipo = models.CharField(
-        max_length=30, choices=GastosChoices.choices, blank=False, null=False
-    )
-    area_venta = models.ForeignKey(AreaVenta, on_delete=models.CASCADE, null=True)
-    is_cafeteria = models.BooleanField(default=False)
-    descripcion = models.CharField(max_length=100, blank=False, null=False)
-    cantidad = models.IntegerField(null=False, blank=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    # Fijos
-    frecuencia = models.CharField(
-        max_length=30, choices=FrecuenciaChoices.choices, blank=True, null=True
-    )
-    # mensuales
-    dia_mes = models.IntegerField(null=True, blank=True)
-    # semanales
-    dia_semana = models.IntegerField(null=True, blank=True)
-
-
 class BancoChoices(models.TextChoices):
     BPA = "BPA", "BPA"
     BANDEC = "BANDEC", "Bandec"
@@ -300,6 +269,38 @@ class Cuentas(models.Model):
     banco = models.CharField(
         max_length=50, choices=BancoChoices.choices, blank=True, null=True
     )
+
+
+class GastosChoices(models.TextChoices):
+    FIJO = "FIJO", "Fijo"
+    VARIABLE = "VARIABLE", "Variable"
+
+
+class FrecuenciaChoices(models.TextChoices):
+    LUNES_SABADO = "LUNES_SABADO", "Lunes-Sábado"
+    SEMANAL = "SEMANAL", "Semanal"
+    MENSUAL = "MENSUAL", "Mensual"
+
+
+class Gastos(models.Model):
+    tipo = models.CharField(
+        max_length=30, choices=GastosChoices.choices, blank=False, null=False
+    )
+    area_venta = models.ForeignKey(AreaVenta, on_delete=models.CASCADE, null=True)
+    cuenta = models.ForeignKey(Cuentas, on_delete=models.CASCADE, null=True)
+    is_cafeteria = models.BooleanField(default=False)
+    descripcion = models.CharField(max_length=100, blank=False, null=False)
+    cantidad = models.IntegerField(null=False, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    # Fijos
+    frecuencia = models.CharField(
+        max_length=30, choices=FrecuenciaChoices.choices, blank=True, null=True
+    )
+    # mensuales
+    dia_mes = models.IntegerField(null=True, blank=True)
+    # semanales
+    dia_semana = models.IntegerField(null=True, blank=True)
 
 
 # CAFERTERIA
@@ -550,6 +551,7 @@ class Transacciones(models.Model):
     entrada_cafeteria = models.ForeignKey(
         Entradas_Cafeteria, on_delete=models.CASCADE, null=True, blank=True
     )
+    gasto = models.ForeignKey(Gastos, on_delete=models.CASCADE, null=True, blank=True)
 
 
 class Productos_Cantidad_Merma(models.Model):
