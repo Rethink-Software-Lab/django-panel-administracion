@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import List
+from typing import List, Tuple
 from django.db.models import F
 from ninja.errors import HttpError
 from inventario.models import (
@@ -30,8 +30,11 @@ from django.db import transaction
 from ..custom_permissions import isStaff
 
 
-def sumatoria_precio_costo(productos: List[ProductosEntradaAlmacenPrincipal]) -> int:
+def sumatoria_precio_costo(
+    productos: List[ProductosEntradaAlmacenPrincipal],
+) -> Tuple[int, int]:
     sum_precio_costo = 0
+    cantidad_productos = 0
     for producto in productos:
         producto_info = get_object_or_404(ProductoInfo, pk=producto.producto)
         if producto_info.categoria.nombre == "Zapatos":
@@ -40,9 +43,11 @@ def sumatoria_precio_costo(productos: List[ProductosEntradaAlmacenPrincipal]) ->
             for variante in producto.variantes:
                 for num in variante.numeros:
                     sum_precio_costo += producto_info.precio_costo * num.cantidad
+                    cantidad_productos += num.cantidad
         else:
             sum_precio_costo += producto_info.precio_costo * producto.cantidad
-    return sum_precio_costo
+            cantidad_productos += producto.cantidad or 0
+    return sum_precio_costo, cantidad_productos
 
 
 def is_valid_cuenta(cuenta: Cuentas, metodo_pago: str) -> HttpError | None:
@@ -90,17 +95,20 @@ def rebajar_saldo(cuentas: List[CuentasInCreateEntrada]) -> None:
 
 
 def crear_transacciones(
-    entrada: EntradaAlmacen, cuentas: List[CuentasInCreateEntrada], usuario: User
+    entrada: EntradaAlmacen,
+    cuentas: List[CuentasInCreateEntrada],
+    usuario: User,
+    cantidad_productos: int,
 ) -> None:
     for cuenta in cuentas:
         cuentaQS = get_object_or_404(Cuentas, pk=cuenta.cuenta)
         Transacciones.objects.create(
             entrada=entrada,
             usuario=usuario,
-            tipo=TipoTranferenciaChoices.EGRESO,
+            tipo=TipoTranferenciaChoices.ENTRADA,
             cuenta=cuentaQS,
             cantidad=Decimal(cuenta.cantidad or 0),
-            descripcion=" ",
+            descripcion=f"{cantidad_productos} Productos - Almacén Principal",
         )
 
 
@@ -137,7 +145,7 @@ class EntradasController:
         user = get_object_or_404(User, pk=request.auth["id"])
         proveedor = get_object_or_404(Proveedor, pk=data.proveedor)
         response = []
-        sum_precio_costo = sumatoria_precio_costo(data.productos)
+        sum_precio_costo, cantidad_productos = sumatoria_precio_costo(data.productos)
 
         if len(data.cuentas) == 1:
             data.cuentas[0].cantidad = Decimal(sum_precio_costo)
@@ -158,7 +166,7 @@ class EntradasController:
 
                 rebajar_saldo(data.cuentas)
 
-                crear_transacciones(entrada, data.cuentas, user)
+                crear_transacciones(entrada, data.cuentas, user, cantidad_productos)
 
                 for producto in data.productos:
                     producto_info = get_object_or_404(

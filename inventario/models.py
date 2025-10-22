@@ -520,6 +520,12 @@ class Ventas_Cafeteria(models.Model):
 class TipoTranferenciaChoices(models.TextChoices):
     INGRESO = "INGRESO", "Ingreso"
     EGRESO = "EGRESO", "Egreso"
+    VENTA = "VENTA", "Venta"
+    PAGO_TRABAJADOR = "PAGO_TRABAJADOR", "Pago trabajador"
+    GASTO_FIJO = "GASTO_FIJO", "Gasto fijo"
+    GASTO_VARIABLE = "GASTO_VARIABLE", "Gasto variable"
+    TRANSFERENCIA = "TRANSFERENCIA", "Transferencia"
+    ENTRADA = "ENTRADA", "Entrada"
 
 
 class Transacciones(models.Model):
