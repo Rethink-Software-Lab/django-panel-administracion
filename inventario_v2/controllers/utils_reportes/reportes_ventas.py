@@ -241,7 +241,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
     subtotal_transferencia = (
         Transacciones.objects.filter(
             venta__in=ventas_para_subtotales,
-            tipo=TipoTranferenciaChoices.INGRESO,
+            tipo=TipoTranferenciaChoices.VENTA,
             cuenta__tipo=CuentasChoices.BANCARIA,
         ).aggregate(transferencia=Sum("cantidad"))["transferencia"]
         or 0
@@ -250,7 +250,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
     subtotal_efectivo = (
         Transacciones.objects.filter(
             venta__in=ventas_para_subtotales,
-            tipo=TipoTranferenciaChoices.INGRESO,
+            tipo=TipoTranferenciaChoices.VENTA,
             cuenta__tipo=CuentasChoices.EFECTIVO,
         ).aggregate(efectivo=Sum("cantidad"))["efectivo"]
         or 0
@@ -259,7 +259,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
     pago_trabajador_para_subtotal_efectivo = (
         Transacciones.objects.filter(
             venta__in=ventas_para_subtotales,
-            tipo=TipoTranferenciaChoices.INGRESO,
+            tipo=TipoTranferenciaChoices.VENTA,
             cuenta__tipo=CuentasChoices.EFECTIVO,
         ).aggregate(pago=Sum("venta__producto__info__pago_trabajador"))["pago"]
         or 0
@@ -268,7 +268,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
     transferencia_pago_trabajador = (
         Transacciones.objects.filter(
             venta__in=ventas_para_subtotales,
-            tipo=TipoTranferenciaChoices.EGRESO,
+            tipo=TipoTranferenciaChoices.PAGO_TRABAJADOR,
             cuenta__tipo=CuentasChoices.EFECTIVO,
         ).aggregate(transf=Sum("cantidad"))["transf"]
         or 0
