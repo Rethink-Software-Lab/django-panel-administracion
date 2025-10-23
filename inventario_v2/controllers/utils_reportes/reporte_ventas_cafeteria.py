@@ -199,7 +199,7 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
     subtotal_efectivo = (
         Transacciones.objects.filter(
             venta_cafeteria__in=ventas_para_subtotales,
-            tipo=TipoTranferenciaChoices.VENTA,
+            tipo__in=[TipoTranferenciaChoices.VENTA, TipoTranferenciaChoices.INGRESO],
             cuenta__tipo=CuentasChoices.EFECTIVO,
         ).aggregate(total=Sum("cantidad"))["total"]
         or 0
@@ -208,7 +208,7 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
     subtotal_transferencia = (
         Transacciones.objects.filter(
             venta_cafeteria__in=ventas_para_subtotales,
-            tipo=TipoTranferenciaChoices.VENTA,
+            tipo__in=[TipoTranferenciaChoices.VENTA, TipoTranferenciaChoices.INGRESO],
             cuenta__tipo=CuentasChoices.BANCARIA,
         ).aggregate(total=Sum("cantidad"))["total"]
         or 0
