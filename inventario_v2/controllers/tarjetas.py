@@ -6,7 +6,6 @@ from inventario.models import (
     TipoTranferenciaChoices,
 )
 from ..schema import (
-    TarjetasModifySchema,
     TransferenciasTarjetasModify,
 )
 from ninja_extra import api_controller, route
@@ -18,31 +17,6 @@ from decimal import Decimal
 
 @api_controller("tarjetas/", tags=["Tarjetas"], permissions=[isAdmin | isSupervisor])
 class TarjetasController:
-    @route.post("")
-    def add_tarjeta(self, body: TarjetasModifySchema):
-        body_dict = body.model_dump()
-
-        try:
-            Cuentas.objects.create(
-                nombre=body_dict["nombre"],
-                banco=body_dict["banco"],
-                tipo=body_dict["tipo"],
-                saldo=Decimal(body_dict["saldo_inicial"]),
-            )
-        except:
-            raise HttpError(400, "Error al crear la tarjeta")
-
-        return
-
-    @route.delete("{id}/")
-    def delete_tarjeta(self, id: int):
-        tarjeta = get_object_or_404(Cuentas, pk=id)
-        try:
-            tarjeta.delete()
-            return
-        except Exception as e:
-            raise HttpError(400, f"No se pudo eliminar la tarjeta: {e}")
-
     @route.post("add/transferencia/")
     def add_transferencia(self, request, body: TransferenciasTarjetasModify):
         body_dict = body.model_dump()
