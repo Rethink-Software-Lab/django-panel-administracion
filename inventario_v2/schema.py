@@ -449,13 +449,6 @@ class TarjetasForVentas(Schema):
     disponible: bool
 
 
-class TarjetasModifySchema(Schema):
-    nombre: str
-    tipo: CuentasChoices
-    banco: BancoChoices
-    saldo_inicial: str
-
-
 class TransferenciasTarjetasModify(Schema):
     cuenta: int
     cantidad: str

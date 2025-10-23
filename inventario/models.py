@@ -1,4 +1,5 @@
 from decimal import Decimal
+from email.policy import default
 from django.db import models
 from django.contrib.auth.models import (
     AbstractBaseUser,
@@ -254,6 +255,11 @@ class CuentasChoices(models.TextChoices):
     BANCARIA = "BANCARIA", "Bancaria"
 
 
+class MonedaChoices(models.TextChoices):
+    CUP = "CUP", "CUP"
+    USD = "USD", "USD"
+
+
 class Cuentas(models.Model):
     nombre = models.CharField(max_length=50, blank=False, null=False)
     tipo = models.CharField(
@@ -265,6 +271,13 @@ class Cuentas(models.Model):
         default=Decimal("0.00"),
         blank=False,
         null=False,
+    )
+    moneda = models.CharField(
+        max_length=3,
+        choices=MonedaChoices.choices,
+        blank=False,
+        null=False,
+        default=MonedaChoices.CUP,
     )
     banco = models.CharField(
         max_length=50, choices=BancoChoices.choices, blank=True, null=True
