@@ -342,28 +342,6 @@ class UsuariosAuthSchema(ModelSchema):
         return v
 
 
-class Otros(Schema):
-    area: str
-    cantidad: int
-
-
-class newZapatos(Schema):
-    id: int
-    color: str
-    numero: int
-
-
-class ZapatosForSearch(Schema):
-    area: str
-    productos: List[newZapatos]
-
-
-class SearchProductSchema(Schema):
-    info: Optional[ProductoInfoSchema] = None
-    zapato: bool
-    inventario: List[Otros] | List[ZapatosForSearch]
-
-
 class VentasAnualesSchema(Schema):
     mes: str
     ventas: Decimal
