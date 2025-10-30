@@ -1,24 +1,19 @@
-from collections import defaultdict
 from inventario.models import (
-    AreaVenta,
     ProductoInfo,
     Producto,
     Categorias,
     HistorialPrecioVentaSalon,
 )
-from ..schema import InventarioAreaVentaSchema, Almacenes, AlmacenCafeteria
+from ..schema import Almacenes
 from ninja_extra import api_controller, route
-from django.shortcuts import get_object_or_404
 from django.db.models import F, Count, Q, OuterRef, Subquery
 from ..custom_permissions import isAuthenticated
 
 
 @api_controller("inventario/", tags=["Inventario"], permissions=[isAuthenticated])
 class InventarioController:
-
     @route.get("almacen/", response=Almacenes)
     def getInventarioAlmacen(self):
-
         ultimo_precio = (
             HistorialPrecioVentaSalon.objects.filter(producto_info=OuterRef("pk"))
             .order_by("-fecha_inicio")
@@ -67,7 +62,6 @@ class InventarioController:
 
     @route.get("almacen-revoltosa/", response=Almacenes)
     def getInventarioAlmacenRevoltosa(self):
-
         ultimo_precio = (
             HistorialPrecioVentaSalon.objects.filter(producto_info=OuterRef("pk"))
             .order_by("-fecha_inicio")

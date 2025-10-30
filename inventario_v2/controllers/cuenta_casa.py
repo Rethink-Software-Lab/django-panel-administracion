@@ -1,6 +1,9 @@
 from decimal import Decimal
 from ninja.errors import HttpError
 from inventario.models import (
+    Cuentas,
+    TipoTranferenciaChoices,
+    Transacciones,
     User,
     Productos_Cafeteria,
     Elaboraciones,
@@ -71,6 +74,22 @@ class CuentaCasaController:
                         elaboracion = get_object_or_404(
                             Elaboraciones, id=producto.producto
                         )
+                        mano_obra = elaboracion.mano_obra * Decimal(producto.cantidad)
+
+                        caja_cafeteria = get_object_or_404(Cuentas, id=71)
+
+                        Transacciones.objects.create(
+                            cantidad=mano_obra,
+                            usuario=usuario,
+                            tipo=TipoTranferenciaChoices.PAGO_TRABAJADOR,
+                            cuenta=caja_cafeteria,
+                            descripcion=f"{producto.cantidad}x {elaboracion.nombre} - Cuenta Casa",
+                            cuenta_casa=cuenta_casa,
+                        )
+
+                        caja_cafeteria.saldo -= mano_obra
+                        caja_cafeteria.save()
+
                         for ingrediente in elaboracion.ingredientes_cantidad.all():
                             if body.localizacion == "almacen-cafeteria":
                                 inventario = get_object_or_404(
@@ -95,6 +114,7 @@ class CuentaCasaController:
                                 producto.cantidad
                             )
                             inventario.save()
+
                         new_elaboracion = (
                             Elaboraciones_Cantidad_Cuenta_Casa.objects.create(
                                 producto=elaboracion,
@@ -174,6 +194,16 @@ class CuentaCasaController:
                             elaboracion.cantidad
                         )
                         inventario.save()
+
+                transaccion = get_object_or_404(
+                    Transacciones,
+                    cuenta_casa=cuenta_casa,
+                    tipo=TipoTranferenciaChoices.PAGO_TRABAJADOR,
+                )
+
+                caja_cafeteria = get_object_or_404(Cuentas, id=71)
+                caja_cafeteria.saldo += transaccion.cantidad
+                caja_cafeteria.save()
 
                 cuenta_casa.delete()
             return

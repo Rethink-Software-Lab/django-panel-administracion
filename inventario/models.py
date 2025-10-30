@@ -50,7 +50,9 @@ class AreaVenta(models.Model):
     nombre = models.CharField(max_length=50, blank=False, null=False)
     color = models.CharField(max_length=10)
     active = models.BooleanField(default=True, null=False, blank=False)
-    cuenta = models.ForeignKey(Cuentas, on_delete=models.SET_NULL, null=True)
+    cuenta = models.ForeignKey(
+        Cuentas, on_delete=models.DO_NOTHING, null=False, blank=False
+    )
 
     def __str__(self):
         return self.nombre
@@ -290,9 +292,10 @@ class GastosChoices(models.TextChoices):
 
 
 class FrecuenciaChoices(models.TextChoices):
-    LUNES_SABADO = "LUNES_SABADO", "Lunes-Sábado"
+    DIARIO = "DIARIO", "Diario"
     SEMANAL = "SEMANAL", "Semanal"
     MENSUAL = "MENSUAL", "Mensual"
+    LUNES_SABADO = "LUNES_SABADO", "Lunes-Sábado"
 
 
 class Gastos(models.Model):
@@ -530,6 +533,43 @@ class Ventas_Cafeteria(models.Model):
     transferencia = models.DecimalField(max_digits=7, decimal_places=2, null=True)
 
 
+class Productos_Cantidad_Cuenta_Casa(models.Model):
+    producto = models.ForeignKey(
+        Productos_Cafeteria,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+    )
+    cantidad = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=False, null=False
+    )
+
+
+class Elaboraciones_Cantidad_Cuenta_Casa(models.Model):
+    producto = models.ForeignKey(
+        Elaboraciones,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+    )
+    cantidad = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=False, null=False
+    )
+
+
+class CuentaCasa(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    productos = models.ManyToManyField(Productos_Cantidad_Cuenta_Casa, blank=True)
+    elaboraciones = models.ManyToManyField(
+        Elaboraciones_Cantidad_Cuenta_Casa, blank=True
+    )
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    is_almacen = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.created_at.strftime("%d/%m/%Y - %H:%M")
+
+
 class TipoTranferenciaChoices(models.TextChoices):
     INGRESO = "INGRESO", "Ingreso"
     EGRESO = "EGRESO", "Egreso"
@@ -571,6 +611,9 @@ class Transacciones(models.Model):
         Entradas_Cafeteria, on_delete=models.CASCADE, null=True, blank=True
     )
     gasto = models.ForeignKey(Gastos, on_delete=models.CASCADE, null=True, blank=True)
+    cuenta_casa = models.ForeignKey(
+        CuentaCasa, on_delete=models.CASCADE, null=True, blank=True
+    )
 
 
 class Productos_Cantidad_Merma(models.Model):
@@ -610,43 +653,6 @@ class MermaCafeteria(models.Model):
     class Meta:
         verbose_name = "Merma"
         verbose_name_plural = "Merma"
-
-
-class Productos_Cantidad_Cuenta_Casa(models.Model):
-    producto = models.ForeignKey(
-        Productos_Cafeteria,
-        on_delete=models.CASCADE,
-        null=False,
-        blank=False,
-    )
-    cantidad = models.DecimalField(
-        max_digits=12, decimal_places=2, blank=False, null=False
-    )
-
-
-class Elaboraciones_Cantidad_Cuenta_Casa(models.Model):
-    producto = models.ForeignKey(
-        Elaboraciones,
-        on_delete=models.CASCADE,
-        null=False,
-        blank=False,
-    )
-    cantidad = models.DecimalField(
-        max_digits=12, decimal_places=2, blank=False, null=False
-    )
-
-
-class CuentaCasa(models.Model):
-    created_at = models.DateTimeField(auto_now_add=True)
-    productos = models.ManyToManyField(Productos_Cantidad_Cuenta_Casa, blank=True)
-    elaboraciones = models.ManyToManyField(
-        Elaboraciones_Cantidad_Cuenta_Casa, blank=True
-    )
-    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    is_almacen = models.BooleanField(default=False)
-
-    def __str__(self):
-        return self.created_at.strftime("%d/%m/%Y - %H:%M")
 
 
 class VendedorExterno(models.Model):
