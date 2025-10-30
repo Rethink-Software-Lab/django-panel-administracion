@@ -7,11 +7,50 @@ from django.contrib.auth.models import (
 )
 
 
+class BancoChoices(models.TextChoices):
+    BPA = "BPA", "BPA"
+    BANDEC = "BANDEC", "Bandec"
+
+
+class CuentasChoices(models.TextChoices):
+    EFECTIVO = "EFECTIVO", "Efectivo"
+    BANCARIA = "BANCARIA", "Bancaria"
+
+
+class MonedaChoices(models.TextChoices):
+    CUP = "CUP", "CUP"
+    USD = "USD", "USD"
+
+
+class Cuentas(models.Model):
+    nombre = models.CharField(max_length=50, blank=False, null=False)
+    tipo = models.CharField(
+        max_length=30, choices=CuentasChoices.choices, blank=False, null=False
+    )
+    saldo = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        blank=False,
+        null=False,
+    )
+    moneda = models.CharField(
+        max_length=3,
+        choices=MonedaChoices.choices,
+        blank=False,
+        null=False,
+        default=MonedaChoices.CUP,
+    )
+    banco = models.CharField(
+        max_length=50, choices=BancoChoices.choices, blank=True, null=True
+    )
+
+
 class AreaVenta(models.Model):
     nombre = models.CharField(max_length=50, blank=False, null=False)
     color = models.CharField(max_length=10)
-    isMesa = models.BooleanField(default=False)
     active = models.BooleanField(default=True, null=False, blank=False)
+    cuenta = models.ForeignKey(Cuentas, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
         return self.nombre
@@ -242,45 +281,6 @@ class AjusteInventario(models.Model):
     motivo = models.CharField(max_length=100, null=False)
     usuario = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name="ajuste"
-    )
-
-
-class BancoChoices(models.TextChoices):
-    BPA = "BPA", "BPA"
-    BANDEC = "BANDEC", "Bandec"
-
-
-class CuentasChoices(models.TextChoices):
-    EFECTIVO = "EFECTIVO", "Efectivo"
-    BANCARIA = "BANCARIA", "Bancaria"
-
-
-class MonedaChoices(models.TextChoices):
-    CUP = "CUP", "CUP"
-    USD = "USD", "USD"
-
-
-class Cuentas(models.Model):
-    nombre = models.CharField(max_length=50, blank=False, null=False)
-    tipo = models.CharField(
-        max_length=30, choices=CuentasChoices.choices, blank=False, null=False
-    )
-    saldo = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=Decimal("0.00"),
-        blank=False,
-        null=False,
-    )
-    moneda = models.CharField(
-        max_length=3,
-        choices=MonedaChoices.choices,
-        blank=False,
-        null=False,
-        default=MonedaChoices.CUP,
-    )
-    banco = models.CharField(
-        max_length=50, choices=BancoChoices.choices, blank=True, null=True
     )
 
 

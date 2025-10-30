@@ -212,7 +212,7 @@ class EntradasController:
                             )
                         response.append(
                             {
-                                "zapato": producto.producto,
+                                "zapato": producto_info.descripcion,
                                 "variantes": variantesResponse,
                             }
                         )
