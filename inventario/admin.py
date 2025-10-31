@@ -82,6 +82,8 @@ class AreaVentaAdmin(admin.ModelAdmin):
         "id",
         "nombre",
         "color",
+        "active",
+        "cuenta",
     ]
 
 

@@ -122,6 +122,14 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
                     "cantidad": gasto.cantidad * dias_laborables,
                 }
             )
+        elif gasto.frecuencia == FrecuenciaChoices.DIARIO:
+            dias_transcurridos = (parse_hasta - parse_desde).days + 1
+            gastos_fijos.append(
+                {
+                    "descripcion": gasto.descripcion,
+                    "cantidad": gasto.cantidad * dias_transcurridos,
+                }
+            )
 
     filtros_productos = {
         "producto__venta__created_at__date__range": (

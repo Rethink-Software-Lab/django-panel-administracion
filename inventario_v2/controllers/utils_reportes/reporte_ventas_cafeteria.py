@@ -92,6 +92,14 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
                     "cantidad": gasto.cantidad * dias_laborables,
                 }
             )
+        elif gasto.frecuencia == FrecuenciaChoices.DIARIO:
+            dias_transcurridos = (hasta - desde).days + 1
+            gastos_fijos.append(
+                {
+                    "descripcion": gasto.descripcion,
+                    "cantidad": gasto.cantidad * dias_transcurridos,
+                }
+            )
 
     historico_costo = (
         HistorialPrecioCostoCafeteria.objects.filter(
