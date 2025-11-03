@@ -69,7 +69,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
     }
 
     if area != "general":
-        filtros_gastos_variables["area_venta"] = area
+        filtros_gastos_variables["areas_venta"] = area
 
     gastos_variables = Gastos.objects.filter(**filtros_gastos_variables).only(
         "descripcion", "cantidad"
@@ -81,7 +81,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
     }
 
     if area != "general":
-        filtros_gastos_fijos["area_venta"] = area
+        filtros_gastos_fijos["areas_venta"] = area
         filtros_gastos_fijos["is_cafeteria"] = False
 
     gastos_fijos_result = Gastos.objects.filter(**filtros_gastos_fijos).annotate(

@@ -302,9 +302,10 @@ class Gastos(models.Model):
     tipo = models.CharField(
         max_length=30, choices=GastosChoices.choices, blank=False, null=False
     )
-    area_venta = models.ForeignKey(AreaVenta, on_delete=models.CASCADE, null=True)
+    areas_venta = models.ManyToManyField(AreaVenta, blank=True)
     cuenta = models.ForeignKey(Cuentas, on_delete=models.CASCADE, null=True)
     is_cafeteria = models.BooleanField(default=False)
+    is_general = models.BooleanField(default=False)
     descripcion = models.CharField(max_length=100, blank=False, null=False)
     cantidad = models.IntegerField(null=False, blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
