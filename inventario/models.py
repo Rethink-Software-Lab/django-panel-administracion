@@ -303,9 +303,6 @@ class Gastos(models.Model):
         max_length=30, choices=GastosChoices.choices, blank=False, null=False
     )
     areas_venta = models.ManyToManyField(AreaVenta, blank=True)
-    area_venta = models.ForeignKey(
-        AreaVenta, on_delete=models.CASCADE, null=True, related_name="gastosparaborrar"
-    )
     cuenta = models.ForeignKey(Cuentas, on_delete=models.CASCADE, null=True)
     is_cafeteria = models.BooleanField(default=False)
     is_general = models.BooleanField(default=False)
