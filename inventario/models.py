@@ -305,7 +305,6 @@ class Gastos(models.Model):
     areas_venta = models.ManyToManyField(AreaVenta, blank=True)
     cuenta = models.ForeignKey(Cuentas, on_delete=models.CASCADE, null=True)
     is_cafeteria = models.BooleanField(default=False)
-    is_general = models.BooleanField(default=False)
     descripcion = models.CharField(max_length=100, blank=False, null=False)
     cantidad = models.IntegerField(null=False, blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -586,6 +585,13 @@ class Transacciones(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     cantidad = models.DecimalField(
         max_digits=12, decimal_places=2, blank=False, null=False
+    )
+    moneda = models.CharField(
+        max_length=3,
+        choices=MonedaChoices.choices,
+        blank=False,
+        null=False,
+        default=MonedaChoices.CUP,
     )
     descripcion = models.CharField(max_length=50, blank=False, null=False)
     cuenta = models.ForeignKey(

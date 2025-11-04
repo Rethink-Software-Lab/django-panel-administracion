@@ -89,7 +89,8 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
             When(dia_mes__gt=ultimo_dia_hasta, then=ultimo_dia_hasta),
             default=F("dia_mes"),
             output_field=IntegerField(),
-        )
+        ),
+        cantidad_areas=Count("areas_venta"),
     )
 
     gastos_fijos = []
@@ -102,7 +103,9 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
             gastos_fijos.append(
                 {
                     "descripcion": gasto.descripcion,
-                    "cantidad": gasto.cantidad,
+                    "cantidad": (gasto.cantidad / gasto.cantidad_areas)
+                    if gasto.cantidad_areas != 0
+                    else gasto.cantidad,
                 }
             )
         elif (
@@ -112,14 +115,24 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
             gastos_fijos.append(
                 {
                     "descripcion": gasto.descripcion,
-                    "cantidad": gasto.cantidad * dias_semana.get(gasto.dia_semana, 0),
+                    "cantidad": (
+                        gasto.cantidad
+                        * dias_semana.get(gasto.dia_semana, 0)
+                        / gasto.cantidad_areas
+                    )
+                    if gasto.cantidad_areas != 0
+                    else gasto.cantidad * dias_semana.get(gasto.dia_semana, 0),
                 }
             )
         elif gasto.frecuencia == FrecuenciaChoices.LUNES_SABADO:
             gastos_fijos.append(
                 {
                     "descripcion": gasto.descripcion,
-                    "cantidad": gasto.cantidad * dias_laborables,
+                    "cantidad": (
+                        gasto.cantidad * dias_laborables / gasto.cantidad_areas
+                    )
+                    if gasto.cantidad_areas != 0
+                    else gasto.cantidad * dias_laborables,
                 }
             )
         elif gasto.frecuencia == FrecuenciaChoices.DIARIO:
@@ -127,7 +140,11 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
             gastos_fijos.append(
                 {
                     "descripcion": gasto.descripcion,
-                    "cantidad": gasto.cantidad * dias_transcurridos,
+                    "cantidad": (
+                        gasto.cantidad * dias_transcurridos / gasto.cantidad_areas
+                    )
+                    if gasto.cantidad_areas != 0
+                    else gasto.cantidad * dias_transcurridos,
                 }
             )
 
