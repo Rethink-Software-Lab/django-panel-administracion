@@ -416,7 +416,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
         "total": {
             "general": total,
             "efectivo": subtotal_efectivo_neto
-            - total_gastos_fijos
+            - Decimal(total_gastos_fijos)
             - monto_gastos_variables,
             "transferencia": subtotal_transferencia,
         },
