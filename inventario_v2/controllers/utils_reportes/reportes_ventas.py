@@ -390,7 +390,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
                 - reporte_cafeteria.get("mano_obra")
                 - reporte_cafeteria.get("mano_obra_cuenta_casa"),
                 "efectivo": subtotal_efectivo_neto
-                - total_gastos_fijos
+                - Decimal(total_gastos_fijos)
                 - monto_gastos_variables
                 + reporte_cafeteria.get("subtotal").get("efectivo")
                 - reporte_cafeteria.get("mano_obra")
