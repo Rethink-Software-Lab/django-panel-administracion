@@ -337,7 +337,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
 
     total_gatos = total_gastos_fijos + monto_gastos_variables + pago_trabajador or 0
 
-    total = subtotal - total_gatos
+    total = subtotal - Decimal(total_gatos)
 
     ganancia = total - costo_productos
 
