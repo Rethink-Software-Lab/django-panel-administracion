@@ -593,7 +593,7 @@ class Transacciones(models.Model):
         null=False,
         default=MonedaChoices.CUP,
     )
-    descripcion = models.CharField(max_length=50, blank=False, null=False)
+    descripcion = models.CharField(max_length=100, blank=False, null=False)
     cuenta = models.ForeignKey(
         Cuentas,
         on_delete=models.CASCADE,
