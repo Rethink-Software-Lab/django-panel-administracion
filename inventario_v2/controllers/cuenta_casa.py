@@ -195,15 +195,16 @@ class CuentaCasaController:
                         )
                         inventario.save()
 
-                transaccion = get_object_or_404(
-                    Transacciones,
-                    cuenta_casa=cuenta_casa,
-                    tipo=TipoTranferenciaChoices.PAGO_TRABAJADOR,
-                )
+                if cuenta_casa.elaboraciones.count() > 0:
+                    transaccion = get_object_or_404(
+                        Transacciones,
+                        cuenta_casa=cuenta_casa,
+                        tipo=TipoTranferenciaChoices.PAGO_TRABAJADOR,
+                    )
 
-                caja_cafeteria = get_object_or_404(Cuentas, id=71)
-                caja_cafeteria.saldo += transaccion.cantidad
-                caja_cafeteria.save()
+                    caja_cafeteria = get_object_or_404(Cuentas, id=71)
+                    caja_cafeteria.saldo += transaccion.cantidad
+                    caja_cafeteria.save()
 
                 cuenta_casa.delete()
             return
