@@ -345,7 +345,7 @@ class HistorialPrecioCostoCafeteria(models.Model):
         null=True,
     )
     precio = models.DecimalField(
-        max_digits=7, decimal_places=2, blank=False, null=False
+        max_digits=20, decimal_places=10, blank=False, null=False
     )
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True)
     fecha_inicio = models.DateTimeField(auto_now_add=True)
@@ -359,7 +359,7 @@ class HistorialPrecioVentaCafeteria(models.Model):
         null=True,
     )
     precio = models.DecimalField(
-        max_digits=7, decimal_places=2, blank=False, null=False
+        max_digits=20, decimal_places=10, blank=False, null=False
     )
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True)
     fecha_inicio = models.DateTimeField(auto_now_add=True)
