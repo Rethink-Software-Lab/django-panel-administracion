@@ -45,6 +45,13 @@ class Cuentas(models.Model):
         max_length=50, choices=BancoChoices.choices, blank=True, null=True
     )
 
+    def __str__(self):
+        return self.nombre
+
+    class Meta:
+        verbose_name = "Cuenta"
+        verbose_name_plural = "Cuentas"
+
 
 class AreaVenta(models.Model):
     nombre = models.CharField(max_length=50, blank=False, null=False)
@@ -322,6 +329,7 @@ class Gastos(models.Model):
 # CAFERTERIA
 class Productos_Cafeteria(models.Model):
     nombre = models.CharField(max_length=50, blank=False, null=False)
+    is_ingrediente = models.BooleanField(default=False)
 
     @property
     def precio_costo(self):
@@ -335,6 +343,10 @@ class Productos_Cafeteria(models.Model):
 
     def __str__(self) -> str:
         return self.nombre
+
+    class Meta:
+        verbose_name = "Producto de cafeteria"
+        verbose_name_plural = "Productos de cafeteria"
 
 
 class HistorialPrecioCostoCafeteria(models.Model):
