@@ -1,5 +1,30 @@
 from django.contrib import admin
-from .models import *
+from .models import (
+    User,
+    Image,
+    EntradaAlmacen,
+    SalidaAlmacen,
+    Ventas,
+    Categorias,
+    Productos_Cafeteria,
+    Producto,
+    Transacciones,
+    AreaVenta,
+    MermaCafeteria,
+    Inventario_Area_Cafeteria,
+    Inventario_Almacen_Cafeteria,
+    Cuentas,
+    Elaboraciones,
+    Ventas_Cafeteria,
+    Salidas_Cafeteria,
+    HistorialPrecioCostoSalon,
+    HistorialPrecioVentaSalon,
+    Entradas_Cafeteria,
+    Productos_Entradas_Cafeteria,
+    Ingrediente_Cantidad,
+    ProductoInfo,
+    Transferencia,
+)
 
 admin.site.register(User)
 admin.site.register(Image)
@@ -7,7 +32,27 @@ admin.site.register(EntradaAlmacen)
 admin.site.register(SalidaAlmacen)
 admin.site.register(Ventas)
 admin.site.register(Categorias)
-admin.site.register(Productos_Cafeteria)
+
+
+@admin.register(Productos_Cafeteria)
+class ProductosCafeteriaAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "nombre",
+        "is_ingrediente",
+        "precio_costo",
+    ]
+
+    search_fields = ["nombre", "id"]
+    actions = ["marcar_como_ingrediente"]
+
+    @admin.action(description="Marcar como ingrediente")
+    def marcar_como_ingrediente(self, request, queryset):
+        updated = queryset.update(is_ingrediente=True)
+        self.message_user(
+            request,
+            f"{updated} producto(s) marcado(s) como ingrediente(s) exitosamente.",
+        )
 
 
 @admin.register(Producto)
@@ -146,12 +191,9 @@ class InventarioAlmacenCafeteriaAdmin(admin.ModelAdmin):
 
 @admin.register(Cuentas)
 class CuentasAdmin(admin.ModelAdmin):
-    list_display = [
-        "id",
-        "nombre",
-        "saldo",
-    ]
+    list_display = ["id", "nombre", "saldo", "moneda"]
     list_editable = ["saldo"]
+    search_fields = ["nombre"]
 
 
 admin.site.register(Entradas_Cafeteria)
