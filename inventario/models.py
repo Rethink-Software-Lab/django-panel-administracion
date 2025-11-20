@@ -330,6 +330,7 @@ class Gastos(models.Model):
 class Productos_Cafeteria(models.Model):
     nombre = models.CharField(max_length=50, blank=False, null=False)
     is_ingrediente = models.BooleanField(default=False)
+    active = models.BooleanField(default=True, null=False, blank=False)
 
     @property
     def precio_costo(self):
@@ -386,7 +387,7 @@ class Inventario_Almacen_Cafeteria(models.Model):
         related_name="inventario_almacen",
     )
     cantidad = models.DecimalField(
-        max_digits=12, decimal_places=2, blank=False, null=False
+        max_digits=20, decimal_places=10, blank=False, null=False
     )
 
     class Meta:
@@ -403,7 +404,7 @@ class Inventario_Area_Cafeteria(models.Model):
         related_name="inventario_area",
     )
     cantidad = models.DecimalField(
-        max_digits=12, decimal_places=2, blank=False, null=False
+        max_digits=20, decimal_places=10, blank=False, null=False
     )
 
     class Meta:
@@ -416,7 +417,7 @@ class Ingrediente_Cantidad(models.Model):
         Productos_Cafeteria, on_delete=models.CASCADE, null=False, blank=False
     )
     cantidad = models.DecimalField(
-        max_digits=12, decimal_places=3, blank=False, null=False
+        max_digits=20, decimal_places=10, blank=False, null=False
     )
 
 

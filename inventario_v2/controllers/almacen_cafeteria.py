@@ -1,6 +1,5 @@
 from datetime import timedelta
 from django.utils import timezone
-from typing import List
 from ninja.errors import HttpError
 from inventario.models import (
     Inventario_Area_Cafeteria,
@@ -8,17 +7,13 @@ from inventario.models import (
     Elaboraciones,
     Productos_Cafeteria,
     Inventario_Almacen_Cafeteria,
-    Entradas_Cafeteria,
     Salidas_Cafeteria,
     Productos_Salidas_Cafeteria,
     Elaboraciones_Salidas_Almacen_Cafeteria,
-    Cuentas,
-    Transacciones,
 )
 
 from ..schema import (
     Add_Salida_Cafeteria,
-    Producto_Cafeteria_Schema,
     EndPointSalidasAlmacenCafeteria,
 )
 from ninja_extra import api_controller, route
@@ -29,14 +24,6 @@ from decimal import Decimal
 
 @api_controller("almacen-cafeteria/", tags=["Almacen Cafeteria"], permissions=[])
 class AlmacenCafeteriaController:
-    @route.get("inventario/", response=List[Producto_Cafeteria_Schema])
-    def get_inventario_cafeteria(self):
-        productos = Productos_Cafeteria.objects.filter(
-            inventario_almacen__cantidad__gt=0
-        )
-
-        return productos
-
     @route.get("salidas/", response=EndPointSalidasAlmacenCafeteria)
     def get_salidas_almacen_cafeteria(self):
         salidas = Salidas_Cafeteria.objects.filter(
