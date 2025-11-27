@@ -634,6 +634,27 @@ class Transacciones(models.Model):
     cuenta_casa = models.ForeignKey(
         CuentaCasa, on_delete=models.CASCADE, null=True, blank=True
     )
+    cuenta_origen = models.ForeignKey(
+        Cuentas,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="cuenta_origen",
+    )
+    cuenta_destino = models.ForeignKey(
+        Cuentas,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="cuenta_destino",
+    )
+    tipo_cambio = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
+
+    class Meta:
+        verbose_name = "Transacción"
+        verbose_name_plural = "Transacciones"
 
 
 class Productos_Cantidad_Merma(models.Model):
