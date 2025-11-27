@@ -17,6 +17,8 @@ from decimal import Decimal
 
 @api_controller("tarjetas/", tags=["Tarjetas"], permissions=[isAdmin | isSupervisor])
 class TarjetasController:
+    """Esto son las transacciones [ingreso y egreso]"""
+
     @route.post("add/transferencia/")
     def add_transferencia(self, request, body: TransferenciasTarjetasModify):
         body_dict = body.model_dump()
@@ -48,27 +50,3 @@ class TarjetasController:
                 tipo=body_dict["tipo"],
                 usuario=usuario,
             )
-
-    @route.delete("transferencia/{id}/")
-    def delete_transferencia(self, id: int):
-        transferencia = get_object_or_404(Transacciones, pk=id)
-        tarjeta = get_object_or_404(Cuentas, pk=transferencia.cuenta.pk)
-
-        if transferencia.tipo == TipoTranferenciaChoices.INGRESO:
-            with transaction.atomic():
-                if (tarjeta.saldo - transferencia.cantidad) >= 0:
-                    tarjeta.saldo -= transferencia.cantidad
-                    tarjeta.save()
-                else:
-                    raise HttpError(400, "No hay saldo sufiente para esta acción")
-
-                transferencia.delete()
-
-        elif transferencia.tipo == TipoTranferenciaChoices.EGRESO:
-            with transaction.atomic():
-                tarjeta.saldo += transferencia.cantidad
-                tarjeta.save()
-
-                transferencia.delete()
-
-        return
