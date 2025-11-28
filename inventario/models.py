@@ -15,6 +15,7 @@ class BancoChoices(models.TextChoices):
 class CuentasChoices(models.TextChoices):
     EFECTIVO = "EFECTIVO", "Efectivo"
     BANCARIA = "BANCARIA", "Bancaria"
+    ZELLE = "ZELLE", "Zelle"
 
 
 class MonedaChoices(models.TextChoices):
@@ -44,6 +45,7 @@ class Cuentas(models.Model):
     banco = models.CharField(
         max_length=50, choices=BancoChoices.choices, blank=True, null=True
     )
+    active = models.BooleanField(default=True, null=False, blank=False)
 
     def __str__(self):
         return self.nombre
