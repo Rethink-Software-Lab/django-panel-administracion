@@ -15,6 +15,7 @@ class BancoChoices(models.TextChoices):
 class CuentasChoices(models.TextChoices):
     EFECTIVO = "EFECTIVO", "Efectivo"
     BANCARIA = "BANCARIA", "Bancaria"
+    ZELLE = "ZELLE", "Zelle"
 
 
 class MonedaChoices(models.TextChoices):
