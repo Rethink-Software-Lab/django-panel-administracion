@@ -37,7 +37,7 @@ class TarjetasController:
                 tarjeta.saldo += cantidad
                 tarjeta.save()
             elif body_dict["tipo"] == TipoTranferenciaChoices.EGRESO:
-                if (tarjeta.saldo - cantidad) <= 0:
+                if tarjeta.saldo < cantidad:
                     raise HttpError(400, "No hay saldo sufiente para esta accion")
 
                 tarjeta.saldo -= cantidad
