@@ -72,6 +72,7 @@ def login(request, data: LoginSchema):
     if passOk:
         payload = {
             "id": user.pk,
+            "username": user.username,
             "rol": user.rol,
             "area_venta": user.area_venta.pk if user.area_venta else None,
             "almacen": user.almacen,
