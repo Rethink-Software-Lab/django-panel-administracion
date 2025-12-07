@@ -78,6 +78,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
     filtros_gastos_fijos = {
         "tipo": GastosChoices.FIJO,
         "created_at__date__lte": parse_hasta,
+        "areas_venta__isnull": False,
     }
 
     if area != "general":
