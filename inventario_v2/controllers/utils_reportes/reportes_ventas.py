@@ -78,6 +78,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
     filtros_gastos_fijos = {
         "tipo": GastosChoices.FIJO,
         "created_at__date__lte": parse_hasta,
+        "areas_venta__isnull": False,
     }
 
     if area != "general":
@@ -337,7 +338,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
 
     total_gatos = total_gastos_fijos + monto_gastos_variables + pago_trabajador or 0
 
-    total = subtotal - total_gatos
+    total = subtotal - Decimal(total_gatos)
 
     ganancia = total - costo_productos
 
@@ -416,7 +417,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
         "total": {
             "general": total,
             "efectivo": subtotal_efectivo_neto
-            - total_gastos_fijos
+            - Decimal(total_gastos_fijos)
             - monto_gastos_variables,
             "transferencia": subtotal_transferencia,
         },
