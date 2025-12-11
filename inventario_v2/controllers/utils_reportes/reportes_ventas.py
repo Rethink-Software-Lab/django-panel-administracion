@@ -40,7 +40,7 @@ from inventario_v2.utils import (
 )
 
 
-def get_gastos_varriables(
+def get_gastos_variables(
     parse_desde: date, parse_hasta: date, area: str
 ) -> QuerySet[Gastos]:
     filtros_gastos_variables = {
@@ -49,7 +49,7 @@ def get_gastos_varriables(
     }
 
     if area != "general":
-        filtros_gastos_variables["area_venta"] = area
+        filtros_gastos_variables["areas_venta"] = area
 
     gastos_variables = Gastos.objects.filter(**filtros_gastos_variables).only(
         "descripcion", "cantidad"
@@ -63,16 +63,8 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
     ultimo_dia_hasta = obtener_ultimo_dia_mes(parse_hasta)
     dias_semana = obtener_dias_semana_rango(parse_desde, parse_hasta)
 
-    filtros_gastos_variables = {
-        "tipo": GastosChoices.VARIABLE,
-        "created_at__date__range": (parse_desde, parse_hasta),
-    }
-
-    if area != "general":
-        filtros_gastos_variables["areas_venta"] = area
-
-    gastos_variables = Gastos.objects.filter(**filtros_gastos_variables).only(
-        "descripcion", "cantidad"
+    gastos_variables_queryset_sin_pago_trabajador = get_gastos_variables(
+        parse_desde, parse_hasta, area
     )
 
     filtros_gastos_fijos = {
@@ -272,7 +264,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
         or 0
     )
 
-    subtotal_efectivo = (
+    subtotal_efectivo_bruto = (
         Transacciones.objects.filter(
             venta__in=ventas_para_subtotales,
             tipo__in=[TipoTranferenciaChoices.VENTA, TipoTranferenciaChoices.INGRESO],
@@ -281,16 +273,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
         or 0
     )
 
-    pago_trabajador_para_subtotal_efectivo = (
-        Transacciones.objects.filter(
-            venta__in=ventas_para_subtotales,
-            tipo__in=[TipoTranferenciaChoices.VENTA, TipoTranferenciaChoices.INGRESO],
-            cuenta__tipo=CuentasChoices.EFECTIVO,
-        ).aggregate(pago=Sum("venta__producto__info__pago_trabajador"))["pago"]
-        or 0
-    )
-
-    transferencia_pago_trabajador = (
+    pago_trabajador = (
         Transacciones.objects.filter(
             venta__in=ventas_para_subtotales,
             tipo__in=[
@@ -302,19 +285,9 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
         or 0
     )
 
-    subtotal_efectivo_bruto = subtotal_efectivo + pago_trabajador_para_subtotal_efectivo
-    subtotal_efectivo_neto = subtotal_efectivo - transferencia_pago_trabajador
-
-    subtotal = producto_info.aggregate(subtotal=Sum("importe"))["subtotal"] or 0
+    subtotal = subtotal_efectivo_bruto + subtotal_transferencia
     costo_productos = (
         producto_info.aggregate(costo_productos=Sum("costo"))["costo_productos"] or 0
-    )
-
-    pago_trabajador = (
-        producto_info.aggregate(
-            pago_trabajador=Sum(F("pago_trabajador") * F("cantidad"))
-        )["pago_trabajador"]
-        or 0
     )
 
     ventas_por_usuario = {}
@@ -332,12 +305,19 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
         ventas_por_usuario[usuario] += producto.get("pago", 0)
 
     monto_gastos_variables = (
-        gastos_variables.aggregate(total=Sum("cantidad"))["total"] or 0
+        gastos_variables_queryset_sin_pago_trabajador.aggregate(total=Sum("cantidad"))[
+            "total"
+        ]
+        or 0
     )
 
-    total_gatos = total_gastos_fijos + monto_gastos_variables + pago_trabajador or 0
+    gastos_variables = monto_gastos_variables + pago_trabajador
 
-    total = subtotal - Decimal(total_gatos)
+    total_gatos = total_gastos_fijos + gastos_variables
+
+    total_efectivo = subtotal_efectivo_bruto - total_gatos
+    total_transferencia = subtotal_transferencia
+    total = total_efectivo + total_transferencia
 
     ganancia = total - costo_productos
 
@@ -378,7 +358,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
                 + reporte_cafeteria.get("subtotal").get("transferencia"),
             },
             "gastos_fijos": gastos_fijos,
-            "gastos_variables": list(gastos_variables)
+            "gastos_variables": list(gastos_variables_queryset_sin_pago_trabajador)
             + list(reporte_cafeteria.get("gastos_variables")),
             "pago_trabajador": round(pago_trabajador, 2),
             "mano_obra": reporte_cafeteria.get("mano_obra"),
@@ -389,13 +369,11 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
                 + reporte_cafeteria.get("subtotal").get("general")
                 - reporte_cafeteria.get("mano_obra")
                 - reporte_cafeteria.get("mano_obra_cuenta_casa"),
-                "efectivo": subtotal_efectivo_neto
-                - Decimal(total_gastos_fijos)
-                - monto_gastos_variables
+                "efectivo": total_efectivo
                 + reporte_cafeteria.get("subtotal").get("efectivo")
                 - reporte_cafeteria.get("mano_obra")
                 - reporte_cafeteria.get("mano_obra_cuenta_casa"),
-                "transferencia": subtotal_transferencia
+                "transferencia": total_transferencia
                 + reporte_cafeteria.get("total").get("transferencia"),
             },
             "ganancia": ganancia + reporte_cafeteria.get("ganancia"),
@@ -410,15 +388,13 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
             "transferencia": subtotal_transferencia,
         },
         "gastos_fijos": gastos_fijos,
-        "gastos_variables": gastos_variables,
+        "gastos_variables": gastos_variables_queryset_sin_pago_trabajador,
         "pago_trabajador": round(pago_trabajador, 2),
         "ventas_por_usuario": ventas_por_usuario,
         "total": {
             "general": total,
-            "efectivo": subtotal_efectivo_neto
-            - Decimal(total_gastos_fijos)
-            - monto_gastos_variables,
-            "transferencia": subtotal_transferencia,
+            "efectivo": total_efectivo,
+            "transferencia": total_transferencia,
         },
         "ganancia": ganancia,
         "area": area_venta.nombre,
