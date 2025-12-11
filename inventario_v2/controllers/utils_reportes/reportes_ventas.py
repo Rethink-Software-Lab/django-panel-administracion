@@ -313,7 +313,9 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
 
     gastos_variables = monto_gastos_variables + pago_trabajador
 
-    total_gatos = total_gastos_fijos + gastos_variables
+    # total_gatos = Decimal(total_gastos_fijos) + gastos_variables
+    # Esto es hasta que se vuelvan a activar los gastos fijos
+    total_gatos = gastos_variables
 
     total_efectivo = subtotal_efectivo_bruto - total_gatos
     total_transferencia = subtotal_transferencia
