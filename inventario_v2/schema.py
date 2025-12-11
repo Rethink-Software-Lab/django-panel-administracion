@@ -272,6 +272,7 @@ class ReportesSchema(Schema):
     mano_obra_cuenta_casa: Optional[Decimal] = None
     costo_producto: Optional[Decimal] = None
     subtotal: Optional[SubtotalReporteVentas] = None
+    costo_productos: Optional[Decimal] = None
     ganancia: Optional[Decimal] = None
 
 
@@ -671,6 +672,7 @@ class CafeteriaReporteSchema(Schema):
     gastos_fijos: List[GastosReporteCafeteria]
     mano_obra: Decimal
     mano_obra_cuenta_casa: Decimal
+    costo_productos: Decimal
     ganancia: Decimal
 
 
