@@ -355,5 +355,6 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
             - mano_obra_cuenta_casa,
             "transferencia": subtotal_transferencia,
         },
+        "costo_productos": total_costo_producto,
         "ganancia": ganancia,
     }

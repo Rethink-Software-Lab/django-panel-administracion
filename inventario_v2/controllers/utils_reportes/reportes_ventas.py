@@ -378,6 +378,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
                 "transferencia": total_transferencia
                 + reporte_cafeteria.get("total").get("transferencia"),
             },
+            "costo_productos": costo_productos + reporte_cafeteria.get("costo_productos"),
             "ganancia": ganancia + reporte_cafeteria.get("ganancia"),
             "area": "general",
         }
@@ -398,6 +399,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
             "efectivo": total_efectivo,
             "transferencia": total_transferencia,
         },
+        "costo_productos": costo_productos,
         "ganancia": ganancia,
         "area": area_venta.nombre,
     }
