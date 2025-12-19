@@ -240,8 +240,8 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
         or 0
     )
 
-    costo_productos = (
-        productos.aggregate(costo_productos=Sum(F("costo")))["costo_productos"] or 0
+    costo_productos = sum(
+        Decimal(str(prod.get("costo", 0) or 0)) for prod in productos
     )
 
     elaboraciones_sin_repeticion = []
@@ -268,8 +268,8 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
 
     productos_sin_repeticion = list(productos_agrupados.values())
 
-    mano_obra = 0
-    costo_ingredientes_elaboraciones = 0
+    mano_obra = Decimal("0")
+    costo_ingredientes_elaboraciones = Decimal("0")
 
     for elaboracion in elaboraciones:
         if elaboracion not in elaboraciones_sin_repeticion:
@@ -282,27 +282,33 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
                 elaboraciones_sin_repeticion.index(elaboracion)
             ].importe += elaboracion.importe
 
-        mano_obra += elaboracion.mano_obra * elaboracion.cantidad
+        mano_obra += Decimal(str(elaboracion.mano_obra or 0)) * Decimal(
+            str(elaboracion.cantidad or 0)
+        )
 
         for ingrediente in elaboracion.ingredientes_cantidad.all():
+            cantidad_ingrediente = Decimal(str(ingrediente.cantidad or 0))
+            precio_ingrediente = Decimal(str(ingrediente.ingrediente.precio_costo or 0))
+            cantidad_elaboracion = Decimal(str(elaboracion.cantidad or 0))
+
             costo_ingredientes_elaboraciones += (
-                ingrediente.cantidad
-                * ingrediente.ingrediente.precio_costo
-                * elaboracion.cantidad
+                cantidad_ingrediente * precio_ingrediente * cantidad_elaboracion
             )
 
     total_costo_producto = costo_productos + costo_ingredientes_elaboraciones
 
-    mano_obra_cuenta_casa = 0
+    print(total_costo_producto)
+
+    mano_obra_cuenta_casa = Decimal("0")
     cuentas_casa = CuentaCasa.objects.filter(
         created_at__date__range=(desde, hasta),
     )
 
     for cuenta_casa in cuentas_casa:
         for elaboracion in cuenta_casa.elaboraciones.all():
-            mano_obra_cuenta_casa += (
-                elaboracion.producto.mano_obra * elaboracion.cantidad
-            )
+            mano_obra_cuenta_casa += Decimal(
+                str(elaboracion.producto.mano_obra or 0)
+            ) * Decimal(str(elaboracion.cantidad or 0))
 
     subtotal_productos = (
         productos.aggregate(subtotal=Sum(F("importe")))["subtotal"] or 0
