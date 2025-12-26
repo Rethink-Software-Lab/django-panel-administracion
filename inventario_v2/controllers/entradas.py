@@ -55,7 +55,7 @@ def is_valid_cuenta(cuenta: Cuentas, metodo_pago: str) -> HttpError | None:
         metodo_pago == METODO_PAGO.EFECTIVO and cuenta.tipo != CuentasChoices.EFECTIVO
     ) or (
         metodo_pago == METODO_PAGO.TRANSFERENCIA
-        and cuenta.tipo != CuentasChoices.BANCARIA
+        and (cuenta.tipo != CuentasChoices.BANCARIA and cuenta.tipo != CuentasChoices.ZELLE)
     ):
         raise HttpError(400, "Cuenta no válida para el método de pago.")
 
