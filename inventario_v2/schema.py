@@ -239,6 +239,7 @@ class ProductoInfoParaReporte(Schema):
     id: int
     descripcion: str
     cantidad: Decimal
+    precio_costo: Optional[Annotated[Decimal, Field(gte=0)]] = None
     precio_venta: Optional[Annotated[Decimal, Field(gte=0)]] = None
     importe: Optional[Decimal] = None
 
@@ -430,7 +431,7 @@ class TarjetasForVentas(Schema):
 
 class TransferenciasTarjetasModify(Schema):
     cuenta: int
-    cantidad: str
+    cantidad: Decimal
     descripcion: str
     tipo: str
 

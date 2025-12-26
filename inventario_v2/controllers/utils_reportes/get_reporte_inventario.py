@@ -9,6 +9,8 @@ from pydantic import Field
 
 from inventario.models import (
     AreaVenta,
+    HistorialPrecioCostoCafeteria,
+    HistorialPrecioCostoSalon,
     HistorialPrecioVentaCafeteria,
     HistorialPrecioVentaSalon,
     ProductoInfo,
@@ -20,6 +22,7 @@ class Productos(TypedDict):
     id: int
     descripcion: str
     cantidad: Annotated[Decimal, Field(gt=0)]
+    precio_costo: Annotated[Decimal, Field(gt=0)]
     precio_venta: Annotated[Decimal, Field(gt=0)]
 
 
@@ -44,6 +47,14 @@ def get_reporte(area: str, categoria: str) -> GetReporte:
             .values("precio")[:1]
         )
 
+        historico_costo = (
+            HistorialPrecioCostoSalon.objects.filter(
+                producto_info=OuterRef("pk"),
+            )
+            .order_by("-fecha_inicio")
+            .values("precio")[:1]
+        )
+
         productos = (
             ProductoInfo.objects.filter(
                 producto__venta__isnull=True,
@@ -52,6 +63,7 @@ def get_reporte(area: str, categoria: str) -> GetReporte:
             )
             .annotate(
                 cantidad=Count("producto"),
+                precio_costo=Subquery(historico_costo),
                 precio_venta=Subquery(historico_venta),
             )
             .exclude(cantidad__lt=1)
@@ -59,6 +71,7 @@ def get_reporte(area: str, categoria: str) -> GetReporte:
                 "id",
                 "descripcion",
                 "cantidad",
+                "precio_costo",
                 "precio_venta",
             )
         )
@@ -77,6 +90,14 @@ def get_reporte(area: str, categoria: str) -> GetReporte:
                 .values("precio")[:1]
             )
 
+            historico_costo = (
+                HistorialPrecioCostoCafeteria.objects.filter(
+                    producto=OuterRef("pk"),
+                )
+                .order_by("-fecha_inicio")
+                .values("precio")[:1]
+            )
+
             producto_info_cafeteria = (
                 Productos_Cafeteria.objects.annotate(
                     total_cantidad=Coalesce(
@@ -87,11 +108,13 @@ def get_reporte(area: str, categoria: str) -> GetReporte:
                         F("inventario_almacen__cantidad"),
                         Value(0, output_field=DecimalField()),
                     ),
+                    precio_costo=Subquery(historico_costo),
                     precio_venta=Subquery(historico_venta),
                 )
                 .filter(total_cantidad__gt=0)
                 .values(
                     "id",
+                    "precio_costo",
                     "precio_venta",
                     descripcion=F("nombre"),
                     cantidad=F("total_cantidad"),
@@ -111,13 +134,23 @@ def get_reporte(area: str, categoria: str) -> GetReporte:
                 .values("precio")[:1]
             )
 
+            historico_costo = (
+                HistorialPrecioCostoCafeteria.objects.filter(
+                    producto=OuterRef("pk"),
+                )
+                .order_by("-fecha_inicio")
+                .values("precio")[:1]
+            )
+
             producto_info = (
                 Productos_Cafeteria.objects.annotate(
+                    precio_costo=Subquery(historico_costo),
                     precio_venta=Subquery(historico_venta),
                 )
                 .filter(inventario_area__cantidad__gt=0)
                 .values(
                     "id",
+                    "precio_costo",
                     "precio_venta",
                     descripcion=F("nombre"),
                     cantidad=F("inventario_area__cantidad"),
@@ -133,13 +166,23 @@ def get_reporte(area: str, categoria: str) -> GetReporte:
                 .values("precio")[:1]
             )
 
+            historico_costo = (
+                HistorialPrecioCostoCafeteria.objects.filter(
+                    producto=OuterRef("pk"),
+                )
+                .order_by("-fecha_inicio")
+                .values("precio")[:1]
+            )
+
             producto_info = (
                 Productos_Cafeteria.objects.annotate(
+                    precio_costo=Subquery(historico_costo),
                     precio_venta=Subquery(historico_venta),
                 )
                 .filter(inventario_almacen__cantidad__gt=0)
                 .values(
                     "id",
+                    "precio_costo",
                     "precio_venta",
                     descripcion=F("nombre"),
                     cantidad=F("inventario_almacen__cantidad"),
