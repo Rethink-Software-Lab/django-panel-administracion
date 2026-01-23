@@ -307,6 +307,7 @@ class AlmacenCafeteria(Schema):
 
 class AddProductoSchema(Schema):
     descripcion: str
+    localizacion: Optional[str] = None
     categoria: int
     precio_costo: Annotated[Decimal, Field(gt=0)]
     precio_venta: Annotated[Decimal, Field(gt=0)]
@@ -315,6 +316,7 @@ class AddProductoSchema(Schema):
 
 class UpdateProductoSchema(Schema):
     descripcion: str
+    localizacion: Optional[str] = None
     categoria: int
     pago_trabajador: Annotated[int, Field(ge=0)]
     deletePhoto: bool

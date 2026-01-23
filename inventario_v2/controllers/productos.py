@@ -84,6 +84,7 @@ class ProductoController:
 
         productoInfo = ProductoInfo(
             descripcion=data.descripcion,
+            localizacion=data.localizacion,
             categoria=categoria_query,
             pago_trabajador=data.pago_trabajador,
         )
@@ -150,6 +151,7 @@ class ProductoController:
         categoria_query = get_object_or_404(Categorias, pk=data.categoria)
 
         producto.descripcion = data.descripcion
+        producto.localizacion = data.localizacion
         producto.categoria = categoria_query
         producto.pago_trabajador = data.pago_trabajador
 
