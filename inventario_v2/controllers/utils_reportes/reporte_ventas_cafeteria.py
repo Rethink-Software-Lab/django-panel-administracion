@@ -21,6 +21,7 @@ from inventario.models import (
     FrecuenciaChoices,
     CuentaCasa,
     Productos_Cafeteria,
+    MermaCafeteria,
 )
 from django.db.models import (
     Count,
@@ -297,9 +298,8 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
 
     total_costo_producto = costo_productos + costo_ingredientes_elaboraciones
 
-    print(total_costo_producto)
-
     mano_obra_cuenta_casa = Decimal("0")
+    costo_ingredientes_cuenta_casa = Decimal("0")
     cuentas_casa = CuentaCasa.objects.filter(
         created_at__date__range=(desde, hasta),
     )
@@ -309,6 +309,21 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
             mano_obra_cuenta_casa += Decimal(
                 str(elaboracion.producto.mano_obra or 0)
             ) * Decimal(str(elaboracion.cantidad or 0))
+            
+            for ingrediente in elaboracion.producto.ingredientes_cantidad.all():
+                cantidad_ingrediente = Decimal(str(ingrediente.cantidad or 0))
+                precio_ingrediente = Decimal(str(ingrediente.ingrediente.precio_costo or 0))
+                cantidad_elaboracion = Decimal(str(elaboracion.cantidad or 0))
+                
+                costo_ingredientes_cuenta_casa += (
+                    cantidad_ingrediente * precio_ingrediente * cantidad_elaboracion
+                )
+        
+        for producto in cuenta_casa.productos.all():
+            cantidad_producto = Decimal(str(producto.cantidad or 0))
+            precio_costo = Decimal(str(producto.producto.precio_costo or 0))
+            
+            costo_ingredientes_cuenta_casa += cantidad_producto * precio_costo
 
     subtotal_productos = (
         productos.aggregate(subtotal=Sum(F("importe")))["subtotal"] or 0
@@ -328,6 +343,91 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
     monto_gastos_variables = (
         gastos_variables.aggregate(total=Sum("cantidad"))["total"] or 0
     )
+
+    mermas = MermaCafeteria.objects.filter(
+        created_at__date__range=(desde, hasta)
+    )
+
+    merma_productos_costo = Decimal("0")
+    merma_elaboraciones_costo = Decimal("0")
+
+    for merma in mermas:
+        for producto_merma in merma.productos.all():
+            producto = producto_merma.producto
+            cantidad_merma = Decimal(str(producto_merma.cantidad or 0))
+
+            precio_costo = (
+                HistorialPrecioCostoCafeteria.objects.filter(
+                    producto=producto,
+                    fecha_inicio__lte=merma.created_at,
+                )
+                .order_by("-fecha_inicio")
+                .values_list("precio", flat=True)
+                .first()
+            )
+
+            if not precio_costo:
+                precio_costo = (
+                    HistorialPrecioCostoCafeteria.objects.filter(
+                        producto=producto,
+                    )
+                    .order_by("fecha_inicio")
+                    .values_list("precio", flat=True)
+                    .first()
+                )
+
+            if precio_costo:
+                costo_merma = cantidad_merma * Decimal(str(precio_costo))
+                merma_productos_costo += costo_merma
+
+        for elaboracion_merma in merma.elaboraciones.all():
+            elaboracion = elaboracion_merma.producto
+            cantidad_merma = Decimal(str(elaboracion_merma.cantidad or 0))
+
+            precio_elaboracion = (
+                PrecioElaboracion.objects.filter(
+                    elaboracion=elaboracion,
+                    fecha_inicio__lte=merma.created_at,
+                )
+                .order_by("-fecha_inicio")
+                .values_list("precio", flat=True)
+                .first()
+            )
+
+            if not precio_elaboracion:
+                precio_elaboracion = (
+                    PrecioElaboracion.objects.filter(
+                        elaboracion=elaboracion,
+                    )
+                    .order_by("fecha_inicio")
+                    .values_list("precio", flat=True)
+                    .first()
+                )
+
+            if precio_elaboracion:
+                costo_merma = cantidad_merma * Decimal(str(precio_elaboracion))
+                merma_elaboraciones_costo += costo_merma
+
+    total_merma = merma_productos_costo + merma_elaboraciones_costo
+    gastos_variables_lista = list(gastos_variables.values())
+    
+    if total_merma > 0:
+        gastos_variables_lista.append(
+            {
+                "descripcion": "Merma",
+                "cantidad": float(total_merma),
+            }
+        )
+    
+    if costo_ingredientes_cuenta_casa > 0:
+        gastos_variables_lista.append(
+            {
+                "descripcion": "Cuenta Casa",
+                "cantidad": float(costo_ingredientes_cuenta_casa),
+            }
+        )
+
+    monto_gastos_variables += total_merma + costo_ingredientes_cuenta_casa
 
     total = (
         total_productos
@@ -349,7 +449,7 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
             "transferencia": subtotal_transferencia,
         },
         "gastos_fijos": gastos_fijos,
-        "gastos_variables": gastos_variables,
+        "gastos_variables": gastos_variables_lista,
         "mano_obra": mano_obra,
         "mano_obra_cuenta_casa": mano_obra_cuenta_casa or 0,
         "total": {

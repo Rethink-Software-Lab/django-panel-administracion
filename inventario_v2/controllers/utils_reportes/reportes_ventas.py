@@ -368,13 +368,10 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
             "ventas_por_usuario": ventas_por_usuario,
             "total": {
                 "general": total
-                + reporte_cafeteria.get("subtotal").get("general")
-                - reporte_cafeteria.get("mano_obra")
-                - reporte_cafeteria.get("mano_obra_cuenta_casa"),
+                + reporte_cafeteria.get("total").get("general"),
                 "efectivo": total_efectivo
-                + reporte_cafeteria.get("subtotal").get("efectivo")
-                - reporte_cafeteria.get("mano_obra")
-                - reporte_cafeteria.get("mano_obra_cuenta_casa"),
+                + reporte_cafeteria.get("total").get("efectivo")
+                ,
                 "transferencia": total_transferencia
                 + reporte_cafeteria.get("total").get("transferencia"),
             },
