@@ -252,7 +252,7 @@ class SubtotalReporteVentas(Schema):
 
 class GastosReporte(Schema):
     descripcion: str
-    cantidad: int
+    cantidad: float
 
 
 class TotalReporte(Schema):
