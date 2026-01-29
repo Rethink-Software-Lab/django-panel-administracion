@@ -663,7 +663,7 @@ class TotalReporteCafeteria(Schema):
 
 class GastosReporteCafeteria(Schema):
     descripcion: str
-    cantidad: int
+    cantidad: float
 
 
 class CafeteriaReporteSchema(Schema):
