@@ -17,7 +17,6 @@ class CuentasChoices(models.TextChoices):
     BANCARIA = "BANCARIA", "Bancaria"
     ZELLE = "ZELLE", "Zelle"
 
-
 class MonedaChoices(models.TextChoices):
     CUP = "CUP", "CUP"
     USD = "USD", "USD"
@@ -45,6 +44,7 @@ class Cuentas(models.Model):
     banco = models.CharField(
         max_length=50, choices=BancoChoices.choices, blank=True, null=True
     )
+    is_cuenta_fiscal = models.BooleanField(default=False, null=False, blank=False)
     active = models.BooleanField(default=True, null=False, blank=False)
     eliminado = models.BooleanField(default=False, null=False, blank=False)
 
