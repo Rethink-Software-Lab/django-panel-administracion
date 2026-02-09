@@ -112,8 +112,7 @@ def crear_transacciones(
             entrada=entrada,
             usuario=usuario,
             tipo=TipoTranferenciaChoices.ENTRADA,
-            cuenta=cuentaQS,
-            saldo_resultante=cuentaQS.saldo,
+            cuenta=cuentaQS,     
             cantidad=Decimal(cuenta.cantidad or 0),
             descripcion=f"{cantidad_productos} Productos - Almacén Principal",
         )
