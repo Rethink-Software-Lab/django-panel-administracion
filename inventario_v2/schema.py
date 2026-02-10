@@ -111,6 +111,7 @@ class ProductoCodigoSchema(Schema):
 
 class ProductosEntradaAlmacenPrincipal(Schema):
     producto: str
+    localizacion: str
     cantidad: Optional[int] = None
     isZapato: bool
     variantes: Optional[List[VariantesSchema]] = None

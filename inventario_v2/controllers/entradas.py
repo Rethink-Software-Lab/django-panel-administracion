@@ -37,6 +37,12 @@ def sumatoria_precio_costo(
     cantidad_productos = 0
     for producto in productos:
         producto_info = get_object_or_404(ProductoInfo, pk=producto.producto)
+
+        # Cambiar localizacion del producto
+        if producto.localizacion.__len__() > 0:
+            producto_info.localizacion = producto.localizacion
+            producto_info.save()
+   
         if producto_info.categoria.nombre == "Zapatos":
             if not producto.variantes:
                 continue
@@ -107,6 +113,7 @@ def crear_transacciones(
             usuario=usuario,
             tipo=TipoTranferenciaChoices.ENTRADA,
             cuenta=cuentaQS,
+            saldo_resultante=cuentaQS.saldo,
             cantidad=Decimal(cuenta.cantidad or 0),
             descripcion=f"{cantidad_productos} Productos - Almacén Principal",
         )
