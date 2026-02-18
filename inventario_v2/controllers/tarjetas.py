@@ -46,6 +46,7 @@ class TarjetasController:
             Transacciones.objects.create(
                 cuenta=tarjeta,
                 cantidad=cantidad,
+                saldo_resultante=tarjeta.saldo,
                 descripcion=body_dict["descripcion"],
                 tipo=body_dict["tipo"],
                 usuario=usuario,
