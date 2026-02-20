@@ -1,5 +1,6 @@
 from decimal import Decimal
 from django.db import models
+from django.utils import timezone
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
@@ -55,6 +56,35 @@ class Cuentas(models.Model):
         verbose_name = "Cuenta"
         verbose_name_plural = "Cuentas"
 
+
+
+class HistorialSaldoCuenta(models.Model):
+    cuenta = models.ForeignKey(
+        Cuentas,
+        on_delete=models.CASCADE,
+        related_name="historial_saldos",
+    )
+    saldo = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        blank=False,
+        null=False,
+    )
+    fecha = models.DateField(default=timezone.localdate, db_index=True)
+
+    def __str__(self):
+        return f"{self.cuenta.nombre} - {self.fecha} - {self.saldo}"
+
+    class Meta:
+        verbose_name = "Historial de saldo de cuenta"
+        verbose_name_plural = "Historial de saldos de cuentas"
+        ordering = ("-fecha", "-id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["cuenta", "fecha"],
+                name="unique_historial_saldo_cuenta_fecha",
+            )
+        ]
 
 class AreaVenta(models.Model):
     nombre = models.CharField(max_length=50, blank=False, null=False)
@@ -711,3 +741,4 @@ class VendedorExterno(models.Model):
 
     def __str__(self):
         return self.nombre
+
