@@ -77,18 +77,20 @@ class CuentaCasaController:
                         mano_obra = elaboracion.mano_obra * Decimal(producto.cantidad)
 
                         caja_cafeteria = get_object_or_404(Cuentas, id=71)
+                        caja_cafeteria.saldo -= mano_obra
+                        caja_cafeteria.save()
 
                         Transacciones.objects.create(
                             cantidad=mano_obra,
                             usuario=usuario,
                             tipo=TipoTranferenciaChoices.PAGO_TRABAJADOR,
+                            saldo_resultante=caja_cafeteria.saldo,
                             cuenta=caja_cafeteria,
                             descripcion=f"{producto.cantidad}x {elaboracion.nombre} - Cuenta Casa",
                             cuenta_casa=cuenta_casa,
                         )
 
-                        caja_cafeteria.saldo -= mano_obra
-                        caja_cafeteria.save()
+                        
 
                         for ingrediente in elaboracion.ingredientes_cantidad.all():
                             if body.localizacion == "almacen-cafeteria":
