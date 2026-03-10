@@ -8,7 +8,7 @@ import jwt
 from jwt.exceptions import InvalidSignatureError, ExpiredSignatureError
 from django.conf import settings
 from ninja_extra import NinjaExtraAPI
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from django.db.models import (
     Count,
     Q,
@@ -76,7 +76,7 @@ def login(request, data: LoginSchema):
             "rol": user.rol,
             "area_venta": user.area_venta.pk if user.area_venta else None,
             "almacen": user.almacen,
-            "exp": datetime.utcnow() + timedelta(weeks=4),
+            "exp": datetime.now(timezone.utc) + timedelta(hours=6),
         }
 
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
