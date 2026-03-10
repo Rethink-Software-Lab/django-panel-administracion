@@ -17,6 +17,8 @@ class CuentasChoices(models.TextChoices):
     EFECTIVO = "EFECTIVO", "Efectivo"
     BANCARIA = "BANCARIA", "Bancaria"
     ZELLE = "ZELLE", "Zelle"
+    CUENTA_POR_PAGAR = "CUENTA_POR_PAGAR", "Cuenta por pagar"
+    PAGO_ANTICIPADO = "PAGO_ANTICIPADO", "Pago anticipado"
 
 class MonedaChoices(models.TextChoices):
     CUP = "CUP", "CUP"
@@ -326,6 +328,10 @@ class AjusteInventario(models.Model):
         User, on_delete=models.SET_NULL, null=True, related_name="ajuste"
     )
 
+class ConceptoGasto(models.Model):
+    nombre = models.CharField(max_length=50, blank=False, null=False)
+    color = models.CharField(max_length=50, blank=False, null=False)
+    emoji = models.CharField(max_length=50, blank=True, null=True)
 
 class GastosChoices(models.TextChoices):
     FIJO = "FIJO", "Fijo"
@@ -350,6 +356,7 @@ class Gastos(models.Model):
     cantidad = models.IntegerField(null=False, blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    concepto = models.ForeignKey(ConceptoGasto, on_delete=models.SET_NULL, null=True)
     # Fijos
     frecuencia = models.CharField(
         max_length=30, choices=FrecuenciaChoices.choices, blank=True, null=True
