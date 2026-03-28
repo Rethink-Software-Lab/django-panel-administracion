@@ -2,7 +2,7 @@ from decimal import Decimal
 from ninja.errors import HttpError
 from inventario.models import (
     User,
-    MermaCafeteria,
+    Merma,
     Productos_Cafeteria,
     Elaboraciones,
     Inventario_Area_Cafeteria,
@@ -22,37 +22,6 @@ from django.db.models import Count
 
 @api_controller("merma/", tags=["Merma"], permissions=[])
 class MermaController:
-    @route.get("", response=EndpointMerma)
-    def get_merma(self):
-        merma = (
-            MermaCafeteria.objects.all()
-            .order_by("-created_at")
-            .annotate(
-                cantidad_productos=Count("productos"),
-                cantidad_elaboraciones=Count("elaboraciones"),
-            )
-        )
-        productos = Productos_Cafeteria.objects.all()
-        elaboraciones = Elaboraciones.objects.all()
-
-        productos_elaboraciones = []
-        for elaboracion in elaboraciones:
-            productos_elaboraciones.append(
-                {
-                    "id": elaboracion.pk,
-                    "nombre": elaboracion.nombre,
-                    "isElaboracion": True,
-                }
-            )
-        for producto in productos:
-            productos_elaboraciones.append(
-                {"id": producto.pk, "nombre": producto.nombre, "isElaboracion": False}
-            )
-
-        return {
-            "merma": merma,
-            "productos_elaboraciones": productos_elaboraciones,
-        }
 
     @route.post("")
     def add_merma(self, request, body: AddMerma):
@@ -60,7 +29,7 @@ class MermaController:
 
         try:
             with transaction.atomic():
-                merma = MermaCafeteria.objects.create(
+                merma = Merma.objects.create(
                     is_almacen=(
                         True if body.localizacion == "almacen-cafeteria" else False
                     ),
@@ -136,7 +105,7 @@ class MermaController:
 
     @route.delete("{id}/")
     def deleteMerma(self, id: int):
-        merma = get_object_or_404(MermaCafeteria, pk=id)
+        merma = get_object_or_404(Merma, pk=id)
 
         try:
             with transaction.atomic():

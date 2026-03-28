@@ -28,7 +28,6 @@ from .controllers.transferencias import TransferenciasController
 from .controllers.ajuste_inventario import AjusteInventarioController
 from .controllers.tarjetas import TarjetasController
 from .controllers.cafeteria import CafeteriaController
-from .controllers.almacen_cafeteria import AlmacenCafeteriaController
 from .controllers.merma import MermaController
 from .controllers.cuenta_casa import CuentaCasaController
 
@@ -134,7 +133,6 @@ app.register_controllers(
     AjusteInventarioController,
     TarjetasController,
     CafeteriaController,
-    AlmacenCafeteriaController,
     MermaController,
     CuentaCasaController,
 )
