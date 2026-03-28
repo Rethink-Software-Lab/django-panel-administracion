@@ -690,21 +690,6 @@ class Elaboraciones_Salida_Schema(Schema):
     cantidad: Decimal
 
 
-class Salidas_Almacen_Cafeteria_Schema(ModelSchema):
-    usuario: Optional[User_Only_Username] = None
-    productos: List[Producto_Salida_Schema]
-    elaboraciones: List[Elaboraciones_Salida_Schema]
-
-    class Meta:
-        model = Salidas_Cafeteria
-        fields = "__all__"
-
-
-class EndPointSalidasAlmacenCafeteria(Schema):
-    salidas: List[Salidas_Almacen_Cafeteria_Schema]
-    productos_elaboraciones: List[Productos_Elaboraciones_Schema]
-
-
 class Add_Salida_Cafeteria(Schema):
     productos: List[Prod_Add_Venta]
 
@@ -717,7 +702,7 @@ class MermaSchema(ModelSchema):
     cantidad_elaboraciones: int
 
     class Meta:
-        model = MermaCafeteria
+        model = Merma
         fields = "__all__"
 
 

@@ -10,7 +10,7 @@ from .models import (
     Producto,
     Transacciones,
     AreaVenta,
-    MermaCafeteria,
+    Merma,
     Inventario_Area_Cafeteria,
     Inventario_Almacen_Cafeteria,
     Cuentas,
@@ -24,6 +24,7 @@ from .models import (
     Ingrediente_Cantidad,
     ProductoInfo,
     Transferencia,
+    Ubicaciones
 )
 
 admin.site.register(User)
@@ -32,6 +33,7 @@ admin.site.register(EntradaAlmacen)
 admin.site.register(SalidaAlmacen)
 admin.site.register(Ventas)
 admin.site.register(Categorias)
+admin.site.register(Ubicaciones)
 
 
 @admin.register(Productos_Cafeteria)
@@ -132,7 +134,7 @@ class AreaVentaAdmin(admin.ModelAdmin):
     ]
 
 
-@admin.register(MermaCafeteria)
+@admin.register(Merma)
 class MermaAdmin(admin.ModelAdmin):
     list_display = [
         "id",

@@ -21,7 +21,7 @@ from inventario.models import (
     FrecuenciaChoices,
     CuentaCasa,
     Productos_Cafeteria,
-    MermaCafeteria,
+    Merma,
 )
 from django.db.models import (
     Count,
@@ -344,7 +344,7 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
         gastos_variables.aggregate(total=Sum("cantidad"))["total"] or 0
     )
 
-    mermas = MermaCafeteria.objects.filter(
+    mermas = Merma.objects.filter(
         created_at__date__range=(desde, hasta)
     )
 
