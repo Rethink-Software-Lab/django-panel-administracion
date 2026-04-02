@@ -12,9 +12,9 @@ from inventario.models import (
     CuentaCasa,
     Elaboraciones_Cantidad_Cuenta_Casa,
     Productos_Cantidad_Cuenta_Casa,
+    Ubicaciones
 )
 from ..schema import (
-    AddMerma,
     EndpointCuentaCasa,
 )
 from ninja_extra import api_controller, route
@@ -37,6 +37,7 @@ class CuentaCasaController:
         )
         productos = Productos_Cafeteria.objects.all()
         elaboraciones = Elaboraciones.objects.all()
+        ubicaciones = Ubicaciones.objects.filter(active=True).only('id', "nombre", "tipo")
 
         productos_elaboraciones = []
         for elaboracion in elaboraciones:
@@ -55,10 +56,11 @@ class CuentaCasaController:
         return {
             "cuenta_casa": cuenta_casa,
             "productos_elaboraciones": productos_elaboraciones,
+            "ubicaciones": ubicaciones
         }
 
     @route.post("")
-    def add_cuenta_casa(self, request, body: AddMerma):
+    def add_cuenta_casa(self, request, body):
         usuario = get_object_or_404(User, pk=request.auth["id"])
 
         try:
