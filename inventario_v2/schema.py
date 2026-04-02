@@ -706,16 +706,6 @@ class MermaSchema(ModelSchema):
         fields = "__all__"
 
 
-class EndpointMerma(Schema):
-    productos_elaboraciones: List[Productos_Elaboraciones_Schema]
-    merma: List[MermaSchema]
-
-
-class AddMerma(Schema):
-    localizacion: Literal["almacen-cafeteria", "cafeteria"]
-    productos: List[Prod_Add_Venta]
-
-
 class CuentaCasaSchema(ModelSchema):
     usuario: Optional[UsuariosSchema] = None
     productos: List[Producto_Salida_Schema]
