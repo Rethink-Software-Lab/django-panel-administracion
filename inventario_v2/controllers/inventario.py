@@ -26,6 +26,7 @@ class InventarioController:
                 producto__area_venta__isnull=True,
                 producto__almacen_revoltosa=False,
                 producto__ajusteinventario__isnull=True,
+                producto__merma__isnull=True,
             )
             .annotate(
                 cantidad=Count(F("producto")), precio_venta=Subquery(ultimo_precio)
@@ -46,6 +47,7 @@ class InventarioController:
             info__categoria__nombre="Zapatos",
             almacen_revoltosa=False,
             ajusteinventario__isnull=True,
+            merma__isnull=True,
         ).values(
             "id",
             "info__descripcion",
@@ -75,6 +77,7 @@ class InventarioController:
                 producto__area_venta__isnull=True,
                 producto__almacen_revoltosa=True,
                 producto__ajusteinventario__isnull=True,
+                producto__merma__isnull=True,
             )
             .annotate(
                 cantidad=Count(F("producto")), precio_venta=Subquery(ultimo_precio)
@@ -94,6 +97,7 @@ class InventarioController:
             almacen_revoltosa=True,
             info__categoria__nombre="Zapatos",
             ajusteinventario__isnull=True,
+            merma__isnull=True,
         ).values(
             "id",
             "info__descripcion",

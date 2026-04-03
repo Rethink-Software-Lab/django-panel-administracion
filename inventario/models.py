@@ -370,6 +370,7 @@ class Merma(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     is_almacen = models.BooleanField(default=False)
     ubicacion = models.ForeignKey(Ubicaciones, on_delete=models.CASCADE, null=True, blank=True)
+    area = models.ForeignKey(AreaVenta, on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
         return self.created_at.strftime("%d/%m/%Y - %H:%M")
