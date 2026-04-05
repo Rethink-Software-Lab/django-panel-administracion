@@ -11,8 +11,6 @@ from .models import (
     Transacciones,
     AreaVenta,
     Merma,
-    Inventario_Area_Cafeteria,
-    Inventario_Almacen_Cafeteria,
     Cuentas,
     Elaboraciones,
     Ventas_Cafeteria,
@@ -158,37 +156,6 @@ class MermaAdmin(admin.ModelAdmin):
     productos_adapt.short_description = "Productos"
     elaboraciones_adapt.short_description = "Elaboraciones"
 
-
-@admin.register(Inventario_Area_Cafeteria)
-class InventarioAreaCafeteriaAdmin(admin.ModelAdmin):
-    list_display = [
-        "id",
-        "producto_nombre",
-        "cantidad",
-    ]
-    search_fields = ["producto__nombre"]
-    list_editable = ["cantidad"]
-
-    def producto_nombre(self, obj):
-        return obj.producto.nombre
-
-    producto_nombre.short_description = "Producto"
-
-
-@admin.register(Inventario_Almacen_Cafeteria)
-class InventarioAlmacenCafeteriaAdmin(admin.ModelAdmin):
-    list_display = [
-        "id",
-        "producto_nombre",
-        "cantidad",
-    ]
-    search_fields = ["producto__nombre"]
-    list_editable = ["cantidad"]
-
-    def producto_nombre(self, obj):
-        return obj.producto.nombre
-
-    producto_nombre.short_description = "Producto"
 
 
 @admin.register(Cuentas)

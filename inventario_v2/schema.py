@@ -2,7 +2,7 @@ import datetime
 from ninja import ModelSchema, Schema
 from inventario.models import *
 from typing import List, Optional, Literal, Any, Dict
-from pydantic import condecimal, conint, validator, Field, model_validator
+from pydantic import condecimal, validator, Field, model_validator
 from decimal import Decimal
 from typing_extensions import Annotated
 
@@ -439,36 +439,6 @@ class TransferenciasTarjetasModify(Schema):
     tipo: str
 
 
-class Inventario_Almacen_Cafeteria_Schema(ModelSchema):
-    class Meta:
-        model = Inventario_Almacen_Cafeteria
-        fields = "id", "cantidad"
-
-
-class Producto_Cafeteria_Schema(ModelSchema):
-    inventario_almacen: Inventario_Almacen_Cafeteria_Schema
-    precio_venta: Decimal
-
-    class Meta:
-        model = Productos_Cafeteria
-        fields = "__all__"
-
-
-class Inventario_Area_Cafeteria_Schema(ModelSchema):
-    class Meta:
-        model = Inventario_Area_Cafeteria
-        fields = "id", "cantidad"
-
-
-class Producto_Cafeteria_Area_Schema(ModelSchema):
-    inventario_area: Inventario_Almacen_Cafeteria_Schema
-    precio_venta: Decimal
-
-    class Meta:
-        model = Productos_Cafeteria
-        fields = "__all__"
-
-
 class User_Only_Username(Schema):
     username: str
 
@@ -521,7 +491,7 @@ class Productos_Elaboraciones_Schema(Schema):
 
 
 class EndPointCafeteria(Schema):
-    inventario: List[Producto_Cafeteria_Area_Schema]
+    inventario: List[Any]
     ventas: List[Ventas_Cafeteria_Schema]
     productos_elaboraciones: List[Productos_Elaboraciones_Schema]
     tarjetas: List[TarjetasVentasCafeteriaSchema]

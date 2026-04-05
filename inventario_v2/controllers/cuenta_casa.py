@@ -1,4 +1,4 @@
-from decimal import Decimal
+""" from decimal import Decimal
 from ninja.errors import HttpError
 from inventario.models import (
     Cuentas,
@@ -214,3 +214,4 @@ class CuentaCasaController:
             return
         except Exception as e:
             raise HttpError(500, f"Error inesperado: {str(e)}")
+ """
