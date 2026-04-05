@@ -304,23 +304,6 @@ class Inventario(models.Model):
     def __str__(self):
         return self.producto.nombre
 
-class Inventario_Almacen_Cafeteria(models.Model):
-    producto = models.OneToOneField(Productos_Cafeteria, on_delete=models.CASCADE, null=False, blank=False, related_name="inventario_almacen")
-    cantidad = models.DecimalField(max_digits=20, decimal_places=10, blank=False, null=False)
-
-    class Meta:
-        verbose_name = "Inventario Almacén Cafetería"
-        verbose_name_plural = "Inventario Almacén Cafetería"
-
-class Inventario_Area_Cafeteria(models.Model):
-    producto = models.OneToOneField(Productos_Cafeteria, on_delete=models.CASCADE, null=False, blank=False, related_name="inventario_area")
-    cantidad = models.DecimalField(max_digits=20, decimal_places=10, blank=False, null=False)
-
-    class Meta:
-        verbose_name = "Inventario Area Cafetería"
-        verbose_name_plural = "Inventario Area Cafetería"
-
-
 
 class Productos_Cantidad_Merma(models.Model):
     producto = models.ForeignKey(Productos_Cafeteria, on_delete=models.CASCADE, null=False, blank=False)
