@@ -272,6 +272,8 @@ class ReportesSchema(Schema):
     gastos_fijos: Optional[List[GastosReporte]] = None
     mano_obra: Optional[Decimal] = None
     mano_obra_cuenta_casa: Optional[Decimal] = None
+    merma: Optional[Decimal] = None
+    cuenta_casa: Optional[Decimal] = None
     costo_producto: Optional[Decimal] = None
     subtotal: Optional[SubtotalReporteVentas] = None
     costo_productos: Optional[Decimal] = None

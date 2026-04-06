@@ -8,6 +8,7 @@ from inventario_v2.utils import (
     obtener_ultimo_dia_mes,
 )
 from inventario.models import (
+    TIPO_AJUSTE,
     HistorialPrecioCostoCafeteria,
     HistorialPrecioVentaCafeteria,
     PrecioElaboracion,
@@ -19,7 +20,7 @@ from inventario.models import (
     Gastos,
     GastosChoices,
     FrecuenciaChoices,
-    CuentaCasa,
+    UbicacionesChoices,
     Productos_Cafeteria,
     Merma,
 )
@@ -300,8 +301,10 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
 
     mano_obra_cuenta_casa = Decimal("0")
     costo_ingredientes_cuenta_casa = Decimal("0")
-    cuentas_casa = CuentaCasa.objects.filter(
+    cuentas_casa = Merma.objects.filter(
         created_at__date__range=(desde, hasta),
+        tipo=TIPO_AJUSTE.CUENTA_CASA,
+        ubicacion__tipo=UbicacionesChoices.POS
     )
 
     for cuenta_casa in cuentas_casa:
@@ -345,7 +348,9 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
     )
 
     mermas = Merma.objects.filter(
-        created_at__date__range=(desde, hasta)
+        created_at__date__range=(desde, hasta),
+        tipo=TIPO_AJUSTE.MERMA,
+        ubicacion__tipo=UbicacionesChoices.POS
     )
 
     merma_productos_costo = Decimal("0")
@@ -411,7 +416,7 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
     total_merma = merma_productos_costo + merma_elaboraciones_costo
     gastos_variables_lista = list(gastos_variables.values())
     
-    if total_merma > 0:
+    """ if total_merma > 0:
         gastos_variables_lista.append(
             {
                 "descripcion": "Merma",
@@ -425,9 +430,9 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
                 "descripcion": "Cuenta Casa",
                 "cantidad": float(costo_ingredientes_cuenta_casa),
             }
-        )
+        ) """
 
-    monto_gastos_variables += total_merma + costo_ingredientes_cuenta_casa
+    monto_gastos_variables += costo_ingredientes_cuenta_casa + total_merma
 
     total = (
         total_productos
@@ -452,6 +457,8 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
         "gastos_variables": gastos_variables_lista,
         "mano_obra": mano_obra,
         "mano_obra_cuenta_casa": mano_obra_cuenta_casa or 0,
+        'cuenta_casa': costo_ingredientes_cuenta_casa,
+        'merma': total_merma,
         "total": {
             "general": total,
             "efectivo": subtotal_efectivo

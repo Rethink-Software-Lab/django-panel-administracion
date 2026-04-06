@@ -75,7 +75,10 @@ class TipoTranferenciaChoices(models.TextChoices):
     TRANSFERENCIA = "TRANSFERENCIA", "Transferencia"
     ENTRADA = "ENTRADA", "Entrada"
 
-
+class TIPO_AJUSTE(models.TextChoices):
+    MERMA = "MERMA", "Merma"
+    CUENTA_CASA = "CUENTA_CASA", "Cuenta Casa"
+    ERROR = "ERROR", "Error"
 
 class Image(models.Model):
     public_id = models.CharField(max_length=50, unique=True)
@@ -348,8 +351,10 @@ class SalidaAlmacenRevoltosa(models.Model):
 
 class Merma(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
+    tipo = models.CharField(max_length=50, choices=TIPO_AJUSTE, blank=True, null=True)
     productos = models.ManyToManyField(Productos_Cantidad_Merma, blank=True)
     elaboraciones = models.ManyToManyField(Elaboraciones_Cantidad_Merma, blank=True)
+    descripcion = models.CharField(max_length=255, blank=True, null=True)
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     is_almacen = models.BooleanField(default=False)
     ubicacion = models.ForeignKey(Ubicaciones, on_delete=models.CASCADE, null=True, blank=True)
@@ -499,6 +504,7 @@ class Transacciones(models.Model):
     entrada_cafeteria = models.ForeignKey(Entradas_Cafeteria, on_delete=models.CASCADE, null=True, blank=True)
     gasto = models.ForeignKey(Gastos, on_delete=models.CASCADE, null=True, blank=True)
     cuenta_casa = models.ForeignKey(CuentaCasa, on_delete=models.CASCADE, null=True, blank=True)
+    merma = models.ForeignKey(Merma, on_delete=models.CASCADE, null=True, blank=True)
     cuenta_origen = models.ForeignKey(Cuentas, on_delete=models.CASCADE, null=True, blank=True, related_name="cuenta_origen")
     cuenta_destino = models.ForeignKey(Cuentas, on_delete=models.CASCADE, null=True, blank=True, related_name="cuenta_destino")
     tipo_cambio = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)

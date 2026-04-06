@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.db.models import (
     F,
+    Q,
     Case,
     Count,
     ExpressionWrapper,
@@ -18,12 +19,14 @@ from django.db.models.base import Coalesce
 from django.shortcuts import get_object_or_404
 
 from inventario.models import (
+    TIPO_AJUSTE,
     CuentasChoices,
     FrecuenciaChoices,
     Gastos,
     GastosChoices,
     HistorialPrecioCostoSalon,
     HistorialPrecioVentaSalon,
+    Producto,
     ProductoInfo,
     TipoTranferenciaChoices,
     Transacciones,
@@ -304,6 +307,31 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
 
         ventas_por_usuario[usuario] += producto.get("pago", 0)
 
+    precio_historico = HistorialPrecioCostoSalon.objects.filter(
+        producto_info=OuterRef('info'),
+        fecha_inicio__lte=OuterRef('merma__created_at')
+    ).order_by('-fecha_inicio').values('precio')[:1]
+
+    cuenta_casa = Producto.objects.filter(
+        merma__tipo=TIPO_AJUSTE.CUENTA_CASA,
+        merma__created_at__date__range=(parse_desde, parse_hasta),
+    ).annotate(
+        precio_costo_real=Subquery(precio_historico)
+    ).aggregate(
+        total=Sum('precio_costo_real')
+    )['total'] or 0
+
+    merma = Producto.objects.filter(
+        merma__tipo=TIPO_AJUSTE.MERMA,
+        merma__created_at__date__range=(parse_desde, parse_hasta),
+    ).annotate(
+        precio_costo_real=Subquery(precio_historico)
+    ).aggregate(
+        total=Sum('precio_costo_real')
+    )['total'] or 0
+
+    print(merma)
+
     monto_gastos_variables = (
         gastos_variables_queryset_sin_pago_trabajador.aggregate(total=Sum("cantidad"))[
             "total"
@@ -311,7 +339,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
         or 0
     )
 
-    gastos_variables = monto_gastos_variables + pago_trabajador
+    gastos_variables = monto_gastos_variables + pago_trabajador + merma + cuenta_casa
 
     # total_gatos = Decimal(total_gastos_fijos) + gastos_variables
     # Esto es hasta que se vuelvan a activar los gastos fijos
@@ -365,6 +393,8 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
             "pago_trabajador": round(pago_trabajador, 2),
             "mano_obra": reporte_cafeteria.get("mano_obra"),
             "mano_obra_cuenta_casa": reporte_cafeteria.get("mano_obra_cuenta_casa"),
+            "cuenta_casa": reporte_cafeteria.get("cuenta_casa") + cuenta_casa,
+            "merma": reporte_cafeteria.get("merma") + merma,
             "ventas_por_usuario": ventas_por_usuario,
             "total": {
                 "general": total
@@ -391,6 +421,8 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
         "gastos_variables": gastos_variables_queryset_sin_pago_trabajador,
         "pago_trabajador": round(pago_trabajador, 2),
         "ventas_por_usuario": ventas_por_usuario,
+        "cuenta_casa": cuenta_casa,
+        "merma": merma,
         "total": {
             "general": total,
             "efectivo": total_efectivo,
