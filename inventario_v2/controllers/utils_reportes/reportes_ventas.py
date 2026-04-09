@@ -318,7 +318,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
     }
 
     if area != "general":
-        filtros_merma_cuenta_casa['merma__area_venta__id'] = area
+        filtros_merma_cuenta_casa['merma__area__id'] = area
 
     cuenta_casa = Producto.objects.filter(
         merma__tipo=TIPO_AJUSTE.CUENTA_CASA,
