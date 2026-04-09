@@ -648,6 +648,8 @@ class CafeteriaReporteSchema(Schema):
     gastos_fijos: List[GastosReporteCafeteria]
     mano_obra: Decimal
     mano_obra_cuenta_casa: Decimal
+    merma: Decimal
+    cuenta_casa: Decimal
     costo_productos: Decimal
     ganancia: Decimal
 
