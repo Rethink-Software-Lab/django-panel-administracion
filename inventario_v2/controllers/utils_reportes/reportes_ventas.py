@@ -312,12 +312,13 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
         fecha_inicio__lte=OuterRef('merma__created_at')
     ).order_by('-fecha_inicio').values('precio')[:1]
 
-    filtros_merma_cuenta_casa: dict[str, str | tuple[date, date]] = {
+    filtros_merma_cuenta_casa: dict[str, str | tuple[date, date] | bool] = {
     'merma__created_at__date__range': (parse_desde, parse_hasta),
+    'merma__ubicacion__isnull': True
     }
 
     if area != "general":
-        filtros_merma_cuenta_casa['area_venta__id'] = area
+        filtros_merma_cuenta_casa['merma__area__id'] = area
 
     cuenta_casa = Producto.objects.filter(
         merma__tipo=TIPO_AJUSTE.CUENTA_CASA,
