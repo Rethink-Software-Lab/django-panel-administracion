@@ -1,6 +1,8 @@
 from datetime import datetime
 
 from inventario.models import (
+    HistorialIngredienteReceta,
+    HistorialRecetaElaboracion,
     User,
     Elaboraciones,
     Ingrediente_Cantidad,
@@ -77,6 +79,15 @@ class CafeteriaController:
             ultimo_precio_elaboracion = PrecioElaboracion.objects.filter(
                 elaboracion=elaboracion
             ).first()
+
+            ingredientes_antiguos = [
+                {
+                    "ingrediente": ing.ingrediente,
+                    "cantidad": ing.cantidad
+                }
+                for ing in elaboracion.ingredientes_cantidad.all()
+            ]
+
             elaboracion.nombre = body.nombre
             elaboracion.mano_obra = Decimal(body.mano_obra)
 
@@ -88,43 +99,52 @@ class CafeteriaController:
                     elaboracion=elaboracion, precio=body.precio, usuario=usuario
                 )
 
-            # { id_ingrediente : <Ingrediente_Cantidad> }
             ingredientes_existentes_dict = {
                 ingrediente.ingrediente.id: ingrediente
                 for ingrediente in elaboracion.ingredientes_cantidad.all()
             }
+            
+            nuevos_ingredientes_ids = [ing.producto for ing in body.ingredientes]
+            receta_modificada = False
 
-            # Agregar o actualizar
             for ingrediente_nuevo in body.ingredientes:
                 if ingrediente_nuevo.producto in ingredientes_existentes_dict:
-                    # Actualizar la cantidad
-                    ingrediente_existente = ingredientes_existentes_dict[
-                        ingrediente_nuevo.producto
-                    ]
-                    ingrediente_existente.cantidad = ingrediente_nuevo.cantidad
-                    ingrediente_existente.save()
+                    ingrediente_existente = ingredientes_existentes_dict[ingrediente_nuevo.producto]
+                    
+                    if ingrediente_existente.cantidad != Decimal(ingrediente_nuevo.cantidad):
+                        ingrediente_existente.cantidad = ingrediente_nuevo.cantidad
+                        ingrediente_existente.save()
+                        receta_modificada = True
                 else:
-                    # Agregar
-                    producto = get_object_or_404(
-                        Productos_Cafeteria, pk=ingrediente_nuevo.producto
-                    )
+                    producto = get_object_or_404(Productos_Cafeteria, pk=ingrediente_nuevo.producto)
                     ingrediente = Ingrediente_Cantidad.objects.create(
                         ingrediente=producto, cantidad=ingrediente_nuevo.cantidad
                     )
                     elaboracion.ingredientes_cantidad.add(ingrediente)
+                    receta_modificada = True
 
-            # Eliminar ingredientes que no están en la lista de nuevos ingredientes
-            for ingrediente_existente_id in list(ingredientes_existentes_dict.keys()):
-                if ingrediente_existente_id not in [
-                    ingrediente.producto for ingrediente in body.ingredientes
-                ]:
-                    Ingrediente_Cantidad.objects.filter(
-                        ingrediente_id=ingrediente_existente_id
-                    ).delete()
+            for ingrediente_existente_id, instancia_ingrediente in ingredientes_existentes_dict.items():
+                if ingrediente_existente_id not in nuevos_ingredientes_ids:
+                    elaboracion.ingredientes_cantidad.remove(instancia_ingrediente)
+                    instancia_ingrediente.delete()
+                    receta_modificada = True
 
             elaboracion.save()
 
-        return
+            if receta_modificada:
+                nueva_version = HistorialRecetaElaboracion.objects.create(
+                    elaboracion=elaboracion,
+                    usuario=usuario
+                )
+                
+                for ing_antiguo in ingredientes_antiguos:
+                    HistorialIngredienteReceta.objects.create(
+                        historial_receta=nueva_version,
+                        ingrediente=ing_antiguo["ingrediente"],
+                        cantidad=ing_antiguo["cantidad"]
+                    )
+
+        return 
 
     @route.delete("elaboraciones/{id}/")
     def delete_elaboracion(self, id: int):
