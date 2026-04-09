@@ -292,6 +292,19 @@ class PrecioElaboracion(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True)
     fecha_inicio = models.DateTimeField(auto_now_add=True)
 
+class HistorialRecetaElaboracion(models.Model):
+    elaboracion = models.ForeignKey(Elaboraciones, on_delete=models.CASCADE, related_name="historial_recetas")
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True)
+    fecha_inicio = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-fecha_inicio']
+
+class HistorialIngredienteReceta(models.Model):
+    historial_receta = models.ForeignKey(HistorialRecetaElaboracion, on_delete=models.CASCADE, related_name="ingredientes")
+    ingrediente = models.ForeignKey(Productos_Cafeteria, on_delete=models.CASCADE)
+    cantidad = models.DecimalField(max_digits=20, decimal_places=10, blank=False, null=False)
+
 class Inventario(models.Model):
     producto = models.ForeignKey(Productos_Cafeteria, on_delete=models.CASCADE, null=False, blank=False)
     ubicacion = models.ForeignKey(Ubicaciones, on_delete=models.CASCADE, null=False, blank=False)

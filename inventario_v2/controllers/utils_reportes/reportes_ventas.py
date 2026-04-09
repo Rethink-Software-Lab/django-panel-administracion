@@ -312,9 +312,16 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
         fecha_inicio__lte=OuterRef('merma__created_at')
     ).order_by('-fecha_inicio').values('precio')[:1]
 
+    filtros_merma_cuenta_casa: dict[str, str | tuple[date, date]] = {
+    'merma__created_at__date__range': (parse_desde, parse_hasta),
+    }
+
+    if area != "general":
+        filtros_merma_cuenta_casa['area_venta__id'] = area
+
     cuenta_casa = Producto.objects.filter(
         merma__tipo=TIPO_AJUSTE.CUENTA_CASA,
-        merma__created_at__date__range=(parse_desde, parse_hasta),
+        **filtros_merma_cuenta_casa,
     ).annotate(
         precio_costo_real=Subquery(precio_historico)
     ).aggregate(
@@ -323,14 +330,12 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
 
     merma = Producto.objects.filter(
         merma__tipo=TIPO_AJUSTE.MERMA,
-        merma__created_at__date__range=(parse_desde, parse_hasta),
+        **filtros_merma_cuenta_casa
     ).annotate(
         precio_costo_real=Subquery(precio_historico)
     ).aggregate(
         total=Sum('precio_costo_real')
     )['total'] or 0
-
-    print(merma)
 
     monto_gastos_variables = (
         gastos_variables_queryset_sin_pago_trabajador.aggregate(total=Sum("cantidad"))[
