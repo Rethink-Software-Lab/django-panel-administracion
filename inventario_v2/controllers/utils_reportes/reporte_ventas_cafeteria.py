@@ -304,7 +304,7 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
     cuentas_casa = Merma.objects.filter(
         created_at__date__range=(desde, hasta),
         tipo=TIPO_AJUSTE.CUENTA_CASA,
-        ubicacion__tipo=UbicacionesChoices.POS
+        area__isnull=True
     )
 
     for cuenta_casa in cuentas_casa:
@@ -350,7 +350,7 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
     mermas = Merma.objects.filter(
         created_at__date__range=(desde, hasta),
         tipo=TIPO_AJUSTE.MERMA,
-        ubicacion__tipo=UbicacionesChoices.POS
+        area__isnull=True
     )
 
     merma_productos_costo = Decimal("0")
