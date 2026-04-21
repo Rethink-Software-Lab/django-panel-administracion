@@ -59,6 +59,7 @@ def get_reporte(area: str, categoria: str) -> GetReporte:
             ProductoInfo.objects.filter(
                 producto__venta__isnull=True,
                 producto__ajusteinventario__isnull=True,
+                producto__merma__isnull=True,
                 **filters,
             )
             .annotate(
@@ -101,11 +102,11 @@ def get_reporte(area: str, categoria: str) -> GetReporte:
             producto_info_cafeteria = (
                 Productos_Cafeteria.objects.annotate(
                     total_cantidad=Coalesce(
-                        F("inventario_area__cantidad"),
+                        F("inventario__cantidad"),
                         Value(0, output_field=DecimalField()),
                     )
                     + Coalesce(
-                        F("inventario_almacen__cantidad"),
+                        F("inventario__cantidad"),
                         Value(0, output_field=DecimalField()),
                     ),
                     precio_costo=Subquery(historico_costo),
@@ -147,7 +148,7 @@ def get_reporte(area: str, categoria: str) -> GetReporte:
                     precio_costo=Subquery(historico_costo),
                     precio_venta=Subquery(historico_venta),
                 )
-                .filter(inventario_area__cantidad__gt=0)
+                .filter(inventario__cantidad__gt=0)
                 .values(
                     "id",
                     "precio_costo",
@@ -179,7 +180,7 @@ def get_reporte(area: str, categoria: str) -> GetReporte:
                     precio_costo=Subquery(historico_costo),
                     precio_venta=Subquery(historico_venta),
                 )
-                .filter(inventario_almacen__cantidad__gt=0)
+                .filter(inventario__cantidad__gt=0)
                 .values(
                     "id",
                     "precio_costo",

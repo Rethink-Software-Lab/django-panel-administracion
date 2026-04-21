@@ -345,7 +345,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
         or 0
     )
 
-    gastos_variables = monto_gastos_variables + pago_trabajador + merma + cuenta_casa
+    gastos_variables = monto_gastos_variables + pago_trabajador
 
     # total_gatos = Decimal(total_gastos_fijos) + gastos_variables
     # Esto es hasta que se vuelvan a activar los gastos fijos
