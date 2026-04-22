@@ -432,7 +432,7 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
             }
         ) """
 
-    monto_gastos_variables += costo_ingredientes_cuenta_casa + total_merma
+    """ monto_gastos_variables += costo_ingredientes_cuenta_casa + total_merma """
 
     total = (
         total_productos
@@ -443,7 +443,7 @@ def get_reporte_ventas_cafeteria(desde: date, hasta: date):
         - mano_obra_cuenta_casa
     )
 
-    ganancia = total - total_costo_producto or 0
+    ganancia = total - total_costo_producto or 0 - costo_ingredientes_cuenta_casa - total_merma
 
     return {
         "productos": productos_sin_repeticion,
