@@ -1,7 +1,7 @@
 import datetime
 from ninja import ModelSchema, Schema
 from inventario.models import *
-from typing import List, Optional, Literal, Any, Dict
+from typing import List, Optional, Any, Dict
 from pydantic import condecimal, validator, Field, model_validator
 from decimal import Decimal
 from typing_extensions import Annotated
@@ -141,10 +141,11 @@ class CuentasInCreateEntrada(Schema):
 
 class AddEntradaSchema(Schema):
     metodoPago: str
+    descripcionDeuda: Optional[str] = None
     proveedor: str
     productos: List[ProductosEntradaAlmacenPrincipal]
     comprador: str
-    cuentas: Annotated[List[CuentasInCreateEntrada], Field(min_length=1)]
+    cuentas: List[CuentasInCreateEntrada]
 
     @model_validator(mode="after")
     def validar_cuentas(self):
@@ -154,7 +155,9 @@ class AddEntradaSchema(Schema):
                     raise ValueError(
                         "Cuando hay varias cuentas, todas deben tener cantidad."
                     )
-
+        if(self.metodoPago == METODO_PAGO.DEUDA):
+            if len(self.cuentas) > 0:
+                raise ValueError("Cuentas no pueden haber cuando es deuda.")
         return self
 
 
@@ -395,15 +398,6 @@ class TransferenciasModifySchema(Schema):
     de: int
     para: int
     productos: List[ProductosTransfer]
-
-
-class AjusteSchema(ModelSchema):
-    usuario: Optional[UsuariosSchema] = None
-    productos: List[ProductosDentroDeTransferencia]
-
-    class Meta:
-        model = AjusteInventario
-        fields = "__all__"
 
 
 class ProductosAjuste(Schema):
@@ -678,23 +672,6 @@ class MermaSchema(ModelSchema):
     class Meta:
         model = Merma
         fields = "__all__"
-
-
-class CuentaCasaSchema(ModelSchema):
-    usuario: Optional[UsuariosSchema] = None
-    productos: List[Producto_Salida_Schema]
-    elaboraciones: List[Elaboraciones_Salida_Schema]
-    cantidad_productos: int
-    cantidad_elaboraciones: int
-
-    class Meta:
-        model = CuentaCasa
-        fields = "__all__"
-
-
-class EndpointCuentaCasa(Schema):
-    productos_elaboraciones: List[Productos_Elaboraciones_Schema]
-    cuenta_casa: List[CuentaCasaSchema]
 
 
 class NoRepresentadosSchema(Schema):

@@ -40,6 +40,7 @@ class METODO_PAGO(models.TextChoices):
     EFECTIVO = "EFECTIVO", "Efectivo"
     TRANSFERENCIA = "TRANSFERENCIA", "Transferencia"
     MIXTO = "MIXTO", "Mixto"
+    DEUDA = "DEUDA", "Deuda"
 
 class GastosChoices(models.TextChoices):
     FIJO = "FIJO", "Fijo"
@@ -74,11 +75,17 @@ class TipoTranferenciaChoices(models.TextChoices):
     GASTO_VARIABLE = "GASTO_VARIABLE", "Gasto variable"
     TRANSFERENCIA = "TRANSFERENCIA", "Transferencia"
     ENTRADA = "ENTRADA", "Entrada"
+    PAGO_DEUDA = "PAGO_DEUDA", "Pago de Deuda"
 
 class TIPO_AJUSTE(models.TextChoices):
     MERMA = "MERMA", "Merma"
     CUENTA_CASA = "CUENTA_CASA", "Cuenta Casa"
     ERROR = "ERROR", "Error"
+
+class EstadoDeudaChoices(models.TextChoices):
+    PENDIENTE = "PENDIENTE", "Pendiente"
+    PAGADA_PARCIAL = "PAGADA_PARCIAL", "Pagada Parcialmente"
+    PAGADA = "PAGADA", "Pagada"
 
 class Image(models.Model):
     public_id = models.CharField(max_length=50, unique=True)
@@ -237,7 +244,7 @@ class HistorialPrecioVentaSalon(models.Model):
     fecha_inicio = models.DateTimeField(auto_now_add=True)
 
 class Productos_Cafeteria(models.Model):
-    nombre = models.CharField(max_length=50, blank=False, null=False)
+    nombre = models.CharField(max_length=50, blank=False, null=False, unique=True)
     is_ingrediente = models.BooleanField(default=False)
     unidad = models.CharField(max_length=10, blank=True, null=True)
     active = models.BooleanField(default=True, null=False, blank=False)
@@ -408,13 +415,6 @@ class Transferencia(models.Model):
         verbose_name = "Transferencia"
         verbose_name_plural = "Transferencias"
 
-class AjusteInventario(models.Model):
-    created_at = models.DateTimeField(auto_now_add=True)
-    productos = models.ManyToManyField(Producto, blank=False)
-    motivo = models.CharField(max_length=100, null=False)
-    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="ajuste")
-
-
 
 class Productos_Entradas_Cafeteria(models.Model):
     producto = models.ForeignKey(Productos_Cafeteria, on_delete=models.CASCADE, null=False, blank=False)
@@ -476,16 +476,6 @@ class Ventas_Cafeteria(models.Model):
     efectivo = models.DecimalField(max_digits=7, decimal_places=2, null=True)
     transferencia = models.DecimalField(max_digits=7, decimal_places=2, null=True)
 
-class CuentaCasa(models.Model):
-    created_at = models.DateTimeField(auto_now_add=True)
-    productos = models.ManyToManyField(Productos_Cantidad_Cuenta_Casa, blank=True)
-    elaboraciones = models.ManyToManyField(Elaboraciones_Cantidad_Cuenta_Casa, blank=True)
-    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    is_almacen = models.BooleanField(default=False)
-
-    def __str__(self):
-        return self.created_at.strftime("%d/%m/%Y - %H:%M")
-
 class Gastos(models.Model):
     tipo = models.CharField(max_length=30, choices=GastosChoices.choices, blank=False, null=False)
     areas_venta = models.ManyToManyField(AreaVenta, blank=True)
@@ -500,7 +490,48 @@ class Gastos(models.Model):
     dia_mes = models.IntegerField(null=True, blank=True)
     dia_semana = models.IntegerField(null=True, blank=True)
 
+class Deuda(models.Model):
+    proveedor = models.ForeignKey(Proveedor, on_delete=models.CASCADE, related_name="deudas")
 
+    entrada_almacen = models.ForeignKey(EntradaAlmacen, on_delete=models.CASCADE, null=True, blank=True, related_name="deuda")
+    entrada_cafeteria = models.ForeignKey(Entradas_Cafeteria, on_delete=models.CASCADE, null=True, blank=True, related_name="deuda")
+    
+    monto_total = models.DecimalField(max_digits=12, decimal_places=2, blank=False, null=False)
+    monto_pagado = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), blank=False, null=False)
+    moneda = models.CharField(max_length=3, choices=MonedaChoices.choices, default=MonedaChoices.CUP)
+    
+    estado = models.CharField(max_length=30, choices=EstadoDeudaChoices.choices, default=EstadoDeudaChoices.PENDIENTE)
+    
+    descripcion = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    usuario = models.ForeignKey(User, on_delete=models.RESTRICT)
+
+    @property
+    def saldo_pendiente(self):
+        return self.monto_total - self.monto_pagado
+
+    def __str__(self):
+        return f"Deuda con {self.proveedor.nombre} - Pendiente: {self.saldo_pendiente}"
+
+    class Meta:
+        verbose_name = "Deuda"
+        verbose_name_plural = "Deudas"
+        ordering = ("-created_at",)
+
+class PagoDeuda(models.Model):
+    deuda = models.ForeignKey(Deuda, on_delete=models.CASCADE, related_name="pagos")
+    cuenta = models.ForeignKey(Cuentas, on_delete=models.RESTRICT)
+    monto = models.DecimalField(max_digits=12, decimal_places=2, blank=False, null=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    usuario = models.ForeignKey(User, on_delete=models.RESTRICT)
+    
+    def __str__(self):
+        return f"Pago de {self.monto} a {self.deuda.proveedor.nombre}"
+
+    class Meta:
+        verbose_name = "Pago de Deuda"
+        verbose_name_plural = "Pagos de Deudas"
+        
 class Transacciones(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     cantidad = models.DecimalField(max_digits=12, decimal_places=2, blank=False, null=False)
@@ -516,12 +547,14 @@ class Transacciones(models.Model):
     entrada = models.ForeignKey(EntradaAlmacen, on_delete=models.CASCADE, null=True, blank=True)
     entrada_cafeteria = models.ForeignKey(Entradas_Cafeteria, on_delete=models.CASCADE, null=True, blank=True)
     gasto = models.ForeignKey(Gastos, on_delete=models.CASCADE, null=True, blank=True)
-    cuenta_casa = models.ForeignKey(CuentaCasa, on_delete=models.CASCADE, null=True, blank=True)
     merma = models.ForeignKey(Merma, on_delete=models.CASCADE, null=True, blank=True)
     cuenta_origen = models.ForeignKey(Cuentas, on_delete=models.CASCADE, null=True, blank=True, related_name="cuenta_origen")
     cuenta_destino = models.ForeignKey(Cuentas, on_delete=models.CASCADE, null=True, blank=True, related_name="cuenta_destino")
     tipo_cambio = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    pago_deuda = models.ForeignKey(PagoDeuda, on_delete=models.CASCADE, null=True, blank=True)
 
     class Meta:
         verbose_name = "Transacción"
         verbose_name_plural = "Transacciones"
+
+
