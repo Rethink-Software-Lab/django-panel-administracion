@@ -4,6 +4,7 @@ from django.db.models import F
 from ninja.errors import HttpError
 from inventario.models import (
     CuentasChoices,
+    EstadoDeudaChoices,
     ProductoInfo,
     EntradaAlmacen,
     Producto,
@@ -16,6 +17,7 @@ from inventario.models import (
     TipoTranferenciaChoices,
     Cuentas,
     METODO_PAGO,
+    Deuda
 )
 from ..schema import (
     AddEntradaSchema,
@@ -154,12 +156,13 @@ class EntradasController:
         response = []
         sum_precio_costo, cantidad_productos = sumatoria_precio_costo(data.productos)
 
-        if len(data.cuentas) == 1:
-            data.cuentas[0].cantidad = Decimal(sum_precio_costo)
+        if(data.metodoPago != METODO_PAGO.DEUDA):
+            if len(data.cuentas) == 1:
+                data.cuentas[0].cantidad = Decimal(sum_precio_costo)
 
-        procesar_rebajas_cuentas(
-            data.cuentas, data.metodoPago, Decimal(sum_precio_costo)
-        )
+            procesar_rebajas_cuentas(
+                data.cuentas, data.metodoPago, Decimal(sum_precio_costo)
+            )
 
         try:
             with transaction.atomic():
@@ -171,9 +174,11 @@ class EntradasController:
                 )
                 entrada.save()
 
-                rebajar_saldo(data.cuentas)
-
-                crear_transacciones(entrada, data.cuentas, user, cantidad_productos)
+                if(data.metodoPago != METODO_PAGO.DEUDA):
+                    rebajar_saldo(data.cuentas)
+                    crear_transacciones(entrada, data.cuentas, user, cantidad_productos)
+                else:
+                    Deuda.objects.create(proveedor=proveedor, entrada_almacen=entrada, monto_total=sum_precio_costo, usuario=user, descripcion=data.descripcionDeuda)
 
                 for producto in data.productos:
                     producto_info = get_object_or_404(
@@ -246,15 +251,16 @@ class EntradasController:
             with transaction.atomic():
                 entrada = get_object_or_404(EntradaAlmacen, pk=id)
 
-                transacciones = Transacciones.objects.filter(entrada=entrada)
+                if entrada.metodo_pago != METODO_PAGO.DEUDA:
+                    transacciones = Transacciones.objects.filter(entrada=entrada)
 
-                for transaccion in transacciones:
-                    cuenta = get_object_or_404(Cuentas, pk=transaccion.cuenta.pk)
+                    for transaccion in transacciones:
+                        cuenta = get_object_or_404(Cuentas, pk=transaccion.cuenta.pk)
 
-                    cuenta.saldo += transaccion.cantidad
-                    cuenta.save()
+                        cuenta.saldo += transaccion.cantidad
+                        cuenta.save()
 
-                transacciones.delete()
+                    transacciones.delete()
 
                 productos_ids = Producto.objects.filter(entrada=entrada).values_list(
                     "id", flat=True
@@ -272,9 +278,15 @@ class EntradasController:
                     producto__id__in=productos_ids
                 ).distinct()
 
-                ventas.delete()
-                salidas.delete()
-                salidas_revoltosa.delete()
+                if salidas or salidas_revoltosa or ventas:
+                    raise HttpError(400, "Algunos productos ya no se encuentran en el almacén.")
+
+                if entrada.metodo_pago == METODO_PAGO.DEUDA:
+                    deuda = get_object_or_404(Deuda, entrada_almacen=entrada)
+                    if Decimal(deuda.monto_pagado) != Decimal(0):
+                        raise HttpError(400, "No se puede eliminar la entrada porque se ha amortizado la deuda.")
+                    else:
+                        deuda.delete()
                 entrada.delete()
         except Exception as e:
             raise HttpError(400, f"Error al eliminar la entrada: {str(e)}")

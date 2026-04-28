@@ -25,7 +25,6 @@ from inventario_v2.controllers.productos import ProductoController
 from inventario_v2.controllers.usuarios import UsuariosController
 from inventario_v2.controllers.reportes import ReportesController
 from .controllers.transferencias import TransferenciasController
-from .controllers.ajuste_inventario import AjusteInventarioController
 from .controllers.tarjetas import TarjetasController
 from .controllers.cafeteria import CafeteriaController
 
@@ -128,7 +127,6 @@ app.register_controllers(
     UsuariosController,
     ReportesController,
     TransferenciasController,
-    AjusteInventarioController,
     TarjetasController,
     CafeteriaController,
 )
