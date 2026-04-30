@@ -148,7 +148,7 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
             parse_desde,
             parse_hasta,
         ),
-        "producto__ajusteinventario__isnull": True,
+        "producto__merma__isnull": True,
     }
 
     if area != "general":

@@ -58,7 +58,6 @@ def get_reporte(area: str, categoria: str) -> GetReporte:
         productos = (
             ProductoInfo.objects.filter(
                 producto__venta__isnull=True,
-                producto__ajusteinventario__isnull=True,
                 producto__merma__isnull=True,
                 **filters,
             )

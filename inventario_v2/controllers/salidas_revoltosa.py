@@ -38,7 +38,7 @@ class SalidasRevoltosaController:
                 ProductoInfo.objects.filter(
                     producto__area_venta__isnull=True,
                     producto__almacen_revoltosa=True,
-                    producto__ajusteinventario__isnull=True,
+                    producto__merma__isnull=True,
                 )
                 .only("descripcion", "categoria")
                 .distinct()
@@ -84,7 +84,7 @@ class SalidasRevoltosaController:
 
             productos = filtro3.filter(
                 almacen_revoltosa=True,
-                ajusteinventario__isnull=True,
+                merma__isnull=True,
             )
 
             if productos.count() < len(ids_unicos):
@@ -116,7 +116,7 @@ class SalidasRevoltosaController:
                     area_venta__isnull=True,
                     almacen_revoltosa=True,
                     info=producto_info,
-                    ajusteinventario__isnull=True,
+                    merma__isnull=True,
                 )[:cantidad]
 
                 if productos.count() < cantidad:

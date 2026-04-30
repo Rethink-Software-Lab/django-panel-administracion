@@ -31,7 +31,7 @@ class TransferenciasController:
                             area_venta=area_origen,
                             almacen_revoltosa=False,
                             venta__isnull=True,
-                            ajusteinventario__isnull=True,
+                            merma__isnull=True,
                         )[: producto["cantidad"]]
 
                         if filtro.count() < producto["cantidad"]:
@@ -57,7 +57,7 @@ class TransferenciasController:
                             area_venta=area_origen,
                             almacen_revoltosa=False,
                             venta__isnull=True,
-                            ajusteinventario__isnull=True,
+                            merma__isnull=True,
                         )
                         if zapatos.count() < len(zapatos_ids):
                             raise HttpError(
@@ -98,7 +98,7 @@ class TransferenciasController:
             area_venta=transferencia.para,
             venta__isnull=True,
             almacen_revoltosa=False,
-            ajusteinventario__isnull=True,
+            merma__isnull=True,
         )
 
         if productos_to_update.count() != productos.count():

@@ -434,7 +434,6 @@ class GraficasController:
         total_zapatos = Producto.objects.filter(
             info__categoria__nombre="Zapatos",
             venta__isnull=True,
-            ajusteinventario__isnull=True,
         ).count()
         respuestas["total_zapatos"] = total_zapatos
 
