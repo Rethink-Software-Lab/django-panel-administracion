@@ -25,7 +25,6 @@ class InventarioController:
                 producto__venta__isnull=True,
                 producto__area_venta__isnull=True,
                 producto__almacen_revoltosa=False,
-                producto__ajusteinventario__isnull=True,
                 producto__merma__isnull=True,
             )
             .annotate(
@@ -46,7 +45,6 @@ class InventarioController:
             area_venta__isnull=True,
             info__categoria__nombre="Zapatos",
             almacen_revoltosa=False,
-            ajusteinventario__isnull=True,
             merma__isnull=True,
         ).values(
             "id",
@@ -76,7 +74,6 @@ class InventarioController:
                 producto__venta__isnull=True,
                 producto__area_venta__isnull=True,
                 producto__almacen_revoltosa=True,
-                producto__ajusteinventario__isnull=True,
                 producto__merma__isnull=True,
             )
             .annotate(
@@ -96,7 +93,6 @@ class InventarioController:
             area_venta__isnull=True,
             almacen_revoltosa=True,
             info__categoria__nombre="Zapatos",
-            ajusteinventario__isnull=True,
             merma__isnull=True,
         ).values(
             "id",
