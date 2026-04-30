@@ -214,7 +214,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class ProductoInfo(models.Model):
-    descripcion = models.CharField(max_length=100, blank=False, null=False)
+    descripcion = models.CharField(max_length=100, blank=False, null=False, unique=True)
     localizacion = models.CharField(max_length=100, blank=True, null=True)
     imagen = models.ForeignKey(Image, on_delete=models.SET_NULL, null=True, blank=True)
     pago_trabajador = models.IntegerField()
