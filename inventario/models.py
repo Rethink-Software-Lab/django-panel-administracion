@@ -552,6 +552,7 @@ class Transacciones(models.Model):
     cuenta_destino = models.ForeignKey(Cuentas, on_delete=models.CASCADE, null=True, blank=True, related_name="cuenta_destino")
     tipo_cambio = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     pago_deuda = models.ForeignKey(PagoDeuda, on_delete=models.CASCADE, null=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Transacción"
