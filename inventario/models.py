@@ -558,4 +558,6 @@ class Transacciones(models.Model):
         verbose_name = "Transacción"
         verbose_name_plural = "Transacciones"
 
-
+class HistorialSaldoInventarios(models.Model):
+    saldo = models.DecimalField(max_digits=12, decimal_places=2, blank=False, null=False)
+    fecha = models.DateField(auto_now_add=True, db_index=True)
