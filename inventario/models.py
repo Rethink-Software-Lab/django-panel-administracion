@@ -475,6 +475,13 @@ class Ventas_Cafeteria(models.Model):
     metodo_pago = models.CharField(max_length=30, choices=METODO_PAGO.choices, blank=False, null=False)
     efectivo = models.DecimalField(max_digits=7, decimal_places=2, null=True)
     transferencia = models.DecimalField(max_digits=7, decimal_places=2, null=True)
+    ubicacion = models.ForeignKey(
+        Ubicaciones,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='ventas_cafeteria',
+    )
 
 class Gastos(models.Model):
     tipo = models.CharField(max_length=30, choices=GastosChoices.choices, blank=False, null=False)

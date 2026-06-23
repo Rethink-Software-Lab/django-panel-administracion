@@ -307,36 +307,41 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
 
         ventas_por_usuario[usuario] += producto.get("pago", 0)
 
-    precio_historico = HistorialPrecioCostoSalon.objects.filter(
-        producto_info=OuterRef('info'),
-        fecha_inicio__lte=OuterRef('merma__created_at')
-    ).order_by('-fecha_inicio').values('precio')[:1]
+    precio_historico = (
+        HistorialPrecioCostoSalon.objects.filter(
+            producto_info=OuterRef("info"),
+            fecha_inicio__lte=OuterRef("merma__created_at"),
+        )
+        .order_by("-fecha_inicio")
+        .values("precio")[:1]
+    )
 
     filtros_merma_cuenta_casa: dict[str, str | tuple[date, date] | bool] = {
-    'merma__created_at__date__range': (parse_desde, parse_hasta),
-    'merma__ubicacion__isnull': True
+        "merma__created_at__date__range": (parse_desde, parse_hasta),
+        "merma__ubicacion__isnull": True,
     }
 
     if area != "general":
-        filtros_merma_cuenta_casa['merma__area__id'] = area
+        filtros_merma_cuenta_casa["merma__area__id"] = area
 
-    cuenta_casa = Producto.objects.filter(
-        merma__tipo=TIPO_AJUSTE.CUENTA_CASA,
-        **filtros_merma_cuenta_casa,
-    ).annotate(
-        precio_costo_real=Subquery(precio_historico)
-    ).aggregate(
-        total=Sum('precio_costo_real')
-    )['total'] or 0
+    cuenta_casa = (
+        Producto.objects.filter(
+            merma__tipo=TIPO_AJUSTE.CUENTA_CASA,
+            **filtros_merma_cuenta_casa,
+        )
+        .annotate(precio_costo_real=Subquery(precio_historico))
+        .aggregate(total=Sum("precio_costo_real"))["total"]
+        or 0
+    )
 
-    merma = Producto.objects.filter(
-        merma__tipo=TIPO_AJUSTE.MERMA,
-        **filtros_merma_cuenta_casa
-    ).annotate(
-        precio_costo_real=Subquery(precio_historico)
-    ).aggregate(
-        total=Sum('precio_costo_real')
-    )['total'] or 0
+    merma = (
+        Producto.objects.filter(
+            merma__tipo=TIPO_AJUSTE.MERMA, **filtros_merma_cuenta_casa
+        )
+        .annotate(precio_costo_real=Subquery(precio_historico))
+        .aggregate(total=Sum("precio_costo_real"))["total"]
+        or 0
+    )
 
     monto_gastos_variables = (
         gastos_variables_queryset_sin_pago_trabajador.aggregate(total=Sum("cantidad"))[
@@ -403,15 +408,14 @@ def get_reporte_ventas(parse_desde: date, parse_hasta: date, area: str):
             "merma": reporte_cafeteria.get("merma") + merma,
             "ventas_por_usuario": ventas_por_usuario,
             "total": {
-                "general": total
-                + reporte_cafeteria.get("total").get("general"),
+                "general": total + reporte_cafeteria.get("total").get("general"),
                 "efectivo": total_efectivo
-                + reporte_cafeteria.get("total").get("efectivo")
-                ,
+                + reporte_cafeteria.get("total").get("efectivo"),
                 "transferencia": total_transferencia
                 + reporte_cafeteria.get("total").get("transferencia"),
             },
-            "costo_productos": costo_productos + reporte_cafeteria.get("costo_productos"),
+            "costo_productos": costo_productos
+            + reporte_cafeteria.get("costo_productos"),
             "ganancia": ganancia + reporte_cafeteria.get("ganancia"),
             "area": "general",
         }
