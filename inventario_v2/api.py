@@ -18,14 +18,11 @@ from django.db.models import (
 
 from inventario_v2.controllers.entradas import EntradasController
 from inventario_v2.controllers.graficas import GraficasController
-from inventario_v2.controllers.salidas import SalidasController
 from inventario_v2.controllers.salidas_revoltosa import SalidasRevoltosaController
 from inventario_v2.controllers.inventario import InventarioController
 from inventario_v2.controllers.productos import ProductoController
 from inventario_v2.controllers.usuarios import UsuariosController
-from inventario_v2.controllers.reportes import ReportesController
 from .controllers.transferencias import TransferenciasController
-from .controllers.tarjetas import TarjetasController
 from .controllers.cafeteria import CafeteriaController
 
 
@@ -120,13 +117,10 @@ def nR(request):
 app.register_controllers(
     EntradasController,
     GraficasController,
-    SalidasController,
     SalidasRevoltosaController,
     InventarioController,
     ProductoController,
     UsuariosController,
-    ReportesController,
     TransferenciasController,
-    TarjetasController,
     CafeteriaController,
 )
