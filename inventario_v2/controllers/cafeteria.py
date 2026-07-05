@@ -9,14 +9,10 @@ from inventario.models import (
     Productos_Cafeteria,
     PrecioElaboracion,
 )
-from inventario_v2.controllers.utils_reportes.reporte_ventas_cafeteria import (
-    get_reporte_ventas_cafeteria,
-)
 
 from ..schema import (
     ElaboracionesEndpoint,
     Add_Elaboracion,
-    CafeteriaReporteSchema,
 )
 from ninja_extra import api_controller, route
 from django.shortcuts import get_object_or_404
@@ -33,17 +29,6 @@ class CafeteriaController:
         productos = Productos_Cafeteria.objects.all()
 
         return {"elaboraciones": elaboraciones, "productos": productos}
-
-    @route.get("reportes/", response=CafeteriaReporteSchema)
-    def get_reporte(
-        self,
-        desde: datetime = datetime.today(),
-        hasta: datetime = datetime.today(),
-    ):
-        parse_desde = desde.date()
-        parse_hasta = hasta.date()
-
-        return get_reporte_ventas_cafeteria(parse_desde, parse_hasta)
 
     @route.post("elaboraciones/")
     def add_elaboracion(self, request, body: Add_Elaboracion):

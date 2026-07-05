@@ -633,21 +633,6 @@ class GastosReporteCafeteria(Schema):
     cantidad: float
 
 
-class CafeteriaReporteSchema(Schema):
-    productos: List[Productos_Reportes_Cafeteria]
-    elaboraciones: List[Elaboraciones_Reportes_Cafeteria]
-    total: TotalReporteCafeteria
-    subtotal: SubtotalReporteCafeteria
-    gastos_variables: List[GastosReporteCafeteria]
-    gastos_fijos: List[GastosReporteCafeteria]
-    mano_obra: Decimal
-    mano_obra_cuenta_casa: Decimal
-    merma: Decimal
-    cuenta_casa: Decimal
-    costo_productos: Decimal
-    ganancia: Decimal
-
-
 class Producto_Salida_Schema(Schema):
     producto: Producto_Entrada
     cantidad: Decimal
