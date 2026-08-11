@@ -358,6 +358,7 @@ class Ventas(models.Model):
     efectivo = models.DecimalField(max_digits=7, decimal_places=2, null=True)
     transferencia = models.DecimalField(max_digits=7, decimal_places=2, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
 class SalidaAlmacen(models.Model):
     area_venta = models.ForeignKey(AreaVenta, on_delete=models.CASCADE, null=True)
@@ -482,6 +483,7 @@ class Ventas_Cafeteria(models.Model):
         on_delete=models.SET_NULL,
         related_name='ventas_cafeteria',
     )
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
 class Gastos(models.Model):
     tipo = models.CharField(max_length=30, choices=GastosChoices.choices, blank=False, null=False)
@@ -560,6 +562,8 @@ class Transacciones(models.Model):
     tipo_cambio = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     pago_deuda = models.ForeignKey(PagoDeuda, on_delete=models.CASCADE, null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
+    es_reversion = models.BooleanField(default=False)
+    transaccion_origen = models.ForeignKey('self', on_delete=models.PROTECT, null=True, blank=True, related_name='reversiones')  
 
     class Meta:
         verbose_name = "Transacción"
