@@ -460,6 +460,7 @@ class Entradas_Cafeteria(models.Model):
     proveedor_no_cuenta_cup = models.CharField(max_length=30, blank=True, null=True)
     proveedor_no_cuenta_mayorista = models.CharField(max_length=30, blank=True, null=True)
     comprador = models.CharField(max_length=30, blank=False, null=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
 class Salidas_Cafeteria(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
